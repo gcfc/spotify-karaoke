@@ -1,0 +1,349 @@
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-card: #1a1a26;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0b8;
+  --text-dim: #4a4a60;
+  --accent: #1db954;
+  --accent-glow: rgba(29, 185, 84, 0.4);
+  --highlight: #ffffff;
+  --highlight-glow: rgba(255, 255, 255, 0.2);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.screen {
+  display: none;
+  height: 100%;
+}
+
+.screen.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ─── Login Screen ─── */
+
+#login-screen {
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, #1a1a2e 0%, var(--bg-primary) 70%);
+}
+
+.login-content {
+  text-align: center;
+}
+
+.logo {
+  margin-bottom: 2.5rem;
+  color: var(--accent);
+}
+
+.logo h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  color: var(--text-primary);
+}
+
+.logo p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  font-weight: 300;
+}
+
+.btn-connect {
+  display: inline-block;
+  padding: 0.9rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-connect:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 24px var(--accent-glow);
+}
+
+.btn-connect:active {
+  transform: scale(0.98);
+}
+
+/* ─── Now Playing Bar ─── */
+
+#now-playing-bar {
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.75rem 1.25rem 0.5rem;
+}
+
+.now-playing-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.album-art {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+
+.album-art[src=""] {
+  visibility: hidden;
+}
+
+.track-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.track-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artist-name {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-disconnect {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-disconnect:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Progress Bar ─── */
+
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.progress-time {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  min-width: 2.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-time:last-child {
+  text-align: right;
+}
+
+.progress-bar-track {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s linear;
+}
+
+/* ─── Lyrics Container ─── */
+
+.lyrics-wrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.lyrics-container {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: auto;
+}
+
+.lyrics-content {
+  padding: 0 1.5rem;
+}
+
+.lyrics-spacer {
+  height: 40vh;
+}
+
+/* ─── Lyrics Lines ─── */
+
+.lyrics-line {
+  padding: 0.6rem 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-dim);
+  transition: color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+  cursor: default;
+  opacity: 0.5;
+}
+
+.lyrics-line.active {
+  color: var(--highlight);
+  opacity: 1;
+  transform: scale(1.02);
+  transform-origin: left center;
+}
+
+.lyrics-line.past {
+  color: var(--text-secondary);
+  opacity: 0.45;
+}
+
+/* ─── Word-Synced Mode ─── */
+
+.lyrics-line .word {
+  display: inline;
+  transition: color 0.15s ease, text-shadow 0.15s ease;
+}
+
+.lyrics-line.active .word {
+  color: var(--text-dim);
+}
+
+.lyrics-line.active .word.sung {
+  color: var(--highlight);
+  text-shadow: 0 0 20px var(--highlight-glow);
+}
+
+/* ─── Plain / Unsynced Lyrics ─── */
+
+.lyrics-plain {
+  white-space: pre-wrap;
+  font-size: 1.3rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  padding: 2rem 0;
+}
+
+/* ─── Status Message ─── */
+
+.status-message {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.status-message p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 2rem;
+}
+
+/* ─── Scrollbar ─── */
+
+.lyrics-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.lyrics-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lyrics-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 600px) {
+  .lyrics-line {
+    font-size: 1.25rem;
+    padding: 0.45rem 0;
+  }
+
+  .lyrics-plain {
+    font-size: 1.1rem;
+  }
+
+  .logo h1 {
+    font-size: 1.5rem;
+  }
+
+  #now-playing-bar {
+    padding: 0.6rem 1rem 0.4rem;
+  }
+
+  .album-art {
+    width: 40px;
+    height: 40px;
+  }
+
+  .lyrics-content {
+    padding: 0 1rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .lyrics-content {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .lyrics-line {
+    font-size: 2rem;
+    padding: 0.7rem 0;
+  }
+}
