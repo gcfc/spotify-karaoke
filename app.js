@@ -30,6 +30,7 @@ const lyricsContainer = $('#lyrics-container');
 const lyricsLines = $('#lyrics-lines');
 const statusMessage = $('#status-message');
 const statusText = $('#status-text');
+const lyricsSourceEl = $('#lyrics-source');
 
 // ============================================================
 //  State
@@ -261,6 +262,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   lyrics = null;
   syncType = null;
   clearLyricsDisplay();
+  hideLyricsSource();
   showStatus('Loading lyrics...');
 
   // Primary: Cloudflare Worker (Spotify internal — word or line synced)
@@ -271,6 +273,8 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
       syncType = sType;
       lyrics = workerData.lyrics.lines;
       renderSyncedLyrics();
+      const modeLabel = sType === 'WORD_SYNCED' ? 'word-synced' : 'line-synced';
+      showLyricsSource(`Spotify · ${modeLabel}`);
       return;
     }
   }
@@ -283,6 +287,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
       if (lyrics.length > 0) {
         syncType = 'LINE_SYNCED';
         renderSyncedLyrics();
+        showLyricsSource('LRCLIB · line-synced');
         return;
       }
     }
@@ -290,6 +295,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
       syncType = 'PLAIN';
       lyrics = lrcData.plainLyrics;
       renderPlainLyrics(lrcData.plainLyrics);
+      showLyricsSource('LRCLIB · plain');
       return;
     }
   }
@@ -513,6 +519,16 @@ function showStatus(msg) {
 
 function hideStatus() {
   statusMessage.classList.add('hidden');
+}
+
+function showLyricsSource(label) {
+  lyricsSourceEl.textContent = label;
+  lyricsSourceEl.classList.remove('hidden');
+}
+
+function hideLyricsSource() {
+  lyricsSourceEl.classList.add('hidden');
+  lyricsSourceEl.textContent = '';
 }
 
 function showLoginScreen() {
