@@ -5,13 +5,17 @@
 
 export async function fetchLyricsFromWorker(workerUrl, trackId) {
   if (!workerUrl) return null;
+  const url = `${workerUrl}/lyrics?track_id=${trackId}`;
+  console.debug('[lyrics] Worker:', url);
   try {
-    const resp = await fetch(`${workerUrl}/lyrics?track_id=${trackId}`);
-    if (!resp.ok) return null;
+    const resp = await fetch(url);
+    if (!resp.ok) { console.debug('[lyrics] Worker: HTTP', resp.status); return null; }
     const data = await resp.json();
-    if (!data || !data.lyrics || !data.lyrics.lines) return null;
+    if (!data || !data.lyrics || !data.lyrics.lines) { console.debug('[lyrics] Worker: no lyrics in response'); return null; }
+    console.debug('[lyrics] Worker: got', data.lyrics.syncType);
     return data;
-  } catch {
+  } catch (err) {
+    console.debug('[lyrics] Worker: error', err.message);
     return null;
   }
 }
@@ -26,35 +30,52 @@ export async function fetchLyricsFromLRCLIB(trackName, artistName, durationSec) 
 
     const lrcHeaders = { 'Lrclib-Client': 'SpotifyKaraoke/1.0' };
 
-    let resp = await fetch('https://lrclib.net/api/get?' + params.toString(), { headers: lrcHeaders });
+    const getUrl = 'https://lrclib.net/api/get?' + params.toString();
+    console.debug('[lyrics] LRCLIB get:', getUrl);
+    let resp = await fetch(getUrl, { headers: lrcHeaders });
     if (resp.ok) {
       const data = await resp.json();
-      if (data.syncedLyrics || data.plainLyrics) return data;
+      if (data.syncedLyrics || data.plainLyrics) {
+        console.debug('[lyrics] LRCLIB get: found', data.syncedLyrics ? 'synced' : 'plain');
+        return data;
+      }
+      console.debug('[lyrics] LRCLIB get: response OK but no lyrics fields');
+    } else {
+      console.debug('[lyrics] LRCLIB get: HTTP', resp.status);
     }
 
     const q = `${trackName} ${artistName}`;
-    resp = await fetch('https://lrclib.net/api/search?q=' + encodeURIComponent(q), { headers: lrcHeaders });
-    if (!resp.ok) return null;
+    const searchUrl = 'https://lrclib.net/api/search?q=' + encodeURIComponent(q);
+    console.debug('[lyrics] LRCLIB search:', searchUrl);
+    resp = await fetch(searchUrl, { headers: lrcHeaders });
+    if (!resp.ok) { console.debug('[lyrics] LRCLIB search: HTTP', resp.status); return null; }
     const results = await resp.json();
+    console.debug('[lyrics] LRCLIB search:', results.length, 'results');
     if (results.length > 0) {
       const best = results.find((r) => r.syncedLyrics) || results[0];
       return best;
     }
     return null;
-  } catch {
+  } catch (err) {
+    console.debug('[lyrics] LRCLIB: error', err.message);
     return null;
   }
 }
 
 export async function fetchLyricsFromKKBOX(workerUrl, trackName, artistName) {
   if (!workerUrl) return null;
+  const params = new URLSearchParams({ title: trackName, artist: artistName });
+  const url = `${workerUrl}/kkbox-lyrics?${params}`;
+  console.debug('[lyrics] KKBOX:', url);
   try {
-    const params = new URLSearchParams({ title: trackName, artist: artistName });
-    const resp = await fetch(`${workerUrl}/kkbox-lyrics?${params}`);
-    if (!resp.ok) return null;
+    const resp = await fetch(url);
+    if (!resp.ok) { console.debug('[lyrics] KKBOX: HTTP', resp.status); return null; }
     const data = await resp.json();
+    if (data.plainLyrics) { console.debug('[lyrics] KKBOX: found plain lyrics'); }
+    else { console.debug('[lyrics] KKBOX: response OK but no plainLyrics'); }
     return data.plainLyrics || null;
-  } catch {
+  } catch (err) {
+    console.debug('[lyrics] KKBOX: error', err.message);
     return null;
   }
 }
@@ -79,6 +100,8 @@ export function parseLRC(lrcString) {
  * Returns { lyrics, syncType, source } or { lyrics: null } when nothing found.
  */
 export async function fetchLyrics(workerUrl, trackId, trackName, artistName, trackDurationMs) {
+  console.debug('[lyrics] fetchLyrics called:', { trackId, trackName, artistName, trackDurationMs });
+
   // 1. Spotify internal via Cloudflare Worker (word or line synced)
   const workerData = await fetchLyricsFromWorker(workerUrl, trackId);
   if (workerData && workerData.lyrics) {
