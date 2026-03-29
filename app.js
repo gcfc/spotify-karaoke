@@ -196,7 +196,7 @@ async function fetchCurrentlyPlaying() {
 }
 
 // ============================================================
-//  Lyrics Fetching — Worker (primary) + LRCLIB (fallback)
+//  Lyrics Fetching — Worker (primary) + LRCLIB + KKBOX (fallbacks)
 // ============================================================
 
 async function fetchLyricsFromWorker(trackId) {
@@ -238,6 +238,19 @@ async function fetchLyricsFromLRCLIB(trackName, artistName, durationSec) {
       return best;
     }
     return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchLyricsFromKKBOX(trackName, artistName) {
+  if (!CONFIG.WORKER_URL) return null;
+  try {
+    const params = new URLSearchParams({ title: trackName, artist: artistName });
+    const resp = await fetch(`${CONFIG.WORKER_URL}/kkbox-lyrics?${params}`);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.plainLyrics || null;
   } catch {
     return null;
   }
@@ -300,6 +313,16 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
     }
   }
 
+  // Lowest-priority fallback: KKBOX scrape
+  const kkboxLyrics = await fetchLyricsFromKKBOX(trackName, artistName);
+  if (kkboxLyrics) {
+    syncType = 'PLAIN';
+    lyrics = kkboxLyrics;
+    renderPlainLyrics(kkboxLyrics);
+    showLyricsSource('KKBOX · plain');
+    return;
+  }
+
   showStatus('No lyrics available for this track');
 }
 
@@ -357,13 +380,14 @@ function startAnimationLoop() {
 
   function tick() {
     rafId = requestAnimationFrame(tick);
-    if (!lyrics || syncType === 'PLAIN') return;
 
     const now = Date.now();
     const estimated = isPlaying
       ? lastProgressMs + (now - lastPollTimestamp)
       : lastProgressMs;
     updateProgressUI(estimated, durationMs);
+
+    if (!lyrics || syncType === 'PLAIN') return;
     highlightLyrics(estimated);
   }
 
