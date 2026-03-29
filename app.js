@@ -1,3 +1,5 @@
+import { fetchLyrics } from './lyrics.js';
+
 // ============================================================
 //  Configuration — fill these in before deploying
 // ============================================================
@@ -196,80 +198,8 @@ async function fetchCurrentlyPlaying() {
 }
 
 // ============================================================
-//  Lyrics Fetching — Worker (primary) + LRCLIB + KKBOX (fallbacks)
+//  Lyrics Fetching — delegates to lyrics.js module
 // ============================================================
-
-async function fetchLyricsFromWorker(trackId) {
-  if (!CONFIG.WORKER_URL) return null;
-  try {
-    const resp = await fetch(`${CONFIG.WORKER_URL}/lyrics?track_id=${trackId}`);
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    if (!data || !data.lyrics || !data.lyrics.lines) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchLyricsFromLRCLIB(trackName, artistName, durationSec) {
-  try {
-    const params = new URLSearchParams({
-      track_name: trackName,
-      artist_name: artistName,
-    });
-    if (durationSec) params.set('duration', String(Math.round(durationSec)));
-
-    const lrcHeaders = { 'Lrclib-Client': 'SpotifyKaraoke/1.0' };
-
-    let resp = await fetch('https://lrclib.net/api/get?' + params.toString(), { headers: lrcHeaders });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.syncedLyrics || data.plainLyrics) return data;
-    }
-
-    // Fallback: search endpoint
-    const q = `${trackName} ${artistName}`;
-    resp = await fetch('https://lrclib.net/api/search?q=' + encodeURIComponent(q), { headers: lrcHeaders });
-    if (!resp.ok) return null;
-    const results = await resp.json();
-    if (results.length > 0) {
-      const best = results.find((r) => r.syncedLyrics) || results[0];
-      return best;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchLyricsFromKKBOX(trackName, artistName) {
-  if (!CONFIG.WORKER_URL) return null;
-  try {
-    const params = new URLSearchParams({ title: trackName, artist: artistName });
-    const resp = await fetch(`${CONFIG.WORKER_URL}/kkbox-lyrics?${params}`);
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    return data.plainLyrics || null;
-  } catch {
-    return null;
-  }
-}
-
-function parseLRC(lrcString) {
-  const lines = [];
-  for (const raw of lrcString.split('\n')) {
-    const match = raw.match(/^\[(\d+):(\d+)\.(\d+)\]\s*(.*)/);
-    if (!match) continue;
-    const min = parseInt(match[1], 10);
-    const sec = parseInt(match[2], 10);
-    const ms = parseInt(match[3].padEnd(3, '0').slice(0, 3), 10);
-    const timeMs = min * 60000 + sec * 1000 + ms;
-    const text = match[4].trim();
-    if (text) lines.push({ startTimeMs: timeMs, words: text });
-  }
-  return lines;
-}
 
 async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs) {
   lyrics = null;
@@ -278,52 +208,22 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   hideLyricsSource();
   showStatus('Loading lyrics...');
 
-  // Primary: Cloudflare Worker (Spotify internal — word or line synced)
-  const workerData = await fetchLyricsFromWorker(trackId);
-  if (workerData && workerData.lyrics) {
-    const sType = workerData.lyrics.syncType;
-    if (sType === 'WORD_SYNCED' || sType === 'LINE_SYNCED') {
-      syncType = sType;
-      lyrics = workerData.lyrics.lines;
-      renderSyncedLyrics();
-      const modeLabel = sType === 'WORD_SYNCED' ? 'word-synced' : 'line-synced';
-      showLyricsSource(`Spotify · ${modeLabel}`);
-      return;
-    }
-  }
+  const result = await fetchLyrics(CONFIG.WORKER_URL, trackId, trackName, artistName, trackDurationMs);
 
-  // Fallback: LRCLIB
-  const lrcData = await fetchLyricsFromLRCLIB(trackName, artistName, trackDurationMs / 1000);
-  if (lrcData) {
-    if (lrcData.syncedLyrics) {
-      lyrics = parseLRC(lrcData.syncedLyrics);
-      if (lyrics.length > 0) {
-        syncType = 'LINE_SYNCED';
-        renderSyncedLyrics();
-        showLyricsSource('LRCLIB · line-synced');
-        return;
-      }
-    }
-    if (lrcData.plainLyrics) {
-      syncType = 'PLAIN';
-      lyrics = lrcData.plainLyrics;
-      renderPlainLyrics(lrcData.plainLyrics);
-      showLyricsSource('LRCLIB · plain');
-      return;
-    }
-  }
-
-  // Lowest-priority fallback: KKBOX scrape
-  const kkboxLyrics = await fetchLyricsFromKKBOX(trackName, artistName);
-  if (kkboxLyrics) {
-    syncType = 'PLAIN';
-    lyrics = kkboxLyrics;
-    renderPlainLyrics(kkboxLyrics);
-    showLyricsSource('KKBOX · plain');
+  if (!result.lyrics) {
+    showStatus('No lyrics available for this track');
     return;
   }
 
-  showStatus('No lyrics available for this track');
+  syncType = result.syncType;
+  lyrics = result.lyrics;
+
+  if (syncType === 'WORD_SYNCED' || syncType === 'LINE_SYNCED') {
+    renderSyncedLyrics();
+  } else {
+    renderPlainLyrics(lyrics);
+  }
+  showLyricsSource(result.source);
 }
 
 // ============================================================
