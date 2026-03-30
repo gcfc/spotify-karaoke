@@ -3,12 +3,14 @@
 //  Shared by app.js (browser) and test scripts (Node.js).
 // ============================================================
 
-export async function fetchLyricsFromWorker(workerUrl, trackId) {
+export async function fetchLyricsFromWorker(workerUrl, trackId, spotifyToken) {
   if (!workerUrl) return null;
   const url = `${workerUrl}/lyrics?track_id=${trackId}`;
   console.debug('[lyrics] Worker:', url);
   try {
-    const resp = await fetch(url);
+    const headers = {};
+    if (spotifyToken) headers['Authorization'] = `Bearer ${spotifyToken}`;
+    const resp = await fetch(url, { headers });
     if (!resp.ok) { console.debug('[lyrics] Worker: HTTP', resp.status); return null; }
     const data = await resp.json();
     if (!data || !data.lyrics || !data.lyrics.lines) { console.debug('[lyrics] Worker: no lyrics in response'); return null; }
@@ -158,11 +160,11 @@ export function parseLRC(lrcString) {
  * Orchestrates the full lyrics fetch chain.
  * Returns { lyrics, syncType, source } or { lyrics: null } when nothing found.
  */
-export async function fetchLyrics(workerUrl, trackId, trackName, artistName, trackDurationMs) {
+export async function fetchLyrics(workerUrl, trackId, trackName, artistName, trackDurationMs, spotifyToken) {
   console.debug('[lyrics] fetchLyrics called:', { trackId, trackName, artistName, trackDurationMs });
 
   // 1. Spotify internal via Cloudflare Worker (word or line synced)
-  const workerData = await fetchLyricsFromWorker(workerUrl, trackId);
+  const workerData = await fetchLyricsFromWorker(workerUrl, trackId, spotifyToken);
   if (workerData && workerData.lyrics) {
     const sType = workerData.lyrics.syncType;
     if (sType === 'WORD_SYNCED' || sType === 'LINE_SYNCED') {

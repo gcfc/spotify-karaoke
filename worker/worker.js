@@ -1,26 +1,45 @@
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 let cachedToken = null;
 let tokenExpiresAt = 0;
+
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Accept': 'application/json',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'sec-ch-ua': '"Chromium";v="131", "Not_A Brand";v="24"',
+  'sec-ch-ua-mobile': '?0',
+  'sec-ch-ua-platform': '"Windows"',
+  'sec-fetch-dest': 'empty',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-site': 'same-origin',
+  'Referer': 'https://open.spotify.com/',
+  'Origin': 'https://open.spotify.com',
+};
+
+const TOKEN_URL = 'https://open.spotify.com/get_access_token?reason=transport&productType=web_player';
 
 async function getSpotifyToken(spDc) {
   if (cachedToken && Date.now() < tokenExpiresAt) {
     return cachedToken;
   }
 
-  const resp = await fetch('https://open.spotify.com/get_access_token?reason=transport&productType=web_player', {
+  const resp = await fetch(TOKEN_URL, {
     headers: {
+      ...BROWSER_HEADERS,
       Cookie: `sp_dc=${spDc}`,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     },
+    redirect: 'follow',
   });
 
   if (!resp.ok) {
-    throw new Error(`Token fetch failed: ${resp.status}`);
+    const body = await resp.text().catch(() => '');
+    const snippet = body.slice(0, 200);
+    throw new Error(`Token fetch failed: ${resp.status} — ${snippet}`);
   }
 
   const data = await resp.json();
@@ -97,32 +116,64 @@ function jsonResponse(body, status = 200) {
   });
 }
 
-async function handleSpotifyLyrics(url, env) {
+async function handleSpotifyLyrics(request, url, env) {
   const trackId = url.searchParams.get('track_id');
   if (!trackId) {
     return jsonResponse({ error: 'Missing track_id parameter' }, 400);
   }
 
+  // Strategy 1: use client-provided OAuth token (avoids CDN IP blocks)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader) {
+    const clientToken = authHeader.replace(/^Bearer\s+/i, '');
+    const data = await fetchLyrics(trackId, clientToken);
+    if (data) return jsonResponse(data);
+  }
+
+  // Strategy 2: fall back to sp_dc → web-player token
+  const spDc = env.SP_DC;
+  if (spDc) {
+    try {
+      let token = await getSpotifyToken(spDc);
+      let data = await fetchLyrics(trackId, token);
+      if (!data && cachedToken) {
+        cachedToken = null;
+        tokenExpiresAt = 0;
+        token = await getSpotifyToken(spDc);
+        data = await fetchLyrics(trackId, token);
+      }
+      if (data) return jsonResponse(data);
+    } catch { /* sp_dc path failed, continue to 404 */ }
+  }
+
+  return jsonResponse({ error: 'Lyrics not found' }, 404);
+}
+
+async function handleDebugToken(env) {
   const spDc = env.SP_DC;
   if (!spDc) {
     return jsonResponse({ error: 'SP_DC secret not configured' }, 500);
   }
 
-  let token = await getSpotifyToken(spDc);
-  let data = await fetchLyrics(trackId, token);
+  const resp = await fetch(TOKEN_URL, {
+    headers: {
+      ...BROWSER_HEADERS,
+      Cookie: `sp_dc=${spDc}`,
+    },
+    redirect: 'manual',
+  });
 
-  // If fetch failed, token may be stale — clear cache and retry once
-  if (!data && cachedToken) {
-    cachedToken = null;
-    tokenExpiresAt = 0;
-    token = await getSpotifyToken(spDc);
-    data = await fetchLyrics(trackId, token);
-  }
+  const body = await resp.text().catch(() => '<unreadable>');
+  const respHeaders = Object.fromEntries(resp.headers.entries());
 
-  if (!data) {
-    return jsonResponse({ error: 'Lyrics not found' }, 404);
-  }
-  return jsonResponse(data);
+  return jsonResponse({
+    status: resp.status,
+    redirected: resp.redirected,
+    responseHeaders: respHeaders,
+    bodySnippet: body.slice(0, 500),
+    spDcLength: spDc.length,
+    spDcPrefix: spDc.slice(0, 8) + '…',
+  });
 }
 
 async function handleKKBOXLyrics(url) {
@@ -155,10 +206,13 @@ export default {
 
     try {
       if (url.pathname === '/lyrics') {
-        return await handleSpotifyLyrics(url, env);
+        return await handleSpotifyLyrics(request, url, env);
       }
       if (url.pathname === '/kkbox-lyrics') {
         return await handleKKBOXLyrics(url);
+      }
+      if (url.pathname === '/debug-token') {
+        return await handleDebugToken(env);
       }
       return jsonResponse({ error: 'Not found' }, 404);
     } catch (err) {

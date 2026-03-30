@@ -208,7 +208,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   hideLyricsSource();
   showStatus('Loading lyrics...');
 
-  const result = await fetchLyrics(CONFIG.WORKER_URL, trackId, trackName, artistName, trackDurationMs);
+  const result = await fetchLyrics(CONFIG.WORKER_URL, trackId, trackName, artistName, trackDurationMs, accessToken);
 
   if (!result.lyrics) {
     showStatus('No lyrics available for this track');
