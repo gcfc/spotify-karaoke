@@ -33,6 +33,7 @@ const lyricsLines = $('#lyrics-lines');
 const statusMessage = $('#status-message');
 const statusText = $('#status-text');
 const lyricsSourceEl = $('#lyrics-source');
+const themeToggle = $('#theme-toggle');
 
 // ============================================================
 //  State
@@ -500,6 +501,30 @@ async function init() {
   showLoginScreen();
 }
 
+// ============================================================
+//  Theme Toggle
+// ============================================================
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+}
+
+function initTheme() {
+  const stored = localStorage.getItem('theme');
+  if (stored === 'light') {
+    applyTheme('light');
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  applyTheme(current === 'light' ? 'dark' : 'light');
+}
+
+initTheme();
+
 connectBtn.addEventListener('click', startAuth);
 disconnectBtn.addEventListener('click', logout);
+themeToggle.addEventListener('click', toggleTheme);
 document.addEventListener('DOMContentLoaded', init);
