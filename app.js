@@ -9,7 +9,7 @@ const CONFIG = {
   REDIRECT_URI: window.location.origin + window.location.pathname,
   SCOPES: 'user-read-currently-playing user-read-playback-state',
   // URL of your Cloudflare Worker lyrics proxy (leave empty to skip)
-  WORKER_URL: 'https://spotify-karaoke.workers.dev',
+  WORKER_URL: 'https://spotify-lyrics-worker.spotify-karaoke.workers.dev',
   POLL_INTERVAL_MS: 3000,
 };
 

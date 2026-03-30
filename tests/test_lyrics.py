@@ -17,7 +17,7 @@ import urllib.parse
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-WORKER_URL = "https://spotify-karaoke.workers.dev"
+WORKER_URL = "https://spotify-lyrics-worker.spotify-karaoke.workers.dev"
 
 HEADERS_HTML = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",

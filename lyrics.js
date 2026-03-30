@@ -80,6 +80,65 @@ export async function fetchLyricsFromKKBOX(workerUrl, trackName, artistName) {
   }
 }
 
+/**
+ * Browser-direct fallback: calls KKBOX search API + scrapes song page JSON-LD
+ * without going through the Cloudflare Worker. Works when the Worker is
+ * unreachable or KKBOX blocks Worker IPs but allows browser requests.
+ */
+export async function fetchLyricsFromKKBOXDirect(trackName, artistName) {
+  const KKBOX_UA_HEADERS = {
+    Accept: 'application/json',
+  };
+
+  try {
+    const q = `${trackName} ${artistName}`.trim();
+    const searchUrl =
+      'https://www.kkbox.com/api/search/song?q=' +
+      encodeURIComponent(q) +
+      '&terr=hk&lang=tc';
+    console.debug('[lyrics] KKBOX-direct: search', searchUrl);
+
+    const searchResp = await fetch(searchUrl, { headers: KKBOX_UA_HEADERS });
+    if (!searchResp.ok) {
+      console.debug('[lyrics] KKBOX-direct: search HTTP', searchResp.status);
+      return null;
+    }
+    const searchData = await searchResp.json();
+    const songUrl = searchData?.data?.result?.[0]?.url;
+    if (!songUrl) {
+      console.debug('[lyrics] KKBOX-direct: no search results');
+      return null;
+    }
+    console.debug('[lyrics] KKBOX-direct: song page', songUrl);
+
+    const pageResp = await fetch(songUrl, { headers: { Accept: 'text/html' } });
+    if (!pageResp.ok) {
+      console.debug('[lyrics] KKBOX-direct: page HTTP', pageResp.status);
+      return null;
+    }
+    const html = await pageResp.text();
+
+    const jsonLdRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
+    let match;
+    while ((match = jsonLdRegex.exec(html)) !== null) {
+      try {
+        const ld = JSON.parse(match[1]);
+        const text = ld?.recordingOf?.lyrics?.text;
+        if (text) {
+          console.debug('[lyrics] KKBOX-direct: found plain lyrics');
+          return text;
+        }
+      } catch { /* not the right JSON-LD block */ }
+    }
+
+    console.debug('[lyrics] KKBOX-direct: no lyrics in JSON-LD');
+    return null;
+  } catch (err) {
+    console.debug('[lyrics] KKBOX-direct: error', err.message);
+    return null;
+  }
+}
+
 export function parseLRC(lrcString) {
   const lines = [];
   for (const raw of lrcString.split('\n')) {
@@ -130,10 +189,16 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
     }
   }
 
-  // 3. KKBOX (plain text)
+  // 3. KKBOX via Cloudflare Worker (plain text)
   const kkboxLyrics = await fetchLyricsFromKKBOX(workerUrl, trackName, artistName);
   if (kkboxLyrics) {
     return { lyrics: kkboxLyrics, syncType: 'PLAIN', source: 'KKBOX · plain' };
+  }
+
+  // 4. KKBOX direct from browser (fallback when Worker can't reach KKBOX)
+  const kkboxDirect = await fetchLyricsFromKKBOXDirect(trackName, artistName);
+  if (kkboxDirect) {
+    return { lyrics: kkboxDirect, syncType: 'PLAIN', source: 'KKBOX · plain (direct)' };
   }
 
   return { lyrics: null, syncType: null, source: null };
