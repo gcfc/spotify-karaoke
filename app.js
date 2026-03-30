@@ -34,6 +34,8 @@ const statusMessage = $('#status-message');
 const statusText = $('#status-text');
 const lyricsSourceEl = $('#lyrics-source');
 const themeToggle = $('#theme-toggle');
+const lyricsOffsetEl = $('#lyrics-offset');
+const offsetResetBtn = lyricsOffsetEl.querySelector('.offset-reset');
 
 // ============================================================
 //  State
@@ -51,6 +53,7 @@ let durationMs = 0;
 
 let lyrics = null;       // { syncType, lines } or { plain } or null
 let syncType = null;     // 'WORD_SYNCED' | 'LINE_SYNCED' | 'PLAIN' | null
+let lyricsOffsetMs = 0;
 let rafId = null;
 let pollTimer = null;
 
@@ -205,6 +208,9 @@ async function fetchCurrentlyPlaying() {
 async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs) {
   lyrics = null;
   syncType = null;
+  lyricsOffsetMs = 0;
+  updateOffsetLabel();
+  hideLyricsOffset();
   clearLyricsDisplay();
   hideLyricsSource();
   showStatus('Loading lyrics...');
@@ -221,6 +227,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
 
   if (syncType === 'WORD_SYNCED' || syncType === 'LINE_SYNCED') {
     renderSyncedLyrics();
+    showLyricsOffset();
   } else {
     renderPlainLyrics(lyrics);
   }
@@ -289,7 +296,7 @@ function startAnimationLoop() {
     updateProgressUI(estimated, durationMs);
 
     if (!lyrics || syncType === 'PLAIN') return;
-    highlightLyrics(estimated);
+    highlightLyrics(estimated + lyricsOffsetMs);
   }
 
   rafId = requestAnimationFrame(tick);
@@ -502,6 +509,35 @@ async function init() {
 }
 
 // ============================================================
+//  Lyrics Offset
+// ============================================================
+
+function adjustOffset(deltaMs) {
+  if (deltaMs === 0) {
+    lyricsOffsetMs = 0;
+  } else {
+    lyricsOffsetMs += deltaMs;
+  }
+  lastHighlightedIndex = -1;
+  updateOffsetLabel();
+}
+
+function updateOffsetLabel() {
+  const sec = (lyricsOffsetMs / 1000).toFixed(1);
+  const label = lyricsOffsetMs > 0 ? `+${sec}s` : `${sec}s`;
+  offsetResetBtn.textContent = label;
+  offsetResetBtn.classList.toggle('nonzero', lyricsOffsetMs !== 0);
+}
+
+function showLyricsOffset() {
+  lyricsOffsetEl.classList.remove('hidden');
+}
+
+function hideLyricsOffset() {
+  lyricsOffsetEl.classList.add('hidden');
+}
+
+// ============================================================
 //  Theme Toggle
 // ============================================================
 
@@ -527,4 +563,9 @@ initTheme();
 connectBtn.addEventListener('click', startAuth);
 disconnectBtn.addEventListener('click', logout);
 themeToggle.addEventListener('click', toggleTheme);
+lyricsOffsetEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.offset-btn');
+  if (!btn) return;
+  adjustOffset(parseInt(btn.dataset.delta, 10));
+});
 document.addEventListener('DOMContentLoaded', init);

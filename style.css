@@ -392,6 +392,59 @@ html, body {
   z-index: 2;
 }
 
+/* ─── Lyrics Offset Controls ─── */
+
+.lyrics-offset {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 2;
+}
+
+.offset-btn {
+  font-family: inherit;
+  font-size: 0.65rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  background: var(--surface-overlay);
+  border: none;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.offset-btn:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.offset-btn:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.offset-btn:hover {
+  color: var(--text-secondary);
+  background: var(--surface-hover);
+}
+
+.offset-btn:active {
+  color: var(--text-primary);
+}
+
+.offset-reset {
+  min-width: 3rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.offset-reset.nonzero {
+  color: var(--accent);
+}
+
 /* ─── Scrollbar ─── */
 
 .lyrics-container::-webkit-scrollbar {
