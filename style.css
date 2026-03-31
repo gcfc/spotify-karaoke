@@ -294,7 +294,8 @@ html, body {
 }
 
 .lyrics-content {
-  padding: 0 1.5rem;
+  padding: 0 0.75rem;
+  text-align: center;
 }
 
 .lyrics-spacer {
@@ -318,7 +319,7 @@ html, body {
   color: var(--highlight);
   opacity: 1;
   transform: scale(1.02);
-  transform-origin: left center;
+  transform-origin: center center;
 }
 
 .lyrics-line.past {
@@ -346,7 +347,7 @@ html, body {
 
 .lyrics-plain {
   white-space: pre-wrap;
-  font-size: 1.3rem;
+  font-size: 1.6rem;
   line-height: 1.8;
   color: var(--text-secondary);
   padding: 2rem 0;
@@ -469,7 +470,7 @@ html, body {
   }
 
   .lyrics-plain {
-    font-size: 1.1rem;
+    font-size: 1.25rem;
   }
 
   .logo h1 {
@@ -486,18 +487,22 @@ html, body {
   }
 
   .lyrics-content {
-    padding: 0 1rem;
+    padding: 0 0.5rem;
   }
 }
 
 @media (min-width: 900px) {
   .lyrics-content {
-    max-width: 720px;
+    max-width: 95%;
     margin: 0 auto;
   }
 
   .lyrics-line {
     font-size: 2rem;
     padding: 0.7rem 0;
+  }
+
+  .lyrics-plain {
+    font-size: 2rem;
   }
 }

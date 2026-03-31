@@ -141,6 +141,27 @@ export async function fetchLyricsFromKKBOXDirect(trackName, artistName) {
   }
 }
 
+// ── LRU Cache ──
+
+const CACHE_MAX = 50;
+const lyricsCache = new Map();
+
+function cacheGet(trackId) {
+  if (!lyricsCache.has(trackId)) return undefined;
+  const val = lyricsCache.get(trackId);
+  lyricsCache.delete(trackId);
+  lyricsCache.set(trackId, val);
+  return val;
+}
+
+function cacheSet(trackId, result) {
+  if (lyricsCache.has(trackId)) lyricsCache.delete(trackId);
+  lyricsCache.set(trackId, result);
+  if (lyricsCache.size > CACHE_MAX) {
+    lyricsCache.delete(lyricsCache.keys().next().value);
+  }
+}
+
 export function parseLRC(lrcString) {
   const lines = [];
   for (const raw of lrcString.split('\n')) {
@@ -156,52 +177,74 @@ export function parseLRC(lrcString) {
   return lines;
 }
 
+const NO_RESULT = Object.freeze({ lyrics: null, syncType: null, source: null });
+
 /**
  * Orchestrates the full lyrics fetch chain.
- * Returns { lyrics, syncType, source } or { lyrics: null } when nothing found.
+ *
+ *  1. Returns immediately on cache hit.
+ *  2. Tries Spotify (highest-quality, word/line synced) first.
+ *  3. On miss, fires LRCLIB + KKBOX Worker + KKBOX Direct in parallel,
+ *     then picks the best result by priority:
+ *       LRCLIB synced > LRCLIB plain > KKBOX Worker > KKBOX Direct
+ *  4. Caches successful results for instant re-visits.
  */
 export async function fetchLyrics(workerUrl, trackId, trackName, artistName, trackDurationMs, spotifyToken) {
   console.debug('[lyrics] fetchLyrics called:', { trackId, trackName, artistName, trackDurationMs });
 
+  const cached = cacheGet(trackId);
+  if (cached) {
+    console.debug('[lyrics] cache hit:', cached.source);
+    return cached;
+  }
+
   // 1. Spotify internal via Cloudflare Worker (word or line synced)
   const workerData = await fetchLyricsFromWorker(workerUrl, trackId, spotifyToken);
-  if (workerData && workerData.lyrics) {
+  if (workerData?.lyrics) {
     const sType = workerData.lyrics.syncType;
     if (sType === 'WORD_SYNCED' || sType === 'LINE_SYNCED') {
       const modeLabel = sType === 'WORD_SYNCED' ? 'word-synced' : 'line-synced';
-      return {
+      const result = {
         lyrics: workerData.lyrics.lines,
         syncType: sType,
         source: `Spotify · ${modeLabel}`,
       };
+      cacheSet(trackId, result);
+      return result;
     }
   }
 
-  // 2. LRCLIB (synced, then plain)
-  const lrcData = await fetchLyricsFromLRCLIB(trackName, artistName, trackDurationMs / 1000);
-  if (lrcData) {
-    if (lrcData.syncedLyrics) {
-      const lines = parseLRC(lrcData.syncedLyrics);
-      if (lines.length > 0) {
-        return { lyrics: lines, syncType: 'LINE_SYNCED', source: 'LRCLIB · line-synced' };
-      }
+  // 2. Fire remaining sources in parallel
+  console.debug('[lyrics] Spotify miss — querying LRCLIB + KKBOX in parallel');
+  const [lrcData, kkboxWorker, kkboxDirect] = await Promise.all([
+    fetchLyricsFromLRCLIB(trackName, artistName, trackDurationMs / 1000),
+    fetchLyricsFromKKBOX(workerUrl, trackName, artistName),
+    fetchLyricsFromKKBOXDirect(trackName, artistName),
+  ]);
+
+  // 3. Pick best result by priority
+  let result = null;
+
+  if (lrcData?.syncedLyrics) {
+    const lines = parseLRC(lrcData.syncedLyrics);
+    if (lines.length > 0) {
+      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'LRCLIB · line-synced' };
     }
-    if (lrcData.plainLyrics) {
-      return { lyrics: lrcData.plainLyrics, syncType: 'PLAIN', source: 'LRCLIB · plain' };
-    }
+  }
+  if (!result && lrcData?.plainLyrics) {
+    result = { lyrics: lrcData.plainLyrics, syncType: 'PLAIN', source: 'LRCLIB · plain' };
+  }
+  if (!result && kkboxWorker) {
+    result = { lyrics: kkboxWorker, syncType: 'PLAIN', source: 'KKBOX · plain' };
+  }
+  if (!result && kkboxDirect) {
+    result = { lyrics: kkboxDirect, syncType: 'PLAIN', source: 'KKBOX · plain (direct)' };
   }
 
-  // 3. KKBOX via Cloudflare Worker (plain text)
-  const kkboxLyrics = await fetchLyricsFromKKBOX(workerUrl, trackName, artistName);
-  if (kkboxLyrics) {
-    return { lyrics: kkboxLyrics, syncType: 'PLAIN', source: 'KKBOX · plain' };
+  if (result) {
+    cacheSet(trackId, result);
+    return result;
   }
 
-  // 4. KKBOX direct from browser (fallback when Worker can't reach KKBOX)
-  const kkboxDirect = await fetchLyricsFromKKBOXDirect(trackName, artistName);
-  if (kkboxDirect) {
-    return { lyrics: kkboxDirect, syncType: 'PLAIN', source: 'KKBOX · plain (direct)' };
-  }
-
-  return { lyrics: null, syncType: null, source: null };
+  return NO_RESULT;
 }
