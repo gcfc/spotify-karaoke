@@ -10,7 +10,7 @@
   --bg-card: #1a1a26;
   --text-primary: #ffffff;
   --text-secondary: #a0a0b8;
-  --text-dim: #4a4a60;
+  --text-dim: #6a6a88;
   --accent: #1db954;
   --accent-glow: rgba(29, 185, 84, 0.4);
   --highlight: #ffffff;
@@ -311,7 +311,7 @@ html, body {
   color: var(--text-dim);
   transition: color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
   cursor: default;
-  opacity: 0.5;
+  opacity: 0.65;
 }
 
 .lyrics-line.active {
@@ -323,7 +323,7 @@ html, body {
 
 .lyrics-line.past {
   color: var(--text-secondary);
-  opacity: 0.45;
+  opacity: 0.55;
 }
 
 /* ─── Word-Synced Mode ─── */

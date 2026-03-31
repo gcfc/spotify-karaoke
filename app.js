@@ -10,7 +10,7 @@ const CONFIG = {
   SCOPES: 'user-read-currently-playing user-read-playback-state',
   // URL of your Cloudflare Worker lyrics proxy (leave empty to skip)
   WORKER_URL: 'https://spotify-lyrics-worker.spotify-karaoke.workers.dev',
-  POLL_INTERVAL_MS: 3000,
+  POLL_INTERVAL_MS: 1000,
 };
 
 // ============================================================
