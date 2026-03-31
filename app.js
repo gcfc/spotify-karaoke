@@ -56,6 +56,7 @@ let syncType = null;     // 'WORD_SYNCED' | 'LINE_SYNCED' | 'PLAIN' | null
 let lyricsOffsetMs = 0;
 let rafId = null;
 let pollTimer = null;
+let smoothPositionMs = 0;
 
 // ============================================================
 //  Spotify PKCE Auth
@@ -283,6 +284,9 @@ function renderPlainLyrics(text) {
 //  Karaoke Animation Loop
 // ============================================================
 
+const LERP_FACTOR = 0.12;
+const SNAP_THRESHOLD_MS = 1500;
+
 function startAnimationLoop() {
   if (rafId) return;
 
@@ -290,13 +294,21 @@ function startAnimationLoop() {
     rafId = requestAnimationFrame(tick);
 
     const now = Date.now();
-    const estimated = isPlaying
+    const rawEstimate = isPlaying
       ? lastProgressMs + (now - lastPollTimestamp)
       : lastProgressMs;
-    updateProgressUI(estimated, durationMs);
+
+    const drift = Math.abs(rawEstimate - smoothPositionMs);
+    if (drift > SNAP_THRESHOLD_MS || !isPlaying) {
+      smoothPositionMs = rawEstimate;
+    } else {
+      smoothPositionMs += (rawEstimate - smoothPositionMs) * LERP_FACTOR;
+    }
+
+    updateProgressUI(smoothPositionMs, durationMs);
 
     if (!lyrics || syncType === 'PLAIN') return;
-    highlightLyrics(estimated + lyricsOffsetMs);
+    highlightLyrics(smoothPositionMs + lyricsOffsetMs);
   }
 
   rafId = requestAnimationFrame(tick);
