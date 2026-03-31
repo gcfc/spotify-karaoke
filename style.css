@@ -52,11 +52,41 @@ html, body {
 .screen {
   display: none;
   height: 100%;
+  position: relative;
 }
 
 .screen.active {
   display: flex;
   flex-direction: column;
+}
+
+/* ─── Blurred Album Art Background ─── */
+
+.album-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(90px) saturate(1.8);
+  transform: scale(1.6);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.album-bg.visible {
+  opacity: 1;
+}
+
+.album-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+}
+
+[data-theme="light"] .album-bg::after {
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .hidden {
@@ -183,6 +213,8 @@ html, body {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
   padding: 0.75rem 1.25rem 0.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .now-playing-inner {
@@ -283,6 +315,7 @@ html, body {
   flex: 1;
   position: relative;
   overflow: hidden;
+  z-index: 1;
 }
 
 .lyrics-container {

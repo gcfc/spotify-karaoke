@@ -23,6 +23,7 @@ const mainScreen = $('#main-screen');
 const connectBtn = $('#connect-btn');
 const disconnectBtn = $('#disconnect-btn');
 const albumArt = $('#album-art');
+const albumBg = $('#album-bg');
 const trackNameEl = $('#track-name');
 const artistNameEl = $('#artist-name');
 const progressCurrent = $('#progress-current');
@@ -426,6 +427,8 @@ function updateNowPlayingUI(track) {
     trackNameEl.textContent = 'Not Playing';
     artistNameEl.textContent = '';
     albumArt.src = '';
+    albumBg.style.backgroundImage = '';
+    albumBg.classList.remove('visible');
     return;
   }
 
@@ -433,7 +436,16 @@ function updateNowPlayingUI(track) {
   artistNameEl.textContent = track.artists.map((a) => a.name).join(', ');
 
   const img = track.album?.images?.[0]?.url || '';
-  if (albumArt.src !== img) albumArt.src = img;
+  if (albumArt.src !== img) {
+    albumArt.src = img;
+    if (img) {
+      albumBg.style.backgroundImage = `url(${img})`;
+      albumBg.classList.add('visible');
+    } else {
+      albumBg.style.backgroundImage = '';
+      albumBg.classList.remove('visible');
+    }
+  }
 }
 
 function updateProgressUI(currentMs, totalMs) {
