@@ -36,6 +36,7 @@ const lyricsSourceEl = $('#lyrics-source');
 const themeToggle = $('#theme-toggle');
 const lyricsOffsetEl = $('#lyrics-offset');
 const offsetResetBtn = lyricsOffsetEl.querySelector('.offset-reset');
+const cjkFontPicker = $('#cjk-font-picker');
 
 // ============================================================
 //  State
@@ -233,6 +234,14 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
     renderPlainLyrics(lyrics);
   }
   showLyricsSource(result.source);
+
+  if (detectChineseLyrics()) {
+    showCjkFontPicker();
+    if (currentCjkFont) applyCjkFont(currentCjkFont);
+  } else {
+    hideCjkFontPicker();
+    lyricsLines.style.fontFamily = '';
+  }
 }
 
 // ============================================================
@@ -241,7 +250,10 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
 
 function clearLyricsDisplay() {
   lyricsLines.innerHTML = '';
+  lyricsLines.style.fontFamily = '';
+  lyricsLines.style.fontWeight = '';
   hideStatus();
+  hideCjkFontPicker();
 }
 
 function renderSyncedLyrics() {
@@ -548,6 +560,79 @@ function showLyricsOffset() {
 function hideLyricsOffset() {
   lyricsOffsetEl.classList.add('hidden');
 }
+
+// ============================================================
+//  CJK Font Picker
+// ============================================================
+
+const CJK_FONTS = {
+  'Noto Serif SC': 'Noto+Serif+SC:wght@400;600;700',
+  'Long Cang': 'Long+Cang',
+  'Ma Shan Zheng': 'Ma+Shan+Zheng',
+  'Zhi Mang Xing': 'Zhi+Mang+Xing',
+  'ZCOOL XiaoWei': 'ZCOOL+XiaoWei',
+  'ZCOOL KuaiLe': 'ZCOOL+KuaiLe',
+};
+
+const loadedFonts = new Set();
+
+function loadGoogleFont(fontName) {
+  if (!fontName || loadedFonts.has(fontName)) return;
+  const spec = CJK_FONTS[fontName];
+  if (!spec) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${spec}&display=swap`;
+  document.head.appendChild(link);
+  loadedFonts.add(fontName);
+}
+
+const CHINESE_RE = /[\u4e00-\u9fff]/;
+let currentCjkFont = localStorage.getItem('cjk-font') || '';
+
+function detectChineseLyrics() {
+  let sample = '';
+  if (typeof lyrics === 'string') {
+    sample = lyrics;
+  } else if (Array.isArray(lyrics)) {
+    sample = lyrics.slice(0, 5).map((l) => l.words || '').join('');
+  }
+  return CHINESE_RE.test(sample);
+}
+
+const CJK_BOLD_FONTS = new Set(['', 'Noto Serif SC', 'Long Cang']);
+
+function applyCjkFont(fontName) {
+  currentCjkFont = fontName;
+  localStorage.setItem('cjk-font', fontName);
+  if (fontName) {
+    loadGoogleFont(fontName);
+    lyricsLines.style.fontFamily = `"${fontName}", sans-serif`;
+  } else {
+    lyricsLines.style.fontFamily = '';
+  }
+  lyricsLines.style.fontWeight = CJK_BOLD_FONTS.has(fontName) ? '' : '300';
+}
+
+function showCjkFontPicker() {
+  cjkFontPicker.value = currentCjkFont;
+  cjkFontPicker.classList.remove('hidden');
+}
+
+function hideCjkFontPicker() {
+  cjkFontPicker.classList.add('hidden');
+}
+
+function initCjkFont() {
+  if (currentCjkFont) {
+    loadGoogleFont(currentCjkFont);
+  }
+  cjkFontPicker.addEventListener('change', () => {
+    applyCjkFont(cjkFontPicker.value);
+  });
+}
+
+initCjkFont();
 
 // ============================================================
 //  Theme Toggle
