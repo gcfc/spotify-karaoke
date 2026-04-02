@@ -3,6 +3,59 @@
 //  Shared by app.js (browser) and test scripts (Node.js).
 // ============================================================
 
+// ── Traditional → Simplified Chinese conversion (lazy-loaded) ──
+
+const CHINESE_RE = /[\u4e00-\u9fff]/;
+
+let _t2sConverter = null;
+let _t2sLoadFailed = false;
+
+async function getT2SConverter() {
+  if (_t2sConverter) return _t2sConverter;
+  if (_t2sLoadFailed) return null;
+  try {
+    const OpenCC = await import('https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/esm/t2cn.js');
+    _t2sConverter = OpenCC.Converter({ from: 'hk', to: 'cn' });
+    console.debug('[lyrics] OpenCC t2cn converter loaded');
+    return _t2sConverter;
+  } catch (err) {
+    _t2sLoadFailed = true;
+    console.debug('[lyrics] OpenCC load failed:', err.message);
+    return null;
+  }
+}
+
+async function convertLyricsToSimplified(result) {
+  if (!result || !result.lyrics) return result;
+
+  let sample = '';
+  if (typeof result.lyrics === 'string') {
+    sample = result.lyrics;
+  } else if (Array.isArray(result.lyrics)) {
+    sample = result.lyrics.slice(0, 5).map((l) => l.words || '').join('');
+  }
+  if (!CHINESE_RE.test(sample)) return result;
+
+  const convert = await getT2SConverter();
+  if (!convert) return result;
+
+  if (typeof result.lyrics === 'string') {
+    result.lyrics = convert(result.lyrics);
+  } else if (Array.isArray(result.lyrics)) {
+    for (const line of result.lyrics) {
+      if (line.words) line.words = convert(line.words);
+      if (line.syllables) {
+        for (const syl of line.syllables) {
+          if (syl.word) syl.word = convert(syl.word);
+        }
+      }
+    }
+  }
+
+  console.debug('[lyrics] Converted lyrics to Simplified Chinese');
+  return result;
+}
+
 export async function fetchLyricsFromWorker(workerUrl, trackId, spotifyToken) {
   if (!workerUrl) return null;
   const url = `${workerUrl}/lyrics?track_id=${trackId}`;
@@ -204,11 +257,11 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
     const sType = workerData.lyrics.syncType;
     if (sType === 'WORD_SYNCED' || sType === 'LINE_SYNCED') {
       const modeLabel = sType === 'WORD_SYNCED' ? 'word-synced' : 'line-synced';
-      const result = {
+      const result = await convertLyricsToSimplified({
         lyrics: workerData.lyrics.lines,
         syncType: sType,
         source: `Spotify · ${modeLabel}`,
-      };
+      });
       cacheSet(trackId, result);
       return result;
     }
@@ -242,6 +295,7 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
   }
 
   if (result) {
+    result = await convertLyricsToSimplified(result);
     cacheSet(trackId, result);
     return result;
   }

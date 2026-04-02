@@ -14,6 +14,12 @@ import json
 import urllib.request
 import urllib.parse
 
+try:
+    import opencc
+    _t2s = opencc.OpenCC('t2s')
+except ImportError:
+    _t2s = None
+
 sys.stdout.reconfigure(encoding="utf-8")
 
 HEADERS_HTML = {
@@ -95,6 +101,10 @@ def main():
     if not lyrics:
         print("Song page found but no lyrics extracted.")
         sys.exit(1)
+
+    if _t2s and re.search(r"[\u4e00-\u9fff]", lyrics):
+        lyrics = _t2s.convert(lyrics)
+        print("[3/3] Lyrics converted to Simplified Chinese")
 
     print(f"[3/3] Lyrics found ({len(lyrics)} chars):\n")
     print("=" * 50)
