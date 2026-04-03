@@ -54,6 +54,7 @@ let durationMs = 0;
 
 let lyrics = null;       // { syncType, lines } or { plain } or null
 let syncType = null;     // 'WORD_SYNCED' | 'LINE_SYNCED' | 'PLAIN' | null
+let lyricsLanguage = null; // language tag from Spotify (e.g. 'ja', 'zh-Hant')
 let lyricsOffsetMs = 0;
 let rafId = null;
 let pollTimer = null;
@@ -210,6 +211,7 @@ async function fetchCurrentlyPlaying() {
 async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs) {
   lyrics = null;
   syncType = null;
+  lyricsLanguage = null;
   lyricsOffsetMs = 0;
   updateOffsetLabel();
   hideLyricsOffset();
@@ -226,6 +228,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
 
   syncType = result.syncType;
   lyrics = result.lyrics;
+  lyricsLanguage = result.language || null;
 
   if (syncType === 'WORD_SYNCED' || syncType === 'LINE_SYNCED') {
     renderSyncedLyrics();
@@ -587,17 +590,23 @@ function loadGoogleFont(fontName) {
   loadedFonts.add(fontName);
 }
 
-const CHINESE_RE = /[\u4e00-\u9fff]/;
+const CJK_RE = /[\u4e00-\u9fff]/;
+const JAPANESE_RE = /[\u3040-\u309f\u30a0-\u30ff]/;
 let currentCjkFont = localStorage.getItem('cjk-font') || '';
 
 function detectChineseLyrics() {
+  if (lyricsLanguage) {
+    return lyricsLanguage.toLowerCase().startsWith('zh');
+  }
   let sample = '';
   if (typeof lyrics === 'string') {
     sample = lyrics;
   } else if (Array.isArray(lyrics)) {
     sample = lyrics.slice(0, 5).map((l) => l.words || '').join('');
   }
-  return CHINESE_RE.test(sample);
+  if (!CJK_RE.test(sample)) return false;
+  if (JAPANESE_RE.test(sample)) return false;
+  return true;
 }
 
 const CJK_BOLD_FONTS = new Set(['', 'Noto Serif SC', 'Long Cang']);

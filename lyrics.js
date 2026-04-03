@@ -5,7 +5,18 @@
 
 // ── Traditional → Simplified Chinese conversion (lazy-loaded) ──
 
-const CHINESE_RE = /[\u4e00-\u9fff]/;
+const CJK_RE = /[\u4e00-\u9fff]/;
+const JAPANESE_RE = /[\u3040-\u309f\u30a0-\u30ff]/;  // Hiragana + Katakana
+
+export function isChinese(sample, language) {
+  if (language) {
+    const lang = language.toLowerCase();
+    return lang.startsWith('zh');
+  }
+  if (!CJK_RE.test(sample)) return false;
+  if (JAPANESE_RE.test(sample)) return false;
+  return true;
+}
 
 let _t2sConverter = null;
 let _t2sLoadFailed = false;
@@ -34,7 +45,15 @@ async function convertLyricsToSimplified(result) {
   } else if (Array.isArray(result.lyrics)) {
     sample = result.lyrics.slice(0, 5).map((l) => l.words || '').join('');
   }
-  if (!CHINESE_RE.test(sample)) return result;
+
+  if (!isChinese(sample, result.language)) {
+    if (result.language) {
+      console.debug('[lyrics] Skipping t2s — language:', result.language);
+    } else if (JAPANESE_RE.test(sample)) {
+      console.debug('[lyrics] Skipping t2s — detected Japanese (kana present)');
+    }
+    return result;
+  }
 
   const convert = await getT2SConverter();
   if (!convert) return result;
@@ -261,6 +280,7 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
         lyrics: workerData.lyrics.lines,
         syncType: sType,
         source: `Spotify · ${modeLabel}`,
+        language: workerData.lyrics.language,
       });
       cacheSet(trackId, result);
       return result;
