@@ -7,7 +7,7 @@ import { fetchLyrics } from './lyrics.js';
 const CONFIG = {
   SPOTIFY_CLIENT_ID: '1253e21fe567410c99a9eddeb94b4d35', // Your Spotify app's client ID
   REDIRECT_URI: window.location.origin + window.location.pathname,
-  SCOPES: 'user-read-currently-playing user-read-playback-state',
+  SCOPES: 'user-read-currently-playing user-read-playback-state user-modify-playback-state',
   // URL of your Cloudflare Worker lyrics proxy (leave empty to skip)
   WORKER_URL: 'https://spotify-lyrics-worker.spotify-karaoke.workers.dev',
   POLL_INTERVAL_MS: 1000,
@@ -34,6 +34,8 @@ const statusMessage = $('#status-message');
 const statusText = $('#status-text');
 const lyricsSourceEl = $('#lyrics-source');
 const themeToggle = $('#theme-toggle');
+const touchControlToggle = $('#touch-control-toggle');
+const progressBarTrack = $('.progress-bar-track');
 const lyricsOffsetEl = $('#lyrics-offset');
 const offsetResetBtn = lyricsOffsetEl.querySelector('.offset-reset');
 const cjkFontPicker = $('#cjk-font-picker');
@@ -202,6 +204,32 @@ async function fetchCurrentlyPlaying() {
   if (!resp.ok) return null;
 
   return resp.json();
+}
+
+// ============================================================
+//  Spotify API — Seek
+// ============================================================
+
+async function seekToPosition(positionMs) {
+  await ensureValidToken();
+  if (!accessToken) return;
+
+  const ms = Math.round(Math.max(0, Math.min(positionMs, durationMs)));
+  try {
+    const resp = await fetch(
+      `https://api.spotify.com/v1/me/player/seek?position_ms=${ms}`,
+      { method: 'PUT', headers: { Authorization: 'Bearer ' + accessToken } },
+    );
+    if (resp.status === 401) {
+      await refreshAccessToken();
+      return;
+    }
+    lastProgressMs = ms;
+    smoothPositionMs = ms;
+    lastPollTimestamp = Date.now();
+  } catch (err) {
+    console.error('Seek error:', err);
+  }
 }
 
 // ============================================================
@@ -465,6 +493,7 @@ function updateNowPlayingUI(track) {
 
 function updateProgressUI(currentMs, totalMs) {
   if (totalMs <= 0) return;
+  if (isDraggingProgress) return;
   const pct = Math.min(100, (currentMs / totalMs) * 100);
   progressFill.style.width = pct + '%';
   progressCurrent.textContent = formatTime(currentMs);
@@ -666,9 +695,103 @@ function toggleTheme() {
 
 initTheme();
 
+// ============================================================
+//  Touch Control Toggle
+// ============================================================
+
+let touchControlEnabled = localStorage.getItem('touch-control') === 'true';
+
+function applyTouchControl(enabled) {
+  touchControlEnabled = enabled;
+  localStorage.setItem('touch-control', String(enabled));
+  if (enabled) {
+    document.documentElement.setAttribute('data-touch-control', '');
+  } else {
+    document.documentElement.removeAttribute('data-touch-control');
+  }
+}
+
+function toggleTouchControl() {
+  applyTouchControl(!touchControlEnabled);
+}
+
+applyTouchControl(touchControlEnabled);
+
+// ============================================================
+//  Progress Bar Drag (requires touch control)
+// ============================================================
+
+let isDraggingProgress = false;
+
+function progressPctFromPointer(e) {
+  const rect = progressBarTrack.getBoundingClientRect();
+  return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+}
+
+function onProgressPointerDown(e) {
+  if (!touchControlEnabled || durationMs <= 0) return;
+  isDraggingProgress = true;
+  progressBarTrack.classList.add('dragging');
+  progressBarTrack.setPointerCapture(e.pointerId);
+
+  const pct = progressPctFromPointer(e);
+  progressFill.style.width = (pct * 100) + '%';
+  progressCurrent.textContent = formatTime(pct * durationMs);
+}
+
+function onProgressPointerMove(e) {
+  if (!isDraggingProgress) return;
+  const pct = progressPctFromPointer(e);
+  progressFill.style.width = (pct * 100) + '%';
+  progressCurrent.textContent = formatTime(pct * durationMs);
+}
+
+function onProgressPointerUp(e) {
+  if (!isDraggingProgress) return;
+  isDraggingProgress = false;
+  progressBarTrack.classList.remove('dragging');
+
+  const pct = progressPctFromPointer(e);
+  const seekMs = pct * durationMs;
+  seekToPosition(seekMs);
+}
+
+progressBarTrack.addEventListener('pointerdown', onProgressPointerDown);
+progressBarTrack.addEventListener('pointermove', onProgressPointerMove);
+progressBarTrack.addEventListener('pointerup', onProgressPointerUp);
+progressBarTrack.addEventListener('pointercancel', () => {
+  isDraggingProgress = false;
+  progressBarTrack.classList.remove('dragging');
+});
+
+// ============================================================
+//  Lyrics Line Click-to-Seek (requires touch control)
+// ============================================================
+
+lyricsLines.addEventListener('click', (e) => {
+  if (!touchControlEnabled) return;
+  if (syncType !== 'LINE_SYNCED' && syncType !== 'WORD_SYNCED') return;
+  if (!lyrics || !Array.isArray(lyrics)) return;
+
+  const lineEl = e.target.closest('.lyrics-line');
+  if (!lineEl || lineEl.classList.contains('active')) return;
+
+  const idx = parseInt(lineEl.dataset.index, 10);
+  if (isNaN(idx) || idx < 0 || idx >= lyrics.length) return;
+
+  const startTimeMs = parseInt(lyrics[idx].startTimeMs, 10);
+  const seekMs = Math.max(0, Math.min(startTimeMs - lyricsOffsetMs, durationMs));
+  seekToPosition(seekMs);
+});
+
+// ============================================================
+//  Event Listeners
+// ============================================================
+
 connectBtn.addEventListener('click', startAuth);
 disconnectBtn.addEventListener('click', logout);
 themeToggle.addEventListener('click', toggleTheme);
+touchControlToggle.addEventListener('click', toggleTouchControl);
 lyricsOffsetEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.offset-btn');
   if (!btn) return;

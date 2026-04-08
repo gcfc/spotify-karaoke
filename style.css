@@ -136,9 +136,9 @@ html, body {
   color: #a0a0b8;
 }
 
-/* ─── Theme Toggle ─── */
+/* ─── Icon Toggle Buttons (theme, touch control) ─── */
 
-.btn-theme-toggle {
+.btn-icon-toggle {
   background: none;
   border: none;
   color: var(--text-secondary);
@@ -152,28 +152,53 @@ html, body {
   justify-content: center;
 }
 
-.btn-theme-toggle:hover {
+.btn-icon-toggle:hover {
   color: var(--text-primary);
   background: var(--surface-hover);
 }
 
-.btn-theme-toggle .icon-sun,
-.btn-theme-toggle .icon-moon {
+/* Theme toggle icons */
+
+.btn-icon-toggle .icon-sun,
+.btn-icon-toggle .icon-moon {
   display: none;
   width: 20px;
   height: 20px;
 }
 
-.btn-theme-toggle .icon-sun {
+.btn-icon-toggle .icon-sun {
   display: block;
 }
 
-[data-theme="light"] .btn-theme-toggle .icon-sun {
+[data-theme="light"] .btn-icon-toggle .icon-sun {
   display: none;
 }
 
-[data-theme="light"] .btn-theme-toggle .icon-moon {
+[data-theme="light"] .btn-icon-toggle .icon-moon {
   display: block;
+}
+
+/* Touch control toggle icons */
+
+.btn-icon-toggle .icon-touch-on,
+.btn-icon-toggle .icon-touch-off {
+  display: none;
+}
+
+#touch-control-toggle .icon-touch-off {
+  display: block;
+}
+
+[data-touch-control] #touch-control-toggle .icon-touch-off {
+  display: none;
+}
+
+[data-touch-control] #touch-control-toggle .icon-touch-on {
+  display: block;
+}
+
+[data-touch-control] #touch-control-toggle {
+  color: var(--accent);
 }
 
 /* ─── Now Playing Bar ─── */
@@ -266,7 +291,8 @@ html, body {
   height: 3px;
   background: var(--progress-track);
   border-radius: 2px;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
 
 .progress-bar-fill {
@@ -275,6 +301,44 @@ html, body {
   background: var(--accent);
   border-radius: 2px;
   transition: width 0.3s linear;
+  position: relative;
+}
+
+/* ─── Interactive Progress Bar (touch control) ─── */
+
+[data-touch-control] .progress-bar-track {
+  height: 4px;
+  cursor: pointer;
+  padding: 6px 0;
+  margin: -6px 0;
+  background-clip: content-box;
+}
+
+[data-touch-control] .progress-bar-fill {
+  height: 4px;
+}
+
+[data-touch-control] .progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%) scale(0);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+
+[data-touch-control] .progress-bar-track:hover .progress-bar-fill::after,
+[data-touch-control] .progress-bar-track.dragging .progress-bar-fill::after {
+  transform: translateY(-50%) scale(1);
+}
+
+[data-touch-control] .progress-bar-track.dragging .progress-bar-fill {
+  transition: none;
 }
 
 /* ─── Lyrics Container ─── */
@@ -325,6 +389,21 @@ html, body {
 .lyrics-line.past {
   color: var(--text-secondary);
   opacity: 0.55;
+}
+
+/* ─── Clickable Lyrics Lines (touch control) ─── */
+
+[data-touch-control] .lyrics-line {
+  cursor: pointer;
+}
+
+[data-touch-control] .lyrics-line:not(.active):hover {
+  opacity: 0.85;
+  color: var(--text-secondary);
+}
+
+[data-touch-control] .lyrics-line.active {
+  cursor: default;
 }
 
 /* ─── Word-Synced Mode ─── */
