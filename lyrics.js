@@ -8,6 +8,20 @@
 const CJK_RE = /[\u4e00-\u9fff]/;
 const JAPANESE_RE = /[\u3040-\u309f\u30a0-\u30ff]/;  // Hiragana + Katakana
 
+/**
+ * Strip Spotify metadata suffixes from track names so search APIs
+ * see just the core title.  Examples:
+ *   "痴心的廢墟 - 電視劇《黃金十年》主題曲"  →  "痴心的廢墟"
+ *   "Bohemian Rhapsody - Remastered 2011"      →  "Bohemian Rhapsody"
+ *   "Hello (feat. Adele)"                       →  "Hello"
+ */
+export function cleanTrackName(name) {
+  return name
+    .replace(/\s*[-–—]\s.*$/, '')
+    .replace(/\s*[(\[【].*$/, '')
+    .trim();
+}
+
 export function isChinese(sample, language) {
   if (language) {
     const lang = language.toLowerCase();
@@ -96,32 +110,36 @@ export async function fetchLyricsFromWorker(workerUrl, trackId, spotifyToken) {
 
 export async function fetchLyricsFromLRCLIB(trackName, artistName, durationSec) {
   try {
-    const params = new URLSearchParams({
-      track_name: trackName,
-      artist_name: artistName,
-    });
-    if (durationSec) params.set('duration', String(Math.round(durationSec)));
-
     const lrcHeaders = { 'Lrclib-Client': 'SpotifyKaraoke/1.0' };
+    const cleaned = cleanTrackName(trackName);
+    const namesToTry = cleaned !== trackName ? [trackName, cleaned] : [trackName];
 
-    const getUrl = 'https://lrclib.net/api/get?' + params.toString();
-    console.debug('[lyrics] LRCLIB get:', getUrl);
-    let resp = await fetch(getUrl, { headers: lrcHeaders });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.syncedLyrics || data.plainLyrics) {
-        console.debug('[lyrics] LRCLIB get: found', data.syncedLyrics ? 'synced' : 'plain');
-        return data;
+    for (const name of namesToTry) {
+      const params = new URLSearchParams({
+        track_name: name,
+        artist_name: artistName,
+      });
+      if (durationSec) params.set('duration', String(Math.round(durationSec)));
+
+      const getUrl = 'https://lrclib.net/api/get?' + params.toString();
+      console.debug('[lyrics] LRCLIB get:', getUrl);
+      const resp = await fetch(getUrl, { headers: lrcHeaders });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.syncedLyrics || data.plainLyrics) {
+          console.debug('[lyrics] LRCLIB get: found', data.syncedLyrics ? 'synced' : 'plain');
+          return data;
+        }
+        console.debug('[lyrics] LRCLIB get: response OK but no lyrics fields');
+      } else {
+        console.debug('[lyrics] LRCLIB get: HTTP', resp.status);
       }
-      console.debug('[lyrics] LRCLIB get: response OK but no lyrics fields');
-    } else {
-      console.debug('[lyrics] LRCLIB get: HTTP', resp.status);
     }
 
-    const q = `${trackName} ${artistName}`;
+    const q = `${cleaned} ${artistName}`;
     const searchUrl = 'https://lrclib.net/api/search?q=' + encodeURIComponent(q);
     console.debug('[lyrics] LRCLIB search:', searchUrl);
-    resp = await fetch(searchUrl, { headers: lrcHeaders });
+    const resp = await fetch(searchUrl, { headers: lrcHeaders });
     if (!resp.ok) { console.debug('[lyrics] LRCLIB search: HTTP', resp.status); return null; }
     const results = await resp.json();
     console.debug('[lyrics] LRCLIB search:', results.length, 'results');
@@ -138,20 +156,31 @@ export async function fetchLyricsFromLRCLIB(trackName, artistName, durationSec) 
 
 export async function fetchLyricsFromKKBOX(workerUrl, trackName, artistName) {
   if (!workerUrl) return null;
-  const params = new URLSearchParams({ title: trackName, artist: artistName });
-  const url = `${workerUrl}/kkbox-lyrics?${params}`;
-  console.debug('[lyrics] KKBOX:', url);
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) { console.debug('[lyrics] KKBOX: HTTP', resp.status); return null; }
-    const data = await resp.json();
-    if (data.plainLyrics) { console.debug('[lyrics] KKBOX: found plain lyrics'); }
-    else { console.debug('[lyrics] KKBOX: response OK but no plainLyrics'); }
-    return data.plainLyrics || null;
-  } catch (err) {
-    console.debug('[lyrics] KKBOX: error', err.message);
-    return null;
+  const cleaned = cleanTrackName(trackName);
+  const namesToTry = cleaned !== trackName ? [trackName, cleaned] : [trackName];
+
+  for (const name of namesToTry) {
+    const params = new URLSearchParams({ title: name, artist: artistName });
+    const url = `${workerUrl}/kkbox-lyrics?${params}`;
+    console.debug('[lyrics] KKBOX:', url);
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) { console.debug('[lyrics] KKBOX: HTTP', resp.status); continue; }
+      const data = await resp.json();
+      if (data.plainLyrics) {
+        console.debug('[lyrics] KKBOX: found plain lyrics');
+        return {
+          plainLyrics: data.plainLyrics,
+          territory: data.territory || '?',
+          exact: data.exact ?? (name === trackName),
+        };
+      }
+      console.debug('[lyrics] KKBOX: response OK but no plainLyrics');
+    } catch (err) {
+      console.debug('[lyrics] KKBOX: error', err.message);
+    }
   }
+  return null;
 }
 
 /**
@@ -167,26 +196,41 @@ export async function fetchLyricsFromKKBOXDirect(trackName, artistName) {
   };
 
   try {
-    const q = `${trackName} ${artistName}`.trim();
+    const cleaned = cleanTrackName(trackName);
+    const isExact = cleaned === trackName;
+    const queries = [
+      { q: `${trackName} ${artistName}`.trim(), exact: true },
+      ...(isExact ? [] : [{ q: `${cleaned} ${artistName}`.trim(), exact: false }]),
+    ];
 
     let songUrl = null;
-    for (const terr of KKBOX_TERRITORIES) {
-      const searchUrl =
-        'https://www.kkbox.com/api/search/song?q=' +
-        encodeURIComponent(q) +
-        `&terr=${terr}&lang=tc`;
-      console.debug('[lyrics] KKBOX-direct: search', searchUrl);
+    let matchTerr = null;
+    let matchExact = true;
+    outer:
+    for (const { q, exact } of queries) {
+      for (const terr of KKBOX_TERRITORIES) {
+        const searchUrl =
+          'https://www.kkbox.com/api/search/song?q=' +
+          encodeURIComponent(q) +
+          `&terr=${terr}&lang=tc`;
+        console.debug('[lyrics] KKBOX-direct: search', searchUrl);
 
-      try {
-        const searchResp = await fetch(searchUrl, { headers: KKBOX_UA_HEADERS });
-        if (!searchResp.ok) {
-          console.debug('[lyrics] KKBOX-direct: search HTTP', searchResp.status);
-          continue;
-        }
-        const searchData = await searchResp.json();
-        const url = searchData?.data?.result?.[0]?.url;
-        if (url) { songUrl = url; break; }
-      } catch { continue; }
+        try {
+          const searchResp = await fetch(searchUrl, { headers: KKBOX_UA_HEADERS });
+          if (!searchResp.ok) {
+            console.debug('[lyrics] KKBOX-direct: search HTTP', searchResp.status);
+            continue;
+          }
+          const searchData = await searchResp.json();
+          const url = searchData?.data?.result?.[0]?.url;
+          if (url) {
+            songUrl = url;
+            matchTerr = terr;
+            matchExact = exact;
+            break outer;
+          }
+        } catch { continue; }
+      }
     }
 
     if (!songUrl) {
@@ -210,7 +254,7 @@ export async function fetchLyricsFromKKBOXDirect(trackName, artistName) {
         const text = ld?.recordingOf?.lyrics?.text;
         if (text) {
           console.debug('[lyrics] KKBOX-direct: found plain lyrics');
-          return text;
+          return { plainLyrics: text, territory: matchTerr, exact: matchExact };
         }
       } catch { /* not the right JSON-LD block */ }
     }
@@ -318,10 +362,20 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
     result = { lyrics: lrcData.plainLyrics, syncType: 'PLAIN', source: 'LRCLIB · plain' };
   }
   if (!result && kkboxWorker) {
-    result = { lyrics: kkboxWorker, syncType: 'PLAIN', source: 'KKBOX · plain' };
+    const searchTag = kkboxWorker.exact ? 'exact' : 'title only';
+    result = {
+      lyrics: kkboxWorker.plainLyrics,
+      syncType: 'PLAIN',
+      source: `KKBOX · ${kkboxWorker.territory} · ${searchTag}`,
+    };
   }
   if (!result && kkboxDirect) {
-    result = { lyrics: kkboxDirect, syncType: 'PLAIN', source: 'KKBOX · plain (direct)' };
+    const searchTag = kkboxDirect.exact ? 'exact' : 'title only';
+    result = {
+      lyrics: kkboxDirect.plainLyrics,
+      syncType: 'PLAIN',
+      source: `KKBOX · ${kkboxDirect.territory} · ${searchTag} (direct)`,
+    };
   }
 
   if (result) {

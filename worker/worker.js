@@ -78,19 +78,34 @@ const KKBOX_HEADERS = {
 
 const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
 
+function cleanTrackName(name) {
+  return name
+    .replace(/\s*[-–—]\s.*$/, '')
+    .replace(/\s*[(\[【].*$/, '')
+    .trim();
+}
+
 async function searchKKBOX(title, artist) {
-  const q = `${title} ${artist}`.trim();
-  for (const terr of KKBOX_TERRITORIES) {
-    const url = `https://www.kkbox.com/api/search/song?q=${encodeURIComponent(q)}&terr=${terr}&lang=tc`;
-    try {
-      const resp = await fetch(url, {
-        headers: { ...KKBOX_HEADERS, Accept: 'application/json' },
-      });
-      if (!resp.ok) continue;
-      const data = await resp.json();
-      const first = data?.data?.result?.[0];
-      if (first?.url) return first.url;
-    } catch { continue; }
+  const cleaned = cleanTrackName(title);
+  const isExact = cleaned === title;
+  const queries = [
+    { q: `${title} ${artist}`.trim(), exact: true },
+    ...(isExact ? [] : [{ q: `${cleaned} ${artist}`.trim(), exact: false }]),
+  ];
+
+  for (const { q, exact } of queries) {
+    for (const terr of KKBOX_TERRITORIES) {
+      const url = `https://www.kkbox.com/api/search/song?q=${encodeURIComponent(q)}&terr=${terr}&lang=tc`;
+      try {
+        const resp = await fetch(url, {
+          headers: { ...KKBOX_HEADERS, Accept: 'application/json' },
+        });
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        const first = data?.data?.result?.[0];
+        if (first?.url) return { url: first.url, territory: terr, exact };
+      } catch { continue; }
+    }
   }
   return null;
 }
@@ -190,17 +205,21 @@ async function handleKKBOXLyrics(url) {
     return jsonResponse({ error: 'Missing title parameter' }, 400);
   }
 
-  const songUrl = await searchKKBOX(title, artist || '');
-  if (!songUrl) {
+  const match = await searchKKBOX(title, artist || '');
+  if (!match) {
     return jsonResponse({ error: 'No KKBOX results found' }, 404);
   }
 
-  const plainLyrics = await scrapeKKBOXLyrics(songUrl);
+  const plainLyrics = await scrapeKKBOXLyrics(match.url);
   if (!plainLyrics) {
     return jsonResponse({ error: 'Lyrics not found on KKBOX page' }, 404);
   }
 
-  return jsonResponse({ plainLyrics });
+  return jsonResponse({
+    plainLyrics,
+    territory: match.territory,
+    exact: match.exact,
+  });
 }
 
 export default {
