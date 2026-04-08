@@ -212,10 +212,18 @@ async function fetchCurrentlyPlaying() {
 // ============================================================
 
 async function seekToPosition(positionMs) {
+  const ms = Math.round(Math.max(0, Math.min(positionMs, durationMs)));
+
+  // Update local state synchronously so the animation loop uses the new
+  // position immediately, before any async work yields to the event loop.
+  lastProgressMs = ms;
+  smoothPositionMs = ms;
+  lastPollTimestamp = Date.now();
+  lastSeekTimestamp = Date.now();
+
   await ensureValidToken();
   if (!accessToken) return;
 
-  const ms = Math.round(Math.max(0, Math.min(positionMs, durationMs)));
   try {
     const resp = await fetch(
       `https://api.spotify.com/v1/me/player/seek?position_ms=${ms}`,
@@ -223,12 +231,7 @@ async function seekToPosition(positionMs) {
     );
     if (resp.status === 401) {
       await refreshAccessToken();
-      return;
     }
-    lastProgressMs = ms;
-    smoothPositionMs = ms;
-    lastPollTimestamp = Date.now();
-    lastSeekTimestamp = Date.now();
   } catch (err) {
     console.error('Seek error:', err);
   }
