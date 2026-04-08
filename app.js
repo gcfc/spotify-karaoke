@@ -61,6 +61,7 @@ let lyricsOffsetMs = 0;
 let rafId = null;
 let pollTimer = null;
 let smoothPositionMs = 0;
+let lastSeekTimestamp = 0;
 
 // ============================================================
 //  Spotify PKCE Auth
@@ -227,6 +228,7 @@ async function seekToPosition(positionMs) {
     lastProgressMs = ms;
     smoothPositionMs = ms;
     lastPollTimestamp = Date.now();
+    lastSeekTimestamp = Date.now();
   } catch (err) {
     console.error('Seek error:', err);
   }
@@ -445,9 +447,14 @@ async function pollOnce() {
     const track = data.item;
     const trackId = track.id;
     isPlaying = data.is_playing;
-    lastProgressMs = data.progress_ms || 0;
-    lastPollTimestamp = Date.now();
     durationMs = track.duration_ms || 0;
+
+    const SEEK_GRACE_MS = 2500;
+    const inSeekGrace = (Date.now() - lastSeekTimestamp) < SEEK_GRACE_MS;
+    if (!inSeekGrace) {
+      lastProgressMs = data.progress_ms || 0;
+      lastPollTimestamp = Date.now();
+    }
 
     updateNowPlayingUI(track);
     updateProgressUI(lastProgressMs, durationMs);
