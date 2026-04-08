@@ -76,16 +76,23 @@ const KKBOX_HEADERS = {
   Accept: 'text/html',
 };
 
+const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
+
 async function searchKKBOX(title, artist) {
   const q = `${title} ${artist}`.trim();
-  const url = `https://www.kkbox.com/api/search/song?q=${encodeURIComponent(q)}&terr=hk&lang=tc`;
-  const resp = await fetch(url, {
-    headers: { ...KKBOX_HEADERS, Accept: 'application/json' },
-  });
-  if (!resp.ok) return null;
-  const data = await resp.json();
-  const first = data?.data?.result?.[0];
-  return first?.url || null;
+  for (const terr of KKBOX_TERRITORIES) {
+    const url = `https://www.kkbox.com/api/search/song?q=${encodeURIComponent(q)}&terr=${terr}&lang=tc`;
+    try {
+      const resp = await fetch(url, {
+        headers: { ...KKBOX_HEADERS, Accept: 'application/json' },
+      });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      const first = data?.data?.result?.[0];
+      if (first?.url) return first.url;
+    } catch { continue; }
+  }
+  return null;
 }
 
 async function scrapeKKBOXLyrics(songUrl) {

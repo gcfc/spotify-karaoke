@@ -159,6 +159,8 @@ export async function fetchLyricsFromKKBOX(workerUrl, trackName, artistName) {
  * without going through the Cloudflare Worker. Works when the Worker is
  * unreachable or KKBOX blocks Worker IPs but allows browser requests.
  */
+const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
+
 export async function fetchLyricsFromKKBOXDirect(trackName, artistName) {
   const KKBOX_UA_HEADERS = {
     Accept: 'application/json',
@@ -166,21 +168,29 @@ export async function fetchLyricsFromKKBOXDirect(trackName, artistName) {
 
   try {
     const q = `${trackName} ${artistName}`.trim();
-    const searchUrl =
-      'https://www.kkbox.com/api/search/song?q=' +
-      encodeURIComponent(q) +
-      '&terr=hk&lang=tc';
-    console.debug('[lyrics] KKBOX-direct: search', searchUrl);
 
-    const searchResp = await fetch(searchUrl, { headers: KKBOX_UA_HEADERS });
-    if (!searchResp.ok) {
-      console.debug('[lyrics] KKBOX-direct: search HTTP', searchResp.status);
-      return null;
+    let songUrl = null;
+    for (const terr of KKBOX_TERRITORIES) {
+      const searchUrl =
+        'https://www.kkbox.com/api/search/song?q=' +
+        encodeURIComponent(q) +
+        `&terr=${terr}&lang=tc`;
+      console.debug('[lyrics] KKBOX-direct: search', searchUrl);
+
+      try {
+        const searchResp = await fetch(searchUrl, { headers: KKBOX_UA_HEADERS });
+        if (!searchResp.ok) {
+          console.debug('[lyrics] KKBOX-direct: search HTTP', searchResp.status);
+          continue;
+        }
+        const searchData = await searchResp.json();
+        const url = searchData?.data?.result?.[0]?.url;
+        if (url) { songUrl = url; break; }
+      } catch { continue; }
     }
-    const searchData = await searchResp.json();
-    const songUrl = searchData?.data?.result?.[0]?.url;
+
     if (!songUrl) {
-      console.debug('[lyrics] KKBOX-direct: no search results');
+      console.debug('[lyrics] KKBOX-direct: no search results in any territory');
       return null;
     }
     console.debug('[lyrics] KKBOX-direct: song page', songUrl);
