@@ -740,6 +740,7 @@ function progressPctFromPointer(e) {
 
 function onProgressPointerDown(e) {
   if (!touchControlEnabled || durationMs <= 0) return;
+  e.preventDefault();
   isDraggingProgress = true;
   progressBarTrack.classList.add('dragging');
   progressBarTrack.setPointerCapture(e.pointerId);
