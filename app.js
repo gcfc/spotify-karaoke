@@ -662,21 +662,50 @@ function applyCjkFont(fontName) {
   lyricsLines.style.fontWeight = CJK_BOLD_FONTS.has(fontName) ? '' : '300';
 }
 
+const cjkPickerToggle = cjkFontPicker.querySelector('.cjk-picker-toggle');
+const cjkPickerMenu = cjkFontPicker.querySelector('.cjk-picker-menu');
+const cjkPickerOptions = cjkFontPicker.querySelectorAll('.cjk-picker-option');
+
+function setCjkPickerValue(value) {
+  cjkPickerOptions.forEach((opt) => {
+    const match = opt.dataset.value === value;
+    opt.classList.toggle('selected', match);
+    if (match) cjkPickerToggle.textContent = opt.textContent;
+  });
+}
+
 function showCjkFontPicker() {
-  cjkFontPicker.value = currentCjkFont;
+  setCjkPickerValue(currentCjkFont);
   cjkFontPicker.classList.remove('hidden');
 }
 
 function hideCjkFontPicker() {
   cjkFontPicker.classList.add('hidden');
+  cjkFontPicker.classList.remove('open');
 }
 
 function initCjkFont() {
   if (currentCjkFont) {
     loadGoogleFont(currentCjkFont);
   }
-  cjkFontPicker.addEventListener('change', () => {
-    applyCjkFont(cjkFontPicker.value);
+
+  cjkPickerToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    cjkFontPicker.classList.toggle('open');
+  });
+
+  cjkPickerMenu.addEventListener('click', (e) => {
+    const opt = e.target.closest('.cjk-picker-option');
+    if (!opt) return;
+    e.stopPropagation();
+    const value = opt.dataset.value;
+    setCjkPickerValue(value);
+    applyCjkFont(value);
+    cjkFontPicker.classList.remove('open');
+  });
+
+  document.addEventListener('click', () => {
+    cjkFontPicker.classList.remove('open');
   });
 }
 
