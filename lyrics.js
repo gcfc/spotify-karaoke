@@ -136,17 +136,37 @@ export async function fetchLyricsFromLRCLIB(trackName, artistName, durationSec) 
       }
     }
 
-    const q = `${cleaned} ${artistName}`;
-    const searchUrl = 'https://lrclib.net/api/search?q=' + encodeURIComponent(q);
-    console.debug('[lyrics] LRCLIB search:', searchUrl);
-    const resp = await fetch(searchUrl, { headers: lrcHeaders });
-    if (!resp.ok) { console.debug('[lyrics] LRCLIB search: HTTP', resp.status); return null; }
-    const results = await resp.json();
-    console.debug('[lyrics] LRCLIB search:', results.length, 'results');
-    if (results.length > 0) {
-      const best = results.find((r) => r.syncedLyrics) || results[0];
-      return best;
+    const pickBest = (results) => results.find((r) => r.syncedLyrics) || results[0];
+    const lrclibSearch = async (q) => {
+      const searchUrl = 'https://lrclib.net/api/search?q=' + encodeURIComponent(q);
+      console.debug('[lyrics] LRCLIB search:', searchUrl);
+      const resp = await fetch(searchUrl, { headers: lrcHeaders });
+      if (!resp.ok) { console.debug('[lyrics] LRCLIB search: HTTP', resp.status); return null; }
+      const results = await resp.json();
+      console.debug('[lyrics] LRCLIB search:', results.length, 'results');
+      return Array.isArray(results) ? results : null;
+    };
+
+    // First attempt: title + artist. Fails when Spotify's artist name form
+    // (e.g. romanized "Li Jian") differs from LRCLIB's native "李健".
+    const withArtist = await lrclibSearch(`${cleaned} ${artistName}`.trim());
+    if (withArtist && withArtist.length > 0) {
+      return pickBest(withArtist);
     }
+
+    // Fallback: title-only search recovers artist-name mismatches. Prefer a
+    // result whose track name matches the title so we don't grab an unrelated
+    // song that merely shares a search token.
+    const titleOnly = await lrclibSearch(cleaned);
+    if (titleOnly && titleOnly.length > 0) {
+      const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
+      const target = norm(cleaned);
+      const titleMatches = titleOnly.filter((r) => norm(r.trackName) === target);
+      const pool = titleMatches.length > 0 ? titleMatches : titleOnly;
+      console.debug('[lyrics] LRCLIB search: title-only fallback,', titleMatches.length, 'title matches');
+      return pickBest(pool);
+    }
+
     return null;
   } catch (err) {
     console.debug('[lyrics] LRCLIB: error', err.message);
