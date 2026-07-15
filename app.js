@@ -1,4 +1,5 @@
 import { fetchLyrics } from './lyrics.js';
+import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
 
 // ============================================================
 //  Configuration — fill these in before deploying
@@ -712,24 +713,94 @@ function initCjkFont() {
 initCjkFont();
 
 // ============================================================
-//  Theme Toggle
+//  Theme — follows the local sunrise / sunset
 // ============================================================
+
+const THEME_KEY = 'theme';
+const THEME_SET_AT_KEY = 'theme-set-at';
+const LOCATION_KEY = 'sun-location';
+
+// setTimeout can't be trusted with very long delays (and the machine may sleep through
+// one), so never wait more than this before re-checking where the sun is.
+const MAX_THEME_TIMER_MS = 6 * 60 * 60 * 1000;
+
+let sunLocation = loadCachedLocation() || DEFAULT_LOCATION;
+let themeTimer = null;
+
+function loadCachedLocation() {
+  try {
+    const { lat, lon } = JSON.parse(localStorage.getItem(LOCATION_KEY));
+    if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon };
+  } catch {
+    // no usable cached location
+  }
+  return null;
+}
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('theme', theme);
 }
 
-function initTheme() {
-  const stored = localStorage.getItem('theme');
-  if (stored === 'light') {
-    applyTheme('light');
+function sunTheme(now) {
+  return isDaylight(now, sunLocation.lat, sunLocation.lon) ? 'light' : 'dark';
+}
+
+/**
+ * A manual toggle wins over the sun, but only until the next sunrise or sunset — after
+ * that the sun takes over again. An override with no timestamp was stored by a version
+ * of the app that predates this, so it counts as expired.
+ */
+function activeOverride(now) {
+  const theme = localStorage.getItem(THEME_KEY);
+  if (theme !== 'light' && theme !== 'dark') return null;
+
+  const setAt = Number(localStorage.getItem(THEME_SET_AT_KEY));
+  const lastTransition = lastSolarTransition(now, sunLocation.lat, sunLocation.lon);
+  if (!setAt || (lastTransition && setAt < lastTransition.valueOf())) {
+    localStorage.removeItem(THEME_KEY);
+    localStorage.removeItem(THEME_SET_AT_KEY);
+    return null;
   }
+  return theme;
+}
+
+function refreshTheme() {
+  const now = new Date();
+  applyTheme(activeOverride(now) || sunTheme(now));
+
+  clearTimeout(themeTimer);
+  const next = nextSolarTransition(now, sunLocation.lat, sunLocation.lon);
+  const untilNext = next ? next.valueOf() - now.valueOf() + 1000 : MAX_THEME_TIMER_MS;
+  themeTimer = setTimeout(refreshTheme, Math.min(untilNext, MAX_THEME_TIMER_MS));
 }
 
 function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme');
-  applyTheme(current === 'light' ? 'dark' : 'light');
+  const next = current === 'light' ? 'dark' : 'light';
+  localStorage.setItem(THEME_KEY, next);
+  localStorage.setItem(THEME_SET_AT_KEY, String(Date.now()));
+  applyTheme(next);
+}
+
+function initTheme() {
+  refreshTheme();
+
+  // Sharpen the guess with the real location. A denial or timeout just leaves us on the
+  // default location, so there's nothing to handle on failure.
+  navigator.geolocation?.getCurrentPosition(
+    ({ coords }) => {
+      sunLocation = { lat: coords.latitude, lon: coords.longitude };
+      localStorage.setItem(LOCATION_KEY, JSON.stringify(sunLocation));
+      refreshTheme();
+    },
+    () => {},
+    { timeout: 10000, maximumAge: 24 * 60 * 60 * 1000 },
+  );
+
+  // A tab that was hidden across sunset may have slept through its timer.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshTheme();
+  });
 }
 
 initTheme();

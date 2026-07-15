@@ -8,7 +8,7 @@ A static website that connects to your Spotify account and displays real-time sy
 - **Spotify integration** — uses the official Spotify Web API with PKCE auth (no backend needed for auth)
 - **Two-layer lyrics** — Cloudflare Worker (Spotify's internal Musixmatch-powered lyrics) as primary, LRCLIB (free, open) as fallback
 - **Graceful degradation** — word-synced → line-synced → plain scrollable lyrics → "no lyrics" message
-- **Dark theme** with smooth animations
+- **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset, based on your location (San Mateo, CA if you decline the location prompt). The toggle button overrides it until the next sunrise or sunset.
 - **Responsive** — works on desktop and mobile
 
 ## Quick Start
@@ -113,6 +113,7 @@ spotify-karaoke/
 ├── index.html          # Page shell
 ├── style.css           # Dark karaoke theme
 ├── app.js              # All client-side logic
+├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── worker/
 │   ├── worker.js       # Cloudflare Worker (lyrics proxy)
 │   └── wrangler.toml   # Worker config
