@@ -1,6 +1,6 @@
 import { fetchLyrics } from './lyrics.js';
 import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
-import { detectLyricsLanguage, shouldOfferTranslation, translateLines } from './translate.js';
+import { detectLyricsLanguage, normalizeProvider, shouldOfferTranslation, translateLines } from './translate.js';
 
 // ============================================================
 //  Configuration — fill these in before deploying
@@ -763,7 +763,7 @@ const TRANSLATE_PROVIDER_KEY = 'translate-provider';
 
 let translateEnabled = localStorage.getItem(TRANSLATE_ON_KEY) === '1';
 let translateTarget = localStorage.getItem(TRANSLATE_TARGET_KEY) === 'zh' ? 'zh' : 'en';
-let translateProvider = localStorage.getItem(TRANSLATE_PROVIDER_KEY) === 'cloud' ? 'cloud' : 'free';
+let translateProvider = normalizeProvider(localStorage.getItem(TRANSLATE_PROVIDER_KEY));
 
 let lyricsTranslations = null;   // aligned with the rendered lines, or null
 let translationRequestId = 0;    // guards against a slow reply for an old track
@@ -888,8 +888,8 @@ function setTranslateOption(setting, value) {
     translateTarget = value;
     localStorage.setItem(TRANSLATE_TARGET_KEY, value);
   } else {
-    translateProvider = value;
-    localStorage.setItem(TRANSLATE_PROVIDER_KEY, value);
+    translateProvider = normalizeProvider(value);
+    localStorage.setItem(TRANSLATE_PROVIDER_KEY, translateProvider);
   }
   markTranslateOptions();
 

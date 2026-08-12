@@ -10,11 +10,16 @@
 
 import {
   applyTranslationPlan,
+  buildTranslationPrompt,
   decodeHtmlEntities,
   detectLyricsLanguage,
+  findProvider,
   googleTargetCode,
+  LLM_CHUNK_LINES,
+  normalizeProvider,
   planTranslation,
   shouldOfferTranslation,
+  TRANSLATE_PROVIDERS,
   translateLines,
 } from '../translate.js';
 
@@ -166,6 +171,66 @@ assert(result === null, 'a misaligned Worker reply is rejected');
 
 result = await translateLines([], { target: 'en', provider: 'free' });
 assert(result === null, 'no lines means nothing to translate');
+
+// ── 6. Provider registry ──
+
+console.log('\n── providers ──');
+
+assert(TRANSLATE_PROVIDERS.length === 7, 'Default, Better and five models are listed');
+assert(findProvider('free') && !findProvider('free').llm, 'the keyless provider is not an LLM');
+assert(findProvider('cloud') && !findProvider('cloud').llm, 'the Cloud provider is not an LLM');
+
+const llmProviders = TRANSLATE_PROVIDERS.filter((p) => p.llm);
+assert(llmProviders.length === 5, 'five LLM providers are registered');
+assert(llmProviders.filter((p) => p.llm.backend === 'gemini').length === 4, 'four are Gemini models');
+assert(llmProviders.filter((p) => p.llm.backend === 'openrouter').length === 1, 'one is an OpenRouter model');
+assert(llmProviders.every((p) => p.label && p.llm.model), 'every model entry carries a label and a model id');
+
+assert(normalizeProvider('gemini-flash-lite-latest') === 'gemini-flash-lite-latest',
+  'a known provider id passes through');
+assert(normalizeProvider('made-up-model') === 'free',
+  'an unknown provider id falls back to the keyless one');
+assert(normalizeProvider(null) === 'free', 'a missing provider id falls back to the keyless one');
+
+// ── 7. LLM prompt and chunking ──
+
+console.log('\n── LLM provider ──');
+
+const prompt = buildTranslationPrompt(['Eins', 'Zwei', 'Drei'], 'zh');
+assert(prompt.includes('exactly 3 translations'), 'the prompt states the exact line count');
+assert(prompt.includes('Simplified Chinese'), 'the prompt names the target language');
+assert(prompt.includes('1. Eins') && prompt.includes('3. Drei'), 'the prompt numbers every line');
+
+// A song longer than one chunk must arrive as several bounded requests.
+const many = Array.from({ length: 60 }, (_, i) => `Zeile ${i + 1}`);
+const chunkSizes = [];
+globalThis.fetch = async (url, opts) => {
+  const body = JSON.parse(opts.body);
+  chunkSizes.push(body.lines.length);
+  return new Response(JSON.stringify({ translations: body.lines.map((l) => `L(${l})`) }), { status: 200 });
+};
+result = await translateLines(many, { target: 'en', provider: 'gemini-flash-lite-latest', workerUrl: 'https://w.test' });
+assert(result.length === 60 && result[59] === 'L(Zeile 60)', 'a long song reassembles in order across chunks');
+assert(chunkSizes.length === 3 && chunkSizes.every((n) => n <= LLM_CHUNK_LINES),
+  `60 lines split into bounded chunks (${chunkSizes.join('+')})`);
+
+// One bad chunk must sink the whole result rather than shifting later lines.
+let call = 0;
+globalThis.fetch = async (url, opts) => {
+  const body = JSON.parse(opts.body);
+  const out = body.lines.map((l) => `L(${l})`);
+  if (call++ === 1) out.pop();
+  return new Response(JSON.stringify({ translations: out }), { status: 200 });
+};
+result = await translateLines(many, { target: 'en', provider: 'gemini-flash-lite-latest', workerUrl: 'https://w.test' });
+assert(result === null, 'a model that drops a line yields no translation rather than misaligned ones');
+
+globalThis.fetch = async () => new Response(JSON.stringify({ error: 'no key' }), { status: 501 });
+result = await translateLines(['Eins'], { target: 'en', provider: 'nemotron-3-super-120b', workerUrl: 'https://w.test' });
+assert(result === null, 'an unconfigured model key yields null');
+
+result = await translateLines(['Eins'], { target: 'en', provider: 'gemini-flash-lite-latest' });
+assert(result === null, 'an LLM provider without a Worker URL yields null');
 
 globalThis.fetch = realFetch;
 

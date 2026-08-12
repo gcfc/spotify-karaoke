@@ -2,15 +2,49 @@
 //  Lyrics translation — shared by app.js (browser),
 //  worker/worker.js (Cloudflare Worker) and the CLI tests.
 //
-//  Two providers, chosen from the UI:
+//  Providers, chosen from the UI:
 //    'free'  — translate.googleapis.com, no key, called straight from the
 //              browser (it sends Access-Control-Allow-Origin: *).
 //    'cloud' — Google Cloud Translation v2 through the Worker, which holds
 //              the API key.  A static site cannot keep a key secret.
+//    LLM     — one model per entry, also through the Worker.  These translate
+//              the whole song in one prompt, so recurring imagery and idiom
+//              stay consistent in a way per-line machine translation cannot
+//              manage.  Listed by model name so they can be compared directly.
 // ============================================================
 
-export const TRANSLATE_PROVIDERS = ['free', 'cloud'];
 export const TRANSLATE_TARGETS = ['en', 'zh'];
+
+/**
+ * Every model here was measured translating 44 unique lines, chunked, before
+ * being listed: all returned one translation per line on repeated runs.
+ * Latencies are for a whole song and vary with load.
+ */
+export const TRANSLATE_PROVIDERS = [
+  { id: 'free', label: 'Default' },
+  { id: 'cloud', label: 'Better' },
+  { id: 'gemini-flash-lite-latest', label: 'gemini-flash-lite-latest',
+    llm: { backend: 'gemini', model: 'gemini-flash-lite-latest' } },
+  { id: 'gemini-3.5-flash-lite', label: 'gemini-3.5-flash-lite',
+    llm: { backend: 'gemini', model: 'gemini-3.5-flash-lite' } },
+  { id: 'gemini-3.1-flash-lite', label: 'gemini-3.1-flash-lite',
+    llm: { backend: 'gemini', model: 'gemini-3.1-flash-lite' } },
+  { id: 'gemini-flash-latest', label: 'gemini-flash-latest',
+    llm: { backend: 'gemini', model: 'gemini-flash-latest' } },
+  { id: 'nemotron-3-super-120b', label: 'nemotron-3-super-120b:free',
+    llm: { backend: 'openrouter', model: 'nvidia/nemotron-3-super-120b-a12b:free' } },
+];
+
+export const DEFAULT_PROVIDER = 'free';
+
+export function findProvider(id) {
+  return TRANSLATE_PROVIDERS.find((p) => p.id === id) || null;
+}
+
+/** Unknown ids fall back to the keyless provider rather than failing. */
+export function normalizeProvider(id) {
+  return findProvider(id) ? id : DEFAULT_PROVIDER;
+}
 
 // ── Language detection ──
 //
@@ -224,6 +258,64 @@ async function translateViaWorker(texts, target, workerUrl) {
   return data.translations;
 }
 
+// ── Provider: an LLM, through the Worker ──
+
+// Models grow unreliable on long lists — one dropped 12 of 44 lines, always
+// stopping at exactly 32 — so requests are kept to a size every tested model
+// handled with one translation per line on repeated runs.
+export const LLM_CHUNK_LINES = 25;
+
+/**
+ * The instruction sent with every LLM request.  Exported so the Worker builds
+ * exactly the prompt these models were verified against.
+ */
+export function buildTranslationPrompt(lines, target) {
+  const language = target === 'zh' ? 'Simplified Chinese' : 'English';
+  const numbered = lines.map((line, i) => `${i + 1}. ${line}`).join('\n');
+  return `Translate each of the following ${lines.length} song lyric lines into ${language}.
+
+Rules:
+- Return exactly ${lines.length} translations, one per input line, in the same order.
+- Never merge, split, add or drop lines.
+- Translate the line only: no commentary, no numbering, no notes.
+- Keep the register and imagery of the original; these are song lyrics, not prose.
+- If a line cannot be translated, repeat it unchanged.
+
+Lines:
+${numbered}`;
+}
+
+function chunkByCount(texts, size) {
+  const chunks = [];
+  for (let i = 0; i < texts.length; i += size) chunks.push(texts.slice(i, i + size));
+  return chunks;
+}
+
+/**
+ * Chunks are translated one at a time rather than in parallel: the free tiers
+ * rate-limit bursts, and a whole song is only two or three requests.
+ */
+async function translateViaLlm(texts, target, provider, workerUrl) {
+  if (!workerUrl) throw new Error('LLM providers need a Worker URL');
+
+  const results = [];
+  for (const chunk of chunkByCount(texts, LLM_CHUNK_LINES)) {
+    const resp = await fetch(`${workerUrl}/llm-translate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lines: chunk, target, provider }),
+    });
+    if (!resp.ok) throw new Error(`llm translate HTTP ${resp.status}`);
+
+    const data = await resp.json();
+    if (!Array.isArray(data?.translations) || data.translations.length !== chunk.length) {
+      throw new Error(`llm translate: misaligned chunk (${data?.translations?.length}/${chunk.length})`);
+    }
+    results.push(...data.translations);
+  }
+  return results;
+}
+
 // ── Entry point ──
 
 /**
@@ -241,10 +333,17 @@ export async function translateLines(lines, { target, provider, workerUrl }) {
   const { unique, slots } = planTranslation(lines);
   if (unique.length === 0) return null;
 
+  const chosen = findProvider(provider);
+
   try {
-    const translated = provider === 'cloud'
-      ? await translateViaWorker(unique, target, workerUrl)
-      : await translateViaFree(unique, target);
+    let translated;
+    if (chosen?.llm) {
+      translated = await translateViaLlm(unique, target, chosen.id, workerUrl);
+    } else if (chosen?.id === 'cloud') {
+      translated = await translateViaWorker(unique, target, workerUrl);
+    } else {
+      translated = await translateViaFree(unique, target);
+    }
     return applyTranslationPlan(slots, translated.map(decodeHtmlEntities));
   } catch (err) {
     console.debug('[translate] failed:', err.message);

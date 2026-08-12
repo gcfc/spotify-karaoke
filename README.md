@@ -80,8 +80,10 @@ wrangler login
 wrangler secret put SP_DC
 # Paste your sp_dc value when prompted
 
-# Optional: key for the Google Cloud translation provider (see below)
+# Optional: keys for the translation providers (see below)
 wrangler secret put GOOGLE_TRANSLATE_API_KEY
+wrangler secret put GEMINI_API_KEY
+wrangler secret put OPENROUTER_API_KEY
 
 # Deploy
 wrangler deploy
@@ -113,20 +115,55 @@ visibility a local decision rather than a request.
 
 The dropdown appears only while translation is toggled on.
 
-| Provider | Key | How it is called |
+| Provider | Secret | How it is called |
 |---|---|---|
 | **Default** | none | `translate.googleapis.com` direct from the browser — it sends `Access-Control-Allow-Origin: *`. Undocumented and unsupported, so it can change without notice |
-| **Better** | required | Google Cloud Translation v2 through the Worker's `/translate` route, which holds the key |
+| **Better** | `GOOGLE_TRANSLATE_API_KEY` | Google Cloud Translation v2 through the Worker's `/translate` route |
+| `gemini-flash-lite-latest` | `GEMINI_API_KEY` | Gemini via the Worker's `/llm-translate` route |
+| `gemini-3.5-flash-lite` | `GEMINI_API_KEY` | " |
+| `gemini-3.1-flash-lite` | `GEMINI_API_KEY` | " |
+| `gemini-flash-latest` | `GEMINI_API_KEY` | " |
+| `nemotron-3-super-120b:free` | `OPENROUTER_API_KEY` | OpenRouter free tier via `/llm-translate` |
+
+### Model providers
+
+The models are listed by name so their output can be compared on the same
+track — switching provider while translation is on refetches and re-renders.
+
+Unlike per-line machine translation, an LLM sees the whole song in one prompt,
+so recurring imagery and idiom stay consistent between verses. Each model was
+measured on 44 unique lines before being listed, and all returned exactly one
+translation per line on repeated runs. Rough whole-song latency:
+
+| Model | Latency |
+|---|---|
+| `gemini-3.5-flash-lite`, `gemini-flash-lite-latest`, `gemini-3.1-flash-lite` | ~2s |
+| `gemini-flash-latest` | ~15s |
+| `nemotron-3-super-120b:free` | ~15s |
+
+Requests are chunked to 25 lines. This is not cosmetic: on a 44-line list one
+model stopped at exactly 32 translations every time, with `finish_reason: stop`
+and the token budget untouched — it simply decided it was done. Raising
+`max_tokens` changed nothing; keeping requests small did.
+
+OpenRouter's free tier allows **50 requests per day** per account, so
+`nemotron-3-super-120b:free` stops working once that is spent and returns to
+service the next day. The Gemini free tier is far more generous but still
+finite — check your AI Studio quota if a model starts failing.
 
 A static site cannot keep an API key secret, so the Cloud provider goes through the
 Worker. Set the key as a secret — never in `app.js`:
 
 ```bash
-cd worker && wrangler secret put GOOGLE_TRANSLATE_API_KEY
+cd worker
+wrangler secret put GOOGLE_TRANSLATE_API_KEY   # Better
+wrangler secret put GEMINI_API_KEY             # the four gemini-* models
+wrangler secret put OPENROUTER_API_KEY         # nemotron-3-super-120b:free
+wrangler deploy
 ```
 
-Without the secret the Worker answers `/translate` with 501 and the client falls back
-to showing the originals; switch the dropdown back to **Default** to keep working.
+A provider whose secret is missing answers 501 and the client falls back to showing
+the originals; switch the dropdown back to **Default** to keep working.
 
 ### Cost and correctness notes
 

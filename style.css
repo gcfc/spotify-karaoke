@@ -596,6 +596,9 @@ html, body {
   padding: 3px 0;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   z-index: 10;
+  /* The model list makes this tall enough to run off a short screen. */
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 .translate-control.open .translate-menu {

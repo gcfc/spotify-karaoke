@@ -1,5 +1,10 @@
 import { normalizeForMatch, selectBestMatch, titleQueryVariants } from '../matching.js';
-import { decodeHtmlEntities, googleTargetCode } from '../translate.js';
+import {
+  buildTranslationPrompt,
+  decodeHtmlEntities,
+  findProvider,
+  googleTargetCode,
+} from '../translate.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -241,6 +246,77 @@ async function translateChunkGoogleCloud(lines, target, apiKey) {
   return translations.map((t) => decodeHtmlEntities(t.translatedText || ''));
 }
 
+// ── LLM translation providers ──
+
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
+const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+
+/**
+ * Gemini takes a JSON schema directly, so the reply is already an array of
+ * strings and only its length needs checking.
+ */
+async function translateWithGemini(lines, target, model, apiKey) {
+  const resp = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: buildTranslationPrompt(lines, target) }] }],
+      generationConfig: {
+        temperature: 0,
+        responseMimeType: 'application/json',
+        responseSchema: { type: 'ARRAY', items: { type: 'STRING' } },
+      },
+    }),
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Gemini HTTP ${resp.status}: ${(await resp.text()).slice(0, 200)}`);
+  }
+
+  const data = await resp.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';
+  if (!text) throw new Error('Gemini returned no content');
+  return JSON.parse(text);
+}
+
+/**
+ * OpenRouter follows the OpenAI shape, where a json_schema has to wrap the
+ * array in an object.
+ */
+async function translateWithOpenRouter(lines, target, model, apiKey) {
+  const resp = await fetch(OPENROUTER_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      messages: [{ role: 'user', content: buildTranslationPrompt(lines, target) }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'translation',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: { lines: { type: 'array', items: { type: 'string' } } },
+            required: ['lines'],
+            additionalProperties: false,
+          },
+        },
+      },
+    }),
+  });
+
+  if (!resp.ok) {
+    throw new Error(`OpenRouter HTTP ${resp.status}: ${(await resp.text()).slice(0, 200)}`);
+  }
+
+  const data = await resp.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) throw new Error(`OpenRouter returned no content (${data?.choices?.[0]?.finish_reason})`);
+  return JSON.parse(content).lines;
+}
+
 // ── Route handlers ──
 
 function jsonResponse(body, status = 200) {
@@ -392,6 +468,53 @@ async function handleTranslate(request, env) {
   return jsonResponse({ translations, target });
 }
 
+async function handleLlmTranslate(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Body must be JSON' }, 400);
+  }
+
+  const provider = findProvider(body?.provider);
+  if (!provider?.llm) {
+    return jsonResponse({ error: `Unknown LLM provider: ${body?.provider}` }, 400);
+  }
+
+  const lines = body?.lines;
+  const target = body?.target === 'zh' ? 'zh' : 'en';
+  if (!Array.isArray(lines) || lines.length === 0 || !lines.every((l) => typeof l === 'string')) {
+    return jsonResponse({ error: 'lines must be a non-empty array of strings' }, 400);
+  }
+
+  const { backend, model } = provider.llm;
+  const apiKey = backend === 'gemini' ? env.GEMINI_API_KEY : env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    // 501 tells the client this provider is unconfigured, not broken.
+    const secret = backend === 'gemini' ? 'GEMINI_API_KEY' : 'OPENROUTER_API_KEY';
+    return jsonResponse({ error: `${secret} secret not configured` }, 501);
+  }
+
+  let translations;
+  try {
+    translations = backend === 'gemini'
+      ? await translateWithGemini(lines, target, model, apiKey)
+      : await translateWithOpenRouter(lines, target, model, apiKey);
+  } catch (err) {
+    return jsonResponse({ error: err.message }, 502);
+  }
+
+  // The model can silently drop lines; pairing by index only works if the
+  // count matches, so a mismatch is reported rather than returned.
+  if (!Array.isArray(translations) || translations.length !== lines.length) {
+    return jsonResponse({
+      error: `Model returned ${translations?.length} translations for ${lines.length} lines`,
+    }, 502);
+  }
+
+  return jsonResponse({ translations: translations.map(decodeHtmlEntities), model });
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
@@ -403,6 +526,12 @@ export default {
     try {
       if (url.pathname === '/lyrics') {
         return await handleSpotifyLyrics(request, url, env);
+      }
+      if (url.pathname === '/llm-translate') {
+        if (request.method !== 'POST') {
+          return jsonResponse({ error: 'Use POST' }, 405);
+        }
+        return await handleLlmTranslate(request, env);
       }
       if (url.pathname === '/translate') {
         if (request.method !== 'POST') {
