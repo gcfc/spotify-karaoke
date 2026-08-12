@@ -562,6 +562,11 @@ html, body {
   pointer-events: none;
 }
 
+/* The target/provider dropdown is only meaningful once translation is on. */
+#translate-toggle:not(.active) + .translate-menu-toggle {
+  display: none;
+}
+
 .translate-menu-toggle {
   width: 14px;
   height: 24px;

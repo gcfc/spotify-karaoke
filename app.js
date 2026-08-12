@@ -304,7 +304,7 @@ function clearLyricsDisplay() {
 
 function hideTranslateControl() {
   translateControl.classList.add('hidden');
-  translateControl.classList.remove('open');
+  closeTranslateMenu();
 }
 
 function renderSyncedLyrics() {
@@ -878,6 +878,7 @@ function setTranslateEnabled(enabled) {
   } else {
     translationRequestId++;   // abandon anything in flight
     translateToggle.classList.remove('loading');
+    closeTranslateMenu();
     clearTranslations();
   }
 }
@@ -898,6 +899,11 @@ function setTranslateOption(setting, value) {
   }
 }
 
+function closeTranslateMenu() {
+  translateControl.classList.remove('open');
+  translateMenuToggle.setAttribute('aria-expanded', 'false');
+}
+
 function markTranslateOptions() {
   translateControl.querySelectorAll('.translate-option').forEach((opt) => {
     const current = opt.dataset.setting === 'target' ? translateTarget : translateProvider;
@@ -916,8 +922,7 @@ function refreshTranslateControl() {
   const language = detectLyricsLanguage(sample, lyricsLanguage);
 
   if (!lyrics || !shouldOfferTranslation(language)) {
-    translateControl.classList.add('hidden');
-    translateControl.classList.remove('open');
+    hideTranslateControl();
     clearTranslations();
     return;
   }
@@ -947,14 +952,10 @@ function initTranslateControl() {
     if (!option) return;
     e.stopPropagation();
     setTranslateOption(option.dataset.setting, option.dataset.value);
-    translateControl.classList.remove('open');
-    translateMenuToggle.setAttribute('aria-expanded', 'false');
+    closeTranslateMenu();
   });
 
-  document.addEventListener('click', () => {
-    translateControl.classList.remove('open');
-    translateMenuToggle.setAttribute('aria-expanded', 'false');
-  });
+  document.addEventListener('click', closeTranslateMenu);
 }
 
 initTranslateControl();

@@ -111,10 +111,12 @@ visibility a local decision rather than a request.
 
 ### Providers
 
+The dropdown appears only while translation is toggled on.
+
 | Provider | Key | How it is called |
 |---|---|---|
-| **Google (no key)** | none | `translate.googleapis.com` direct from the browser — it sends `Access-Control-Allow-Origin: *`. Undocumented and unsupported, so it can change without notice |
-| **Google Cloud** | required | Google Cloud Translation v2 through the Worker's `/translate` route, which holds the key |
+| **Default** | none | `translate.googleapis.com` direct from the browser — it sends `Access-Control-Allow-Origin: *`. Undocumented and unsupported, so it can change without notice |
+| **Better** | required | Google Cloud Translation v2 through the Worker's `/translate` route, which holds the key |
 
 A static site cannot keep an API key secret, so the Cloud provider goes through the
 Worker. Set the key as a secret — never in `app.js`:
@@ -124,7 +126,7 @@ cd worker && wrangler secret put GOOGLE_TRANSLATE_API_KEY
 ```
 
 Without the secret the Worker answers `/translate` with 501 and the client falls back
-to showing the originals; switch the dropdown to the keyless provider to keep working.
+to showing the originals; switch the dropdown back to **Default** to keep working.
 
 ### Cost and correctness notes
 
