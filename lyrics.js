@@ -3,24 +3,21 @@
 //  Shared by app.js (browser) and test scripts (Node.js).
 // ============================================================
 
+import {
+  cleanTrackName,
+  normalizeForMatch,
+  selectBestMatch,
+  titleQueryVariants,
+} from './matching.js';
+
+// Re-exported so callers (app.js, the test scripts) keep importing the whole
+// lyrics API from one module.
+export { cleanTrackName };
+
 // ── Traditional → Simplified Chinese conversion (lazy-loaded) ──
 
 const CJK_RE = /[\u4e00-\u9fff]/;
 const JAPANESE_RE = /[\u3040-\u309f\u30a0-\u30ff]/;  // Hiragana + Katakana
-
-/**
- * Strip Spotify metadata suffixes from track names so search APIs
- * see just the core title.  Examples:
- *   "痴心的廢墟 - 電視劇《黃金十年》主題曲"  →  "痴心的廢墟"
- *   "Bohemian Rhapsody - Remastered 2011"      →  "Bohemian Rhapsody"
- *   "Hello (feat. Adele)"                       →  "Hello"
- */
-export function cleanTrackName(name) {
-  return name
-    .replace(/\s*[-–—]\s.*$/, '')
-    .replace(/\s*[(\[【].*$/, '')
-    .trim();
-}
 
 export function isChinese(sample, language) {
   if (language) {
@@ -176,10 +173,8 @@ export async function fetchLyricsFromLRCLIB(trackName, artistName, durationSec) 
 
 export async function fetchLyricsFromKKBOX(workerUrl, trackName, artistName) {
   if (!workerUrl) return null;
-  const cleaned = cleanTrackName(trackName);
-  const namesToTry = cleaned !== trackName ? [trackName, cleaned] : [trackName];
 
-  for (const name of namesToTry) {
+  for (const name of titleQueryVariants(trackName)) {
     const params = new URLSearchParams({ title: name, artist: artistName });
     const url = `${workerUrl}/kkbox-lyrics?${params}`;
     console.debug('[lyrics] KKBOX:', url);
@@ -188,7 +183,7 @@ export async function fetchLyricsFromKKBOX(workerUrl, trackName, artistName) {
       if (!resp.ok) { console.debug('[lyrics] KKBOX: HTTP', resp.status); continue; }
       const data = await resp.json();
       if (data.plainLyrics) {
-        console.debug('[lyrics] KKBOX: found plain lyrics');
+        console.debug('[lyrics] KKBOX: matched', data.matchedTitle || '(unknown)');
         return {
           plainLyrics: data.plainLyrics,
           territory: data.territory || '?',
@@ -203,25 +198,46 @@ export async function fetchLyricsFromKKBOX(workerUrl, trackName, artistName) {
   return null;
 }
 
+const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
+
+/**
+ * Pick the song in a KKBOX search response that really is the track we asked
+ * for.  KKBOX answers every query with a full page of ~20 songs — even
+ * nonsense ones — so trusting the top hit is how an unrelated song's lyrics
+ * end up on screen.  Matching folds Traditional to Simplified first, so
+ * Spotify's "在松手跟不松手之间" finds KKBOX's "在鬆手跟不鬆手之間".
+ */
+function pickKKBOXResult(searchData, trackName, artistName) {
+  const results = searchData?.data?.result;
+  if (!Array.isArray(results) || results.length === 0) return null;
+
+  const candidates = results.map((r) => ({
+    title: r?.name || '',
+    artist: r?.album?.artist?.name || '',
+    url: r?.url || '',
+  }));
+
+  const index = selectBestMatch(candidates, trackName, artistName);
+  if (index < 0 || !candidates[index].url) return null;
+  return candidates[index];
+}
+
 /**
  * Browser-direct fallback: calls KKBOX search API + scrapes song page JSON-LD
  * without going through the Cloudflare Worker. Works when the Worker is
  * unreachable or KKBOX blocks Worker IPs but allows browser requests.
  */
-const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
-
 export async function fetchLyricsFromKKBOXDirect(trackName, artistName) {
   const KKBOX_UA_HEADERS = {
     Accept: 'application/json',
   };
 
   try {
-    const cleaned = cleanTrackName(trackName);
-    const isExact = cleaned === trackName;
-    const queries = [
-      { q: `${trackName} ${artistName}`.trim(), exact: true },
-      ...(isExact ? [] : [{ q: `${cleaned} ${artistName}`.trim(), exact: false }]),
-    ];
+    const fullTitle = normalizeForMatch(trackName);
+    const queries = titleQueryVariants(trackName).map((name) => ({
+      q: `${name} ${artistName}`.trim(),
+      exact: normalizeForMatch(name) === fullTitle,
+    }));
 
     let songUrl = null;
     let matchTerr = null;
@@ -242,19 +258,21 @@ export async function fetchLyricsFromKKBOXDirect(trackName, artistName) {
             continue;
           }
           const searchData = await searchResp.json();
-          const url = searchData?.data?.result?.[0]?.url;
-          if (url) {
-            songUrl = url;
+          const hit = pickKKBOXResult(searchData, trackName, artistName);
+          if (hit) {
+            console.debug('[lyrics] KKBOX-direct: matched', hit.title, '—', hit.artist);
+            songUrl = hit.url;
             matchTerr = terr;
             matchExact = exact;
             break outer;
           }
+          console.debug('[lyrics] KKBOX-direct: no result matched the track');
         } catch { continue; }
       }
     }
 
     if (!songUrl) {
-      console.debug('[lyrics] KKBOX-direct: no search results in any territory');
+      console.debug('[lyrics] KKBOX-direct: no matching song in any territory');
       return null;
     }
     console.debug('[lyrics] KKBOX-direct: song page', songUrl);

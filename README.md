@@ -113,9 +113,39 @@ spotify-karaoke/
 ├── index.html          # Page shell
 ├── style.css           # Dark karaoke theme
 ├── app.js              # All client-side logic
+├── lyrics.js           # Lyrics fetch chain (no DOM dependencies)
+├── matching.js         # Script-insensitive search matching (see below)
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
+├── tools/
+│   └── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
+├── tests/              # Node and Python CLI tests — `node tests/test_matching.mjs`
 ├── worker/
 │   ├── worker.js       # Cloudflare Worker (lyrics proxy)
 │   └── wrangler.toml   # Worker config
 └── README.md
 ```
+
+`worker.js` imports `../matching.js`; Wrangler bundles it into the deployed
+Worker, so no extra build step is needed.
+
+### Simplified vs. Traditional Chinese
+
+Spotify reports a track title in whatever script the release used — very often
+Simplified — while KKBOX stores its catalogue in Traditional. `matching.js`
+folds Traditional to Simplified before comparing titles and artists, so
+Spotify's `在松手跟不松手之间` matches KKBOX's `在鬆手跟不鬆手之間`. The folding
+table is generated from OpenCC and inlined, because it has to run in the
+browser, in the Worker (which cannot import from a CDN at runtime) and in the
+Node tests. Regenerate it with:
+
+```bash
+pip install opencc
+python tools/gen_zh_table.py --check   # verify matching.js is current
+python tools/gen_zh_table.py           # print fresh constants to paste in
+```
+
+This matters for correctness as well as coverage: KKBOX's search endpoint
+answers *every* query with a full page of ~20 songs, even nonsense ones, so the
+top hit is not evidence of a match. Results are now scored against the
+requested title and artist, and a page with no plausible match is rejected
+rather than scraped.

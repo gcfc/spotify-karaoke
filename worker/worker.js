@@ -1,3 +1,5 @@
+import { normalizeForMatch, selectBestMatch, titleQueryVariants } from '../matching.js';
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -78,20 +80,34 @@ const KKBOX_HEADERS = {
 
 const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
 
-function cleanTrackName(name) {
-  return name
-    .replace(/\s*[-–—]\s.*$/, '')
-    .replace(/\s*[(\[【].*$/, '')
-    .trim();
+/**
+ * Pick the song in a KKBOX search response that really is the track we asked
+ * for.  KKBOX answers every query with a full page of ~20 songs — even
+ * nonsense ones — so the top hit is not evidence of a match.  Matching folds
+ * Traditional to Simplified first, so Spotify's "在松手跟不松手之间" finds
+ * KKBOX's "在鬆手跟不鬆手之間".
+ */
+function pickKKBOXResult(data, title, artist) {
+  const results = data?.data?.result;
+  if (!Array.isArray(results) || results.length === 0) return null;
+
+  const candidates = results.map((r) => ({
+    title: r?.name || '',
+    artist: r?.album?.artist?.name || '',
+    url: r?.url || '',
+  }));
+
+  const index = selectBestMatch(candidates, title, artist);
+  if (index < 0 || !candidates[index].url) return null;
+  return candidates[index];
 }
 
 async function searchKKBOX(title, artist) {
-  const cleaned = cleanTrackName(title);
-  const isExact = cleaned === title;
-  const queries = [
-    { q: `${title} ${artist}`.trim(), exact: true },
-    ...(isExact ? [] : [{ q: `${cleaned} ${artist}`.trim(), exact: false }]),
-  ];
+  const fullTitle = normalizeForMatch(title);
+  const queries = titleQueryVariants(title).map((name) => ({
+    q: `${name} ${artist}`.trim(),
+    exact: normalizeForMatch(name) === fullTitle,
+  }));
 
   for (const { q, exact } of queries) {
     for (const terr of KKBOX_TERRITORIES) {
@@ -102,8 +118,16 @@ async function searchKKBOX(title, artist) {
         });
         if (!resp.ok) continue;
         const data = await resp.json();
-        const first = data?.data?.result?.[0];
-        if (first?.url) return { url: first.url, territory: terr, exact };
+        const hit = pickKKBOXResult(data, title, artist);
+        if (hit) {
+          return {
+            url: hit.url,
+            territory: terr,
+            exact,
+            matchedTitle: hit.title,
+            matchedArtist: hit.artist,
+          };
+        }
       } catch { continue; }
     }
   }
@@ -207,18 +231,20 @@ async function handleKKBOXLyrics(url) {
 
   const match = await searchKKBOX(title, artist || '');
   if (!match) {
-    return jsonResponse({ error: 'No KKBOX results found' }, 404);
+    return jsonResponse({ error: 'No matching KKBOX song found' }, 404);
   }
 
   const plainLyrics = await scrapeKKBOXLyrics(match.url);
   if (!plainLyrics) {
-    return jsonResponse({ error: 'Lyrics not found on KKBOX page' }, 404);
+    return jsonResponse({ error: 'Lyrics not found on KKBOX page', songUrl: match.url }, 404);
   }
 
   return jsonResponse({
     plainLyrics,
     territory: match.territory,
     exact: match.exact,
+    matchedTitle: match.matchedTitle,
+    matchedArtist: match.matchedArtist,
   });
 }
 
