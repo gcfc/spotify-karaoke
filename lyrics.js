@@ -395,11 +395,10 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
   if (workerData?.lyrics) {
     const sType = workerData.lyrics.syncType;
     if (sType === 'WORD_SYNCED' || sType === 'LINE_SYNCED') {
-      const modeLabel = sType === 'WORD_SYNCED' ? 'word-synced' : 'line-synced';
       const result = await convertLyricsToSimplified({
         lyrics: workerData.lyrics.lines,
         syncType: sType,
-        source: `Spotify · ${modeLabel}`,
+        source: 'Spotify',
         language: workerData.lyrics.language,
       });
       cacheSet(trackId, result);
@@ -422,33 +421,25 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
   if (lrcData?.syncedLyrics) {
     const lines = parseLRC(lrcData.syncedLyrics);
     if (lines.length > 0) {
-      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'LRCLIB · line-synced' };
+      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'LRCLIB' };
     }
   }
   if (!result && qqData?.syncedLyrics) {
     const lines = parseLRC(qqData.syncedLyrics);
     if (lines.length > 0) {
-      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'QQ Music · line-synced' };
+      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'QQ Music' };
     }
   }
   if (!result && lrcData?.plainLyrics) {
-    result = { lyrics: lrcData.plainLyrics, syncType: 'PLAIN', source: 'LRCLIB · plain' };
+    result = { lyrics: lrcData.plainLyrics, syncType: 'PLAIN', source: 'LRCLIB' };
   }
   if (!result && kkboxWorker) {
-    const searchTag = kkboxWorker.exact ? 'exact' : 'title only';
-    result = {
-      lyrics: kkboxWorker.plainLyrics,
-      syncType: 'PLAIN',
-      source: `KKBOX · ${kkboxWorker.territory} · ${searchTag}`,
-    };
+    console.debug('[lyrics] KKBOX:', kkboxWorker.territory, kkboxWorker.exact ? 'exact' : 'title only');
+    result = { lyrics: kkboxWorker.plainLyrics, syncType: 'PLAIN', source: 'KKBOX' };
   }
   if (!result && kkboxDirect) {
-    const searchTag = kkboxDirect.exact ? 'exact' : 'title only';
-    result = {
-      lyrics: kkboxDirect.plainLyrics,
-      syncType: 'PLAIN',
-      source: `KKBOX · ${kkboxDirect.territory} · ${searchTag} (direct)`,
-    };
+    console.debug('[lyrics] KKBOX-direct:', kkboxDirect.territory, kkboxDirect.exact ? 'exact' : 'title only');
+    result = { lyrics: kkboxDirect.plainLyrics, syncType: 'PLAIN', source: 'KKBOX' };
   }
 
   if (result) {

@@ -718,24 +718,16 @@ initCjkFont();
 
 const THEME_KEY = 'theme';
 const THEME_SET_AT_KEY = 'theme-set-at';
-const LOCATION_KEY = 'sun-location';
 
 // setTimeout can't be trusted with very long delays (and the machine may sleep through
 // one), so never wait more than this before re-checking where the sun is.
 const MAX_THEME_TIMER_MS = 6 * 60 * 60 * 1000;
 
-let sunLocation = loadCachedLocation() || DEFAULT_LOCATION;
+// Fixed to San Mateo, CA rather than read from the device, so the page never asks for
+// location permission. Sunrise and sunset move by only a few minutes across the Bay
+// Area, so a fixed point is as good as a real fix for choosing the theme.
+const sunLocation = DEFAULT_LOCATION;
 let themeTimer = null;
-
-function loadCachedLocation() {
-  try {
-    const { lat, lon } = JSON.parse(localStorage.getItem(LOCATION_KEY));
-    if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon };
-  } catch {
-    // no usable cached location
-  }
-  return null;
-}
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -784,18 +776,6 @@ function toggleTheme() {
 
 function initTheme() {
   refreshTheme();
-
-  // Sharpen the guess with the real location. A denial or timeout just leaves us on the
-  // default location, so there's nothing to handle on failure.
-  navigator.geolocation?.getCurrentPosition(
-    ({ coords }) => {
-      sunLocation = { lat: coords.latitude, lon: coords.longitude };
-      localStorage.setItem(LOCATION_KEY, JSON.stringify(sunLocation));
-      refreshTheme();
-    },
-    () => {},
-    { timeout: 10000, maximumAge: 24 * 60 * 60 * 1000 },
-  );
 
   // A tab that was hidden across sunset may have slept through its timer.
   document.addEventListener('visibilitychange', () => {

@@ -68,11 +68,11 @@ const realFetch = globalThis.fetch;
 console.log('\n── Source priority ──');
 
 let result = await run({ '/api/get': LRCLIB_SYNCED, '/qq-lyrics': QQ_SYNCED, '/kkbox-lyrics': KKBOX_PLAIN });
-assert(result.source === 'LRCLIB · line-synced' && result.syncType === 'LINE_SYNCED',
+assert(result.source === 'LRCLIB' && result.syncType === 'LINE_SYNCED',
   'LRCLIB synced outranks QQ synced');
 
 result = await run({ '/qq-lyrics': QQ_SYNCED, '/kkbox-lyrics': KKBOX_PLAIN });
-assert(result.source === 'QQ Music · line-synced' && result.syncType === 'LINE_SYNCED',
+assert(result.source === 'QQ Music' && result.syncType === 'LINE_SYNCED',
   'QQ synced is used when LRCLIB has nothing');
 
 assert(Array.isArray(result.lyrics) && result.lyrics.length === 3
@@ -80,15 +80,15 @@ assert(Array.isArray(result.lyrics) && result.lyrics.length === 3
   'QQ LRC is parsed into timestamped lines');
 
 result = await run({ '/api/get': LRCLIB_PLAIN, '/qq-lyrics': QQ_SYNCED, '/kkbox-lyrics': KKBOX_PLAIN });
-assert(result.source === 'QQ Music · line-synced',
+assert(result.source === 'QQ Music',
   'QQ synced outranks LRCLIB plain — synced beats plain');
 
 result = await run({ '/api/get': LRCLIB_PLAIN, '/kkbox-lyrics': KKBOX_PLAIN });
-assert(result.source === 'LRCLIB · plain' && result.syncType === 'PLAIN',
+assert(result.source === 'LRCLIB' && result.syncType === 'PLAIN',
   'LRCLIB plain outranks KKBOX');
 
 result = await run({ '/kkbox-lyrics': KKBOX_PLAIN });
-assert(result.source === 'KKBOX · hk · exact' && result.syncType === 'PLAIN',
+assert(result.source === 'KKBOX' && result.syncType === 'PLAIN',
   'KKBOX still serves as the last-resort fallback');
 
 result = await run({});
@@ -98,15 +98,15 @@ assert(result.lyrics === null && result.source === null,
 console.log('\n── QQ failure modes ──');
 
 result = await run({ '/qq-lyrics': () => json({ error: 'No matching QQ Music song found' }, 404), '/kkbox-lyrics': KKBOX_PLAIN });
-assert(result.source === 'KKBOX · hk · exact',
+assert(result.source === 'KKBOX',
   'a QQ 404 falls through to KKBOX rather than aborting the chain');
 
 result = await run({ '/qq-lyrics': () => json({ matchedTitle: 'Song' }), '/kkbox-lyrics': KKBOX_PLAIN });
-assert(result.source === 'KKBOX · hk · exact',
+assert(result.source === 'KKBOX',
   'a QQ response without syncedLyrics is ignored');
 
 result = await run({ '/qq-lyrics': () => json({ syncedLyrics: 'no timestamps here' }), '/kkbox-lyrics': KKBOX_PLAIN });
-assert(result.source === 'KKBOX · hk · exact',
+assert(result.source === 'KKBOX',
   'QQ lyrics that parse to zero timed lines fall through');
 
 globalThis.fetch = realFetch;

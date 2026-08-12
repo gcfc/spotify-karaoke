@@ -8,7 +8,7 @@ A static website that connects to your Spotify account and displays real-time sy
 - **Spotify integration** — uses the official Spotify Web API with PKCE auth (no backend needed for auth)
 - **Layered lyrics** — Spotify's internal Musixmatch-powered lyrics via the Cloudflare Worker as primary, then LRCLIB (free, open), QQ Music (line-synced, strong Chinese coverage) and KKBOX (plain text) as fallbacks
 - **Graceful degradation** — word-synced → line-synced → plain scrollable lyrics → "no lyrics" message
-- **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset, based on your location (San Mateo, CA if you decline the location prompt). The toggle button overrides it until the next sunrise or sunset.
+- **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
 - **Responsive** — works on desktop and mobile
 
 ## Quick Start
