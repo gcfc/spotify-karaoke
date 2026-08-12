@@ -1,8 +1,9 @@
 import { normalizeForMatch, selectBestMatch, titleQueryVariants } from '../matching.js';
+import { decodeHtmlEntities, googleTargetCode } from '../translate.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
@@ -213,6 +214,33 @@ async function fetchQQLyrics(mid) {
   }
 }
 
+// ── Google Cloud Translation v2 ──
+
+const GOOGLE_TRANSLATE_ENDPOINT = 'https://translation.googleapis.com/language/translate/v2';
+
+// The v2 API caps a request at 128 text segments.
+const TRANSLATE_SEGMENT_LIMIT = 128;
+
+async function translateChunkGoogleCloud(lines, target, apiKey) {
+  const resp = await fetch(`${GOOGLE_TRANSLATE_ENDPOINT}?key=${encodeURIComponent(apiKey)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: lines, target: googleTargetCode(target), format: 'text' }),
+  });
+
+  if (!resp.ok) {
+    const detail = await resp.text().catch(() => '');
+    throw new Error(`Google Translate HTTP ${resp.status}: ${detail.slice(0, 200)}`);
+  }
+
+  const data = await resp.json();
+  const translations = data?.data?.translations;
+  if (!Array.isArray(translations) || translations.length !== lines.length) {
+    throw new Error('Google Translate returned a misaligned response');
+  }
+  return translations.map((t) => decodeHtmlEntities(t.translatedText || ''));
+}
+
 // ── Route handlers ──
 
 function jsonResponse(body, status = 200) {
@@ -332,6 +360,38 @@ async function handleQQLyrics(url) {
   });
 }
 
+async function handleTranslate(request, env) {
+  const apiKey = env.GOOGLE_TRANSLATE_API_KEY;
+  if (!apiKey) {
+    // 501 rather than 500: the client reads this as "use the keyless provider".
+    return jsonResponse({ error: 'GOOGLE_TRANSLATE_API_KEY secret not configured' }, 501);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Body must be JSON' }, 400);
+  }
+
+  const lines = body?.lines;
+  const target = body?.target === 'zh' ? 'zh' : 'en';
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return jsonResponse({ error: 'Missing lines array' }, 400);
+  }
+  if (!lines.every((line) => typeof line === 'string')) {
+    return jsonResponse({ error: 'lines must all be strings' }, 400);
+  }
+
+  const translations = [];
+  for (let i = 0; i < lines.length; i += TRANSLATE_SEGMENT_LIMIT) {
+    const chunk = lines.slice(i, i + TRANSLATE_SEGMENT_LIMIT);
+    translations.push(...(await translateChunkGoogleCloud(chunk, target, apiKey)));
+  }
+
+  return jsonResponse({ translations, target });
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
@@ -343,6 +403,12 @@ export default {
     try {
       if (url.pathname === '/lyrics') {
         return await handleSpotifyLyrics(request, url, env);
+      }
+      if (url.pathname === '/translate') {
+        if (request.method !== 'POST') {
+          return jsonResponse({ error: 'Use POST' }, 405);
+        }
+        return await handleTranslate(request, env);
       }
       if (url.pathname === '/qq-lyrics') {
         return await handleQQLyrics(url);

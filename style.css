@@ -426,11 +426,17 @@ html, body {
 /* ─── Plain / Unsynced Lyrics ─── */
 
 .lyrics-plain {
-  white-space: pre-wrap;
   font-size: 1.6rem;
   line-height: 1.8;
   color: var(--text-secondary);
   padding: 2rem 0;
+}
+
+/* One element per line so a translation can sit under each. An empty line
+   keeps the blank-line spacing the old pre-wrap block used to give. */
+.lyrics-plain-line {
+  white-space: pre-wrap;
+  min-height: 1em;
 }
 
 /* ─── Status Message ─── */
@@ -537,6 +543,104 @@ html, body {
   color: var(--accent);
 }
 
+
+/* ─── Translate Control ─── */
+
+.translate-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+#translate-toggle.active {
+  color: var(--accent);
+}
+
+#translate-toggle.loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.translate-menu-toggle {
+  width: 14px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' fill='none'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%236a6a88' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.8;
+}
+
+.translate-menu-toggle:hover,
+.translate-control.open .translate-menu-toggle {
+  opacity: 1;
+}
+
+.translate-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 3px 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.translate-control.open .translate-menu {
+  display: block;
+}
+
+.translate-menu-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  padding: 0.45rem 0.85rem 0.2rem;
+  white-space: nowrap;
+}
+
+.translate-option {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
+}
+
+.translate-option:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.translate-option.selected {
+  color: var(--accent);
+}
+
+/* ─── Line Translations ─── */
+
+/* Sits under each lyric line: smaller, dimmer, and never picks up the
+   highlight or the decorative CJK font applied to the originals. */
+.line-translation {
+  display: block;
+  font-size: 0.55em;
+  font-weight: 400;
+  line-height: 1.35;
+  margin-top: 0.15em;
+  color: var(--text-dim);
+  opacity: 0.85;
+}
+
+.lyrics-line.active .line-translation {
+  color: var(--text-secondary);
+}
 
 /* ─── Lyrics Offset Controls ─── */
 

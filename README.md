@@ -9,6 +9,7 @@ A static website that connects to your Spotify account and displays real-time sy
 - **Layered lyrics** — Spotify's internal Musixmatch-powered lyrics via the Cloudflare Worker as primary, then LRCLIB (free, open), QQ Music (line-synced, strong Chinese coverage) and KKBOX (plain text) as fallbacks
 - **Graceful degradation** — word-synced → line-synced → plain scrollable lyrics → "no lyrics" message
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
+- **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Target language and provider are picked from the dropdown beside the button
 - **Responsive** — works on desktop and mobile
 
 ## Quick Start
@@ -79,6 +80,9 @@ wrangler login
 wrangler secret put SP_DC
 # Paste your sp_dc value when prompted
 
+# Optional: key for the Google Cloud translation provider (see below)
+wrangler secret put GOOGLE_TRANSLATE_API_KEY
+
 # Deploy
 wrangler deploy
 ```
@@ -91,6 +95,47 @@ const CONFIG = {
   WORKER_URL: 'https://spotify-lyrics-worker.your-subdomain.workers.dev',
 };
 ```
+
+## Lyrics Translation
+
+When the lyrics are neither English nor Chinese, a translate button appears next to
+the theme toggle. Toggling it on renders each line's translation directly beneath the
+original in a smaller, dimmer font — for synced and plain lyrics alike. The dropdown
+beside it selects the target language (English or 中文) and the provider.
+
+**Nothing is sent to a translation service until the button is switched on.** The
+language of the lyrics is worked out locally in `translate.js`: by script for Japanese,
+Korean, Chinese, Cyrillic, Greek, Hebrew, Arabic, Thai and Devanagari, and for
+Latin-script text by how often English function words appear. That keeps the button's
+visibility a local decision rather than a request.
+
+### Providers
+
+| Provider | Key | How it is called |
+|---|---|---|
+| **Google (no key)** | none | `translate.googleapis.com` direct from the browser — it sends `Access-Control-Allow-Origin: *`. Undocumented and unsupported, so it can change without notice |
+| **Google Cloud** | required | Google Cloud Translation v2 through the Worker's `/translate` route, which holds the key |
+
+A static site cannot keep an API key secret, so the Cloud provider goes through the
+Worker. Set the key as a secret — never in `app.js`:
+
+```bash
+cd worker && wrangler secret put GOOGLE_TRANSLATE_API_KEY
+```
+
+Without the secret the Worker answers `/translate` with 501 and the client falls back
+to showing the originals; switch the dropdown to the keyless provider to keep working.
+
+### Cost and correctness notes
+
+- Blank lines are skipped and repeated lines (choruses) are sent once, so a song costs
+  far fewer characters than its line count suggests. Results are cached per track,
+  target and provider.
+- Translations are paired with their originals **by index**, so a reply whose line
+  count doesn't match the request is discarded rather than shifted onto the wrong
+  lines. The keyless provider batches by newline and halves any batch that comes back
+  misaligned; the Cloud provider uses the API's array input, which keeps alignment by
+  contract.
 
 ## How It Works
 
@@ -124,11 +169,13 @@ spotify-karaoke/
 ├── app.js              # All client-side logic
 ├── lyrics.js           # Lyrics fetch chain (no DOM dependencies)
 ├── matching.js         # Script-insensitive search matching (see below)
+├── translate.js        # Language detection + translation providers
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── tools/
 │   └── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
 ├── tests/              # Node and Python tests — `node tests/test_matching.mjs`,
-│                       # `node tests/test_source_priority.mjs`
+│                       # `node tests/test_source_priority.mjs`,
+│                       # `node tests/test_translate.mjs`
 ├── worker/
 │   ├── worker.js       # Cloudflare Worker (lyrics proxy)
 │   └── wrangler.toml   # Worker config

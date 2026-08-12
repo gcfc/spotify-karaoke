@@ -1,5 +1,6 @@
 import { fetchLyrics } from './lyrics.js';
 import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
+import { detectLyricsLanguage, shouldOfferTranslation, translateLines } from './translate.js';
 
 // ============================================================
 //  Configuration — fill these in before deploying
@@ -40,6 +41,9 @@ const progressBarTrack = $('.progress-bar-track');
 const lyricsOffsetEl = $('#lyrics-offset');
 const offsetResetBtn = lyricsOffsetEl.querySelector('.offset-reset');
 const cjkFontPicker = $('#cjk-font-picker');
+const translateControl = $('#translate-control');
+const translateToggle = $('#translate-toggle');
+const translateMenuToggle = $('#translate-menu-toggle');
 
 // ============================================================
 //  State
@@ -246,6 +250,8 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   lyrics = null;
   syncType = null;
   lyricsLanguage = null;
+  lyricsTranslations = null;
+  translationRequestId++;   // abandon any translation still in flight
   lyricsOffsetMs = 0;
   updateOffsetLabel();
   hideLyricsOffset();
@@ -257,6 +263,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
 
   if (!result.lyrics) {
     showStatus('No lyrics available for this track');
+    hideTranslateControl();
     return;
   }
 
@@ -279,6 +286,8 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
     hideCjkFontPicker();
     lyricsLines.style.fontFamily = '';
   }
+
+  refreshTranslateControl();
 }
 
 // ============================================================
@@ -293,6 +302,11 @@ function clearLyricsDisplay() {
   hideCjkFontPicker();
 }
 
+function hideTranslateControl() {
+  translateControl.classList.add('hidden');
+  translateControl.classList.remove('open');
+}
+
 function renderSyncedLyrics() {
   clearLyricsDisplay();
   hideStatus();
@@ -302,6 +316,11 @@ function renderSyncedLyrics() {
     el.className = 'lyrics-line';
     el.dataset.index = i;
 
+    // The words live in their own element so a translation can be appended
+    // as a sibling without disturbing them.
+    const textEl = document.createElement('span');
+    textEl.className = 'line-text';
+
     if (syncType === 'WORD_SYNCED' && line.syllables && line.syllables.length > 0) {
       // Word-synced: render each word/syllable as a span
       line.syllables.forEach((syl) => {
@@ -310,23 +329,45 @@ function renderSyncedLyrics() {
         span.textContent = syl.word + ' ';
         span.dataset.startMs = syl.startTimeMs;
         span.dataset.endMs = syl.endTimeMs || syl.startTimeMs;
-        el.appendChild(span);
+        textEl.appendChild(span);
       });
     } else {
-      el.textContent = line.words || '';
+      textEl.textContent = line.words || '';
     }
 
+    el.appendChild(textEl);
     lyricsLines.appendChild(el);
   });
+
+  applyTranslations();
 }
 
 function renderPlainLyrics(text) {
   clearLyricsDisplay();
   hideStatus();
-  const el = document.createElement('div');
-  el.className = 'lyrics-plain';
-  el.textContent = text;
-  lyricsLines.appendChild(el);
+  const container = document.createElement('div');
+  container.className = 'lyrics-plain';
+
+  plainLyricsLines(text).forEach((line, i) => {
+    const el = document.createElement('div');
+    el.className = 'lyrics-plain-line';
+    el.dataset.index = i;
+
+    const textEl = document.createElement('span');
+    textEl.className = 'line-text';
+    textEl.textContent = line;
+    el.appendChild(textEl);
+
+    container.appendChild(el);
+  });
+
+  lyricsLines.appendChild(container);
+  applyTranslations();
+}
+
+/** Plain lyrics arrive as one blob; translation needs them line by line. */
+function plainLyricsLines(text) {
+  return String(text || '').split('\n');
 }
 
 // ============================================================
@@ -711,6 +752,212 @@ function initCjkFont() {
 }
 
 initCjkFont();
+
+// ============================================================
+//  Lyrics Translation
+// ============================================================
+
+const TRANSLATE_ON_KEY = 'translate-on';
+const TRANSLATE_TARGET_KEY = 'translate-target';
+const TRANSLATE_PROVIDER_KEY = 'translate-provider';
+
+let translateEnabled = localStorage.getItem(TRANSLATE_ON_KEY) === '1';
+let translateTarget = localStorage.getItem(TRANSLATE_TARGET_KEY) === 'zh' ? 'zh' : 'en';
+let translateProvider = localStorage.getItem(TRANSLATE_PROVIDER_KEY) === 'cloud' ? 'cloud' : 'free';
+
+let lyricsTranslations = null;   // aligned with the rendered lines, or null
+let translationRequestId = 0;    // guards against a slow reply for an old track
+
+// Translations are fetched once per track, target and provider, and reused
+// when toggling back on or returning to a track.
+const TRANSLATION_CACHE_MAX = 30;
+const translationCache = new Map();
+
+function translationCacheKey() {
+  return `${currentTrackId}:${translateTarget}:${translateProvider}`;
+}
+
+function translationCacheGet(key) {
+  if (!translationCache.has(key)) return undefined;
+  const value = translationCache.get(key);
+  translationCache.delete(key);
+  translationCache.set(key, value);
+  return value;
+}
+
+function translationCacheSet(key, value) {
+  if (translationCache.has(key)) translationCache.delete(key);
+  translationCache.set(key, value);
+  if (translationCache.size > TRANSLATION_CACHE_MAX) {
+    translationCache.delete(translationCache.keys().next().value);
+  }
+}
+
+/** The text of each rendered line, in order — the unit translation works on. */
+function currentLineTexts() {
+  if (!lyrics) return [];
+  if (Array.isArray(lyrics)) return lyrics.map((line) => line.words || '');
+  return plainLyricsLines(lyrics);
+}
+
+/** Line elements in render order, synced or plain. */
+function lineElements() {
+  return lyricsLines.querySelectorAll('.lyrics-line, .lyrics-plain-line');
+}
+
+function applyTranslations() {
+  const elements = lineElements();
+  elements.forEach((el, i) => {
+    const existing = el.querySelector('.line-translation');
+    const text = lyricsTranslations ? lyricsTranslations[i] : '';
+
+    if (!text) {
+      if (existing) existing.remove();
+      return;
+    }
+    const target = existing || document.createElement('span');
+    target.className = 'line-translation';
+    target.textContent = text;
+    if (!existing) el.appendChild(target);
+  });
+}
+
+function clearTranslations() {
+  lyricsTranslations = null;
+  applyTranslations();
+}
+
+/**
+ * Fetch and show translations for the current track. Called only from the
+ * toggle and from a settings change while the toggle is on — nothing is sent
+ * to a translation service until the button is switched on.
+ */
+async function loadTranslations() {
+  const texts = currentLineTexts();
+  if (texts.length === 0) return;
+
+  const key = translationCacheKey();
+  const cached = translationCacheGet(key);
+  if (cached) {
+    lyricsTranslations = cached;
+    applyTranslations();
+    return;
+  }
+
+  const requestId = ++translationRequestId;
+  translateToggle.classList.add('loading');
+
+  const result = await translateLines(texts, {
+    target: translateTarget,
+    provider: translateProvider,
+    workerUrl: CONFIG.WORKER_URL,
+  });
+
+  // A track change (or another toggle) happened while this was in flight.
+  if (requestId !== translationRequestId) return;
+  translateToggle.classList.remove('loading');
+
+  if (!result) {
+    console.debug('[translate] no translation returned; showing originals only');
+    return;
+  }
+
+  translationCacheSet(key, result);
+  lyricsTranslations = result;
+  applyTranslations();
+}
+
+function setTranslateEnabled(enabled) {
+  translateEnabled = enabled;
+  localStorage.setItem(TRANSLATE_ON_KEY, enabled ? '1' : '0');
+  translateToggle.classList.toggle('active', enabled);
+  translateToggle.title = enabled ? 'Hide translation' : 'Show translation';
+
+  if (enabled) {
+    loadTranslations();
+  } else {
+    translationRequestId++;   // abandon anything in flight
+    translateToggle.classList.remove('loading');
+    clearTranslations();
+  }
+}
+
+function setTranslateOption(setting, value) {
+  if (setting === 'target') {
+    translateTarget = value;
+    localStorage.setItem(TRANSLATE_TARGET_KEY, value);
+  } else {
+    translateProvider = value;
+    localStorage.setItem(TRANSLATE_PROVIDER_KEY, value);
+  }
+  markTranslateOptions();
+
+  if (translateEnabled) {
+    clearTranslations();
+    loadTranslations();
+  }
+}
+
+function markTranslateOptions() {
+  translateControl.querySelectorAll('.translate-option').forEach((opt) => {
+    const current = opt.dataset.setting === 'target' ? translateTarget : translateProvider;
+    opt.classList.toggle('selected', opt.dataset.value === current);
+  });
+}
+
+/**
+ * Show the control only for lyrics that are neither English nor Chinese.
+ * The language is worked out locally so nothing is sent anywhere before the
+ * button is switched on.
+ */
+function refreshTranslateControl() {
+  const texts = currentLineTexts();
+  const sample = texts.slice(0, 40).join('\n');
+  const language = detectLyricsLanguage(sample, lyricsLanguage);
+
+  if (!lyrics || !shouldOfferTranslation(language)) {
+    translateControl.classList.add('hidden');
+    translateControl.classList.remove('open');
+    clearTranslations();
+    return;
+  }
+
+  console.debug('[translate] lyrics language:', language);
+  translateControl.classList.remove('hidden');
+  translateToggle.classList.toggle('active', translateEnabled);
+  markTranslateOptions();
+
+  if (translateEnabled) loadTranslations();
+}
+
+function initTranslateControl() {
+  markTranslateOptions();
+  translateToggle.classList.toggle('active', translateEnabled);
+
+  translateToggle.addEventListener('click', () => setTranslateEnabled(!translateEnabled));
+
+  translateMenuToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = translateControl.classList.toggle('open');
+    translateMenuToggle.setAttribute('aria-expanded', String(open));
+  });
+
+  translateControl.querySelector('.translate-menu').addEventListener('click', (e) => {
+    const option = e.target.closest('.translate-option');
+    if (!option) return;
+    e.stopPropagation();
+    setTranslateOption(option.dataset.setting, option.dataset.value);
+    translateControl.classList.remove('open');
+    translateMenuToggle.setAttribute('aria-expanded', 'false');
+  });
+
+  document.addEventListener('click', () => {
+    translateControl.classList.remove('open');
+    translateMenuToggle.setAttribute('aria-expanded', 'false');
+  });
+}
+
+initTranslateControl();
 
 // ============================================================
 //  Theme — follows the local sunrise / sunset
