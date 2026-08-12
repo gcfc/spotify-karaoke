@@ -223,6 +223,32 @@ function pickKKBOXResult(searchData, trackName, artistName) {
 }
 
 /**
+ * QQ Music via the Cloudflare Worker.  Line-synced LRC with strong Mandarin
+ * and Cantonese coverage, and its search tolerates either Chinese script.  It
+ * has to go through the Worker: the endpoint sends no CORS headers, and its
+ * lyric API rejects requests without a y.qq.com referer, which a browser
+ * cannot set cross-origin.
+ */
+export async function fetchLyricsFromQQ(workerUrl, trackName, artistName) {
+  if (!workerUrl) return null;
+
+  const params = new URLSearchParams({ title: trackName, artist: artistName });
+  const url = `${workerUrl}/qq-lyrics?${params}`;
+  console.debug('[lyrics] QQ:', url);
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) { console.debug('[lyrics] QQ: HTTP', resp.status); return null; }
+    const data = await resp.json();
+    if (!data.syncedLyrics) { console.debug('[lyrics] QQ: response OK but no syncedLyrics'); return null; }
+    console.debug('[lyrics] QQ: matched', data.matchedTitle, '—', data.matchedArtist);
+    return { syncedLyrics: data.syncedLyrics };
+  } catch (err) {
+    console.debug('[lyrics] QQ: error', err.message);
+    return null;
+  }
+}
+
+/**
  * Browser-direct fallback: calls KKBOX search API + scrapes song page JSON-LD
  * without going through the Cloudflare Worker. Works when the Worker is
  * unreachable or KKBOX blocks Worker IPs but allows browser requests.
@@ -348,9 +374,11 @@ const NO_RESULT = Object.freeze({ lyrics: null, syncType: null, source: null });
  *
  *  1. Returns immediately on cache hit.
  *  2. Tries Spotify (highest-quality, word/line synced) first.
- *  3. On miss, fires LRCLIB + KKBOX Worker + KKBOX Direct in parallel,
- *     then picks the best result by priority:
- *       LRCLIB synced > LRCLIB plain > KKBOX Worker > KKBOX Direct
+ *  3. On miss, fires LRCLIB + QQ Music + KKBOX Worker + KKBOX Direct in
+ *     parallel, then picks the best result by priority:
+ *       LRCLIB synced > QQ synced > LRCLIB plain > KKBOX Worker > KKBOX Direct
+ *     Synced beats plain throughout; KKBOX stays last because it only ever
+ *     yields plain text.
  *  4. Caches successful results for instant re-visits.
  */
 export async function fetchLyrics(workerUrl, trackId, trackName, artistName, trackDurationMs, spotifyToken) {
@@ -380,9 +408,10 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
   }
 
   // 2. Fire remaining sources in parallel
-  console.debug('[lyrics] Spotify miss — querying LRCLIB + KKBOX in parallel');
-  const [lrcData, kkboxWorker, kkboxDirect] = await Promise.all([
+  console.debug('[lyrics] Spotify miss — querying LRCLIB + QQ + KKBOX in parallel');
+  const [lrcData, qqData, kkboxWorker, kkboxDirect] = await Promise.all([
     fetchLyricsFromLRCLIB(trackName, artistName, trackDurationMs / 1000),
+    fetchLyricsFromQQ(workerUrl, trackName, artistName),
     fetchLyricsFromKKBOX(workerUrl, trackName, artistName),
     fetchLyricsFromKKBOXDirect(trackName, artistName),
   ]);
@@ -394,6 +423,12 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
     const lines = parseLRC(lrcData.syncedLyrics);
     if (lines.length > 0) {
       result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'LRCLIB · line-synced' };
+    }
+  }
+  if (!result && qqData?.syncedLyrics) {
+    const lines = parseLRC(qqData.syncedLyrics);
+    if (lines.length > 0) {
+      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'QQ Music · line-synced' };
     }
   }
   if (!result && lrcData?.plainLyrics) {

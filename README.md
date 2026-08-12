@@ -6,7 +6,7 @@ A static website that connects to your Spotify account and displays real-time sy
 
 - **Real-time karaoke display** — lyrics highlight line-by-line (or word-by-word with the Cloudflare Worker) synced to your playback
 - **Spotify integration** — uses the official Spotify Web API with PKCE auth (no backend needed for auth)
-- **Two-layer lyrics** — Cloudflare Worker (Spotify's internal Musixmatch-powered lyrics) as primary, LRCLIB (free, open) as fallback
+- **Layered lyrics** — Spotify's internal Musixmatch-powered lyrics via the Cloudflare Worker as primary, then LRCLIB (free, open), QQ Music (line-synced, strong Chinese coverage) and KKBOX (plain text) as fallbacks
 - **Graceful degradation** — word-synced → line-synced → plain scrollable lyrics → "no lyrics" message
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset, based on your location (San Mateo, CA if you decline the location prompt). The toggle button overrides it until the next sunrise or sunset.
 - **Responsive** — works on desktop and mobile
@@ -96,7 +96,14 @@ const CONFIG = {
 
 1. **Auth**: Spotify PKCE flow (browser-only, no client secret needed)
 2. **Polling**: Every 3 seconds, fetches the currently playing track from Spotify's Web API
-3. **Lyrics**: On track change, fetches lyrics from the Worker (primary) or LRCLIB (fallback)
+3. **Lyrics**: On track change, tries Spotify via the Worker first. On a miss it queries LRCLIB, QQ Music and KKBOX in parallel and takes the best result:
+
+   ```
+   Spotify word-synced > Spotify line-synced > LRCLIB synced >
+   QQ Music synced > LRCLIB plain > KKBOX
+   ```
+
+   Synced always beats plain, which is why KKBOX — the only plain-text source — sits last.
 4. **Display**: `requestAnimationFrame` loop interpolates playback position between polls and highlights the current line/word
 
 ## Limitations
@@ -104,6 +111,8 @@ const CONFIG = {
 - **Spotify Dev Mode (Feb 2026)**: Requires Spotify Premium for the app owner, max 5 authorized users. Fine for personal use.
 - **sp_dc cookie**: Unofficial, lasts ~1 year. If it expires, the Worker will return errors and the site falls back to LRCLIB automatically.
 - **LRCLIB coverage**: Not all songs have synced lyrics in LRCLIB's crowdsourced database.
+- **KKBOX is currently blocked**: KKBOX song pages sit behind an AWS WAF JavaScript challenge (`x-amzn-waf-action: challenge`) that rejects datacenter IPs, so the Worker cannot scrape them — its search API still answers, but every page fetch returns the challenge instead of the lyrics. QQ Music covers most of what KKBOX used to, and with line-level timing rather than plain text. The KKBOX path is left in place as a fallback in case the rule is relaxed.
+- **QQ Music access**: Must be fetched through the Worker — the endpoints send no CORS headers, and the lyric API rejects requests without a `y.qq.com` referer, which a browser cannot set cross-origin.
 - **Polling latency**: Lyrics sync is approximate (±3 seconds) due to polling interval.
 
 ## File Structure
@@ -118,7 +127,8 @@ spotify-karaoke/
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── tools/
 │   └── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
-├── tests/              # Node and Python CLI tests — `node tests/test_matching.mjs`
+├── tests/              # Node and Python tests — `node tests/test_matching.mjs`,
+│                       # `node tests/test_source_priority.mjs`
 ├── worker/
 │   ├── worker.js       # Cloudflare Worker (lyrics proxy)
 │   └── wrangler.toml   # Worker config

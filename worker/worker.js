@@ -153,6 +153,66 @@ async function scrapeKKBOXLyrics(songUrl) {
   return null;
 }
 
+// ── QQ Music (line-synced LRC) ──
+
+const QQ_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  // The lyric endpoint answers retcode -1310 without a y.qq.com referer.  A
+  // browser cannot set a cross-origin Referer, which is why QQ Music has to be
+  // fetched here rather than direct from the page.
+  Referer: 'https://y.qq.com/portal/player.html',
+  Accept: 'application/json',
+};
+
+// format=json returns plain JSON today, but the endpoint is undocumented and
+// some of its siblings wrap the payload in a JSONP callback.
+function parseMaybeJSONP(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return JSON.parse(text.trim().replace(/^\w+\(/, '').replace(/\)$/, ''));
+  }
+}
+
+async function searchQQ(title, artist) {
+  for (const name of titleQueryVariants(title)) {
+    const q = encodeURIComponent(`${name} ${artist}`.trim());
+    const url = `https://c.y.qq.com/soso/fcgi-bin/client_search_cp?format=json&p=1&n=10&w=${q}`;
+    try {
+      const resp = await fetch(url, { headers: QQ_HEADERS });
+      if (!resp.ok) continue;
+      const data = parseMaybeJSONP(await resp.text());
+      const results = data?.data?.song?.list;
+      if (!Array.isArray(results) || results.length === 0) continue;
+
+      const candidates = results.map((song) => ({
+        title: song?.songname || '',
+        artist: (song?.singer || []).map((a) => a?.name || '').join(', '),
+        mid: song?.songmid || '',
+      }));
+
+      // QQ ranks loosely — a search for a song it does not carry still returns
+      // a page of the artist's other work — so the hit has to be verified.
+      const index = selectBestMatch(candidates, title, artist);
+      if (index >= 0 && candidates[index].mid) return candidates[index];
+    } catch { continue; }
+  }
+  return null;
+}
+
+async function fetchQQLyrics(mid) {
+  const url = `https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?songmid=${encodeURIComponent(mid)}&format=json&nobase64=1&g_tk=5381`;
+  try {
+    const resp = await fetch(url, { headers: QQ_HEADERS });
+    if (!resp.ok) return null;
+    const data = parseMaybeJSONP(await resp.text());
+    if (data?.retcode !== 0) return null;
+    return data.lyric || null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Route handlers ──
 
 function jsonResponse(body, status = 200) {
@@ -248,6 +308,30 @@ async function handleKKBOXLyrics(url) {
   });
 }
 
+async function handleQQLyrics(url) {
+  const title = url.searchParams.get('title');
+  const artist = url.searchParams.get('artist');
+  if (!title) {
+    return jsonResponse({ error: 'Missing title parameter' }, 400);
+  }
+
+  const match = await searchQQ(title, artist || '');
+  if (!match) {
+    return jsonResponse({ error: 'No matching QQ Music song found' }, 404);
+  }
+
+  const syncedLyrics = await fetchQQLyrics(match.mid);
+  if (!syncedLyrics) {
+    return jsonResponse({ error: 'Lyrics not available for this QQ Music song' }, 404);
+  }
+
+  return jsonResponse({
+    syncedLyrics,
+    matchedTitle: match.title,
+    matchedArtist: match.artist,
+  });
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
@@ -259,6 +343,9 @@ export default {
     try {
       if (url.pathname === '/lyrics') {
         return await handleSpotifyLyrics(request, url, env);
+      }
+      if (url.pathname === '/qq-lyrics') {
+        return await handleQQLyrics(url);
       }
       if (url.pathname === '/kkbox-lyrics') {
         return await handleKKBOXLyrics(url);
