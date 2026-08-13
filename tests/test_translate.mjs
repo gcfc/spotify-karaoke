@@ -18,6 +18,8 @@ import {
   LLM_CHUNK_LINES,
   normalizeProvider,
   planTranslation,
+  resetProviderHealth,
+  TRANSLATE_CHAIN,
   shouldOfferTranslation,
   TRANSLATE_PROVIDERS,
   translateLines,
@@ -231,6 +233,114 @@ assert(result === null, 'an unconfigured model key yields null');
 
 result = await translateLines(['Eins'], { target: 'en', provider: 'gemini-flash-lite-latest' });
 assert(result === null, 'an LLM provider without a Worker URL yields null');
+
+// ── 8. The automatic provider chain ──
+
+console.log('\n── provider chain ──');
+
+assert(TRANSLATE_CHAIN.join(' -> ') === 'gemini-flash-lite-latest -> free -> cloud',
+  'the model is tried first and the paid provider last');
+
+// Route by URL so each provider can be made to succeed, fail or stall.
+function stubChain({ gemini = 'ok', free = 'ok', cloud = 'ok', slowMs = 0 } = {}) {
+  const calls = [];
+  globalThis.fetch = async (url, opts) => {
+    const target = String(url);
+    // Order matters: the keyless host is translate.googleapis.com/translate_a,
+    // which also contains "/translate".
+    let who = 'free';
+    if (target.includes('/llm-translate')) who = 'gemini';
+    else if (target.includes('translate.googleapis.com')) who = 'free';
+    else if (target.includes('/translate')) who = 'cloud';
+    calls.push(who);
+
+    const mode = { gemini, free, cloud }[who];
+    if (mode === 'slow') await new Promise((r) => setTimeout(r, slowMs));
+    if (mode === 'fail') return new Response('nope', { status: 500 });
+
+    if (who === 'free') {
+      const q = decodeURIComponent(target.split('&q=')[1]);
+      const text = q.split('\n').map((l) => `free(${l})`).join('\n');
+      const mid = Math.ceil(text.length / 2);
+      return new Response(JSON.stringify([[[text.slice(0, mid), ''], [text.slice(mid), '']], null, 'de']), { status: 200 });
+    }
+    const body = JSON.parse(opts.body);
+    return new Response(JSON.stringify({ translations: body.lines.map((l) => `${who}(${l})`) }), { status: 200 });
+  };
+  return calls;
+}
+
+const CHAIN_OPTS = { target: 'en', workerUrl: 'https://w.test' };
+const two = ['Eins', 'Zwei'];
+
+resetProviderHealth();
+let calls = stubChain();
+result = await translateLines(two, CHAIN_OPTS);
+assert(result[0] === 'gemini(Eins)', 'a healthy chain is served by the first provider');
+assert(calls.length === 1 && calls[0] === 'gemini', 'no other provider is called when the first succeeds');
+
+resetProviderHealth();
+calls = stubChain({ gemini: 'fail' });
+result = await translateLines(two, CHAIN_OPTS);
+assert(result[0] === 'free(Eins)', 'a failing model falls through to the keyless provider');
+assert(!calls.includes('cloud'), 'the paid provider is not called once a free one succeeds');
+
+resetProviderHealth();
+calls = stubChain({ gemini: 'fail', free: 'fail' });
+result = await translateLines(two, CHAIN_OPTS);
+assert(result[0] === 'cloud(Eins)', 'the paid provider catches the case where both free ones fail');
+
+resetProviderHealth();
+stubChain({ gemini: 'fail', free: 'fail', cloud: 'fail' });
+result = await translateLines(two, CHAIN_OPTS);
+assert(result === null, 'a chain that fails outright yields no translation');
+
+// Sticky failure: the second track must not pay for the first track's timeout.
+resetProviderHealth();
+calls = stubChain({ gemini: 'fail' });
+await translateLines(two, CHAIN_OPTS);
+const afterFirst = calls.length;
+calls.length = 0;
+await translateLines(two, CHAIN_OPTS);
+assert(!calls.includes('gemini'),
+  'a provider that just failed is skipped on the next track rather than retried');
+assert(afterFirst === 2 && calls.length === 1, 'the second attempt makes one call instead of two');
+
+resetProviderHealth();
+calls = stubChain({ gemini: 'fail' });
+await translateLines(two, CHAIN_OPTS);
+calls.length = 0;
+resetProviderHealth();
+await translateLines(two, CHAIN_OPTS);
+assert(calls.includes('gemini'), 'clearing provider health puts a benched provider back in the chain');
+
+// Hedging: a slow first provider must not hold the whole request.
+resetProviderHealth();
+calls = stubChain({ gemini: 'slow', slowMs: 400 });
+let t0 = Date.now();
+result = await translateLines(two, { ...CHAIN_OPTS, hedgeDelayMs: 50 });
+const elapsed = Date.now() - t0;
+assert(calls.includes('free'), 'a slow provider triggers the next one alongside it');
+assert(result[0] === 'free(Eins)', 'whichever provider answers first supplies the translation');
+assert(elapsed < 400, `the hedge returns before the slow provider does (${elapsed}ms)`);
+
+// A slow provider that is still the only one to answer should still be used.
+resetProviderHealth();
+stubChain({ gemini: 'slow', slowMs: 120, free: 'fail', cloud: 'fail' });
+result = await translateLines(two, { ...CHAIN_OPTS, hedgeDelayMs: 20 });
+assert(result[0] === 'gemini(Eins)', 'a slow but successful provider still wins if the others fail');
+
+// A pinned provider skips the chain entirely — the console override.
+resetProviderHealth();
+calls = stubChain();
+result = await translateLines(two, { ...CHAIN_OPTS, provider: 'cloud' });
+assert(result[0] === 'cloud(Eins)' && calls.length === 1 && calls[0] === 'cloud',
+  'pinning a provider bypasses the chain');
+
+resetProviderHealth();
+stubChain({ cloud: 'fail' });
+result = await translateLines(two, { ...CHAIN_OPTS, provider: 'cloud' });
+assert(result === null, 'a pinned provider that fails does not fall back');
 
 globalThis.fetch = realFetch;
 

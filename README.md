@@ -9,7 +9,7 @@ A static website that connects to your Spotify account and displays real-time sy
 - **Layered lyrics** — Spotify's internal Musixmatch-powered lyrics via the Cloudflare Worker as primary, then LRCLIB (free, open), QQ Music (line-synced, strong Chinese coverage) and KKBOX (plain text) as fallbacks
 - **Graceful degradation** — word-synced → line-synced → plain scrollable lyrics → "no lyrics" message
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
-- **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Target language and provider are picked from the dropdown beside the button
+- **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Pick the target language from the dropdown; the app falls back across an LLM, a keyless endpoint and Google Cloud on its own
 - **Responsive** — works on desktop and mobile
 
 ## Quick Start
@@ -113,68 +113,85 @@ visibility a local decision rather than a request.
 
 ### Providers
 
-The dropdown appears only while translation is toggled on.
+The dropdown appears only while translation is toggled on, and offers just the
+target language — English or 中文. Which service does the work is decided
+automatically.
+
+### The provider chain
+
+Providers are tried in order until one answers:
+
+```
+gemini-flash-lite-latest  →  Default (keyless Google)  →  Better (Google Cloud)
+```
+
+The model goes first because it sees the whole song in one prompt, so recurring
+imagery and idiom stay consistent between verses in a way per-line machine
+translation cannot manage. The keyless endpoint sits second as a quick rescue —
+measured at roughly half the model's latency, so a fallback is barely slower
+than a success. Google Cloud is last because it is the only one that can cost
+money.
+
+Two behaviours keep a bad provider from costing time:
+
+- **A slow provider does not block the queue.** If one has not answered within
+  `HEDGE_DELAY_MS` (2.5s), the next starts alongside it and whichever answers
+  first wins. Healthy requests finish well inside that, so it rarely fires.
+- **A failure is remembered.** A provider that fails is benched for
+  `PROVIDER_COOLDOWN_MS` (5 minutes), so every later track skips it instead of
+  waiting for it to fail again. This is worth far more than racing: it turns a
+  repeated penalty into a single one.
 
 | Provider | Secret | How it is called |
 |---|---|---|
+| `gemini-flash-lite-latest` | `GEMINI_API_KEY` | Gemini via the Worker's `/llm-translate` route |
 | **Default** | none | `translate.googleapis.com` direct from the browser — it sends `Access-Control-Allow-Origin: *`. Undocumented and unsupported, so it can change without notice |
 | **Better** | `GOOGLE_TRANSLATE_API_KEY` | Google Cloud Translation v2 through the Worker's `/translate` route |
-| `gemini-flash-lite-latest` | `GEMINI_API_KEY` | Gemini via the Worker's `/llm-translate` route |
-| `gemini-3.5-flash-lite` | `GEMINI_API_KEY` | " |
-| `gemini-3.1-flash-lite` | `GEMINI_API_KEY` | " |
-| `gemini-flash-latest` | `GEMINI_API_KEY` | " |
-| `nemotron-3-super-120b:free` | `OPENROUTER_API_KEY` | OpenRouter free tier via `/llm-translate` |
 
-### Model providers
+### Comparing models
 
-The models are listed by name so their output can be compared on the same
-track — switching provider while translation is on refetches and re-renders.
+The other verified models stay available, just not in the menu. Pin one from the
+browser console:
 
-Unlike per-line machine translation, an LLM sees the whole song in one prompt,
-so recurring imagery and idiom stay consistent between verses. Each model was
-measured on 44 unique lines before being listed, and all returned exactly one
-translation per line on repeated runs. Rough whole-song latency:
-
-| Model | Latency |
-|---|---|
-| `gemini-3.5-flash-lite`, `gemini-flash-lite-latest`, `gemini-3.1-flash-lite` | ~2s |
-| `gemini-flash-latest` | ~15s |
-| `nemotron-3-super-120b:free` | ~15s |
-
-Requests are chunked to 25 lines. This is not cosmetic: on a 44-line list one
-model stopped at exactly 32 translations every time, with `finish_reason: stop`
-and the token budget untouched — it simply decided it was done. Raising
-`max_tokens` changed nothing; keeping requests small did.
-
-OpenRouter's free tier allows **50 requests per day** per account, so
-`nemotron-3-super-120b:free` stops working once that is spent and returns to
-service the next day. The Gemini free tier is far more generous but still
-finite — check your AI Studio quota if a model starts failing.
-
-A static site cannot keep an API key secret, so the Cloud provider goes through the
-Worker. Set the key as a secret — never in `app.js`:
-
-```bash
-cd worker
-wrangler secret put GOOGLE_TRANSLATE_API_KEY   # Better
-wrangler secret put GEMINI_API_KEY             # the four gemini-* models
-wrangler secret put OPENROUTER_API_KEY         # nemotron-3-super-120b:free
-wrangler deploy
+```js
+localStorage.setItem('translate-provider', 'gemini-3.5-flash-lite')
+localStorage.removeItem('translate-provider')   // back to automatic
 ```
 
-A provider whose secret is missing answers 501 and the client falls back to showing
-the originals; switch the dropdown back to **Default** to keep working.
+Valid ids come from `TRANSLATE_PROVIDERS` in `translate.js`: `free`, `cloud`,
+`gemini-flash-lite-latest`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`,
+`gemini-flash-latest`, `nemotron-3-super-120b`. A pinned provider does **not**
+fall back, so a failure shows the originals — which is what makes it useful for
+judging one model on its own. An unknown id is ignored and the chain resumes.
 
-### Cost and correctness notes
+Each model was measured on 44 unique lines before being listed, and all returned
+exactly one translation per line on repeated runs. Requests are chunked to 25
+lines. This is not cosmetic: on a 44-line list one model stopped at exactly 32
+translations every time, with `finish_reason: stop` and the token budget
+untouched — it simply decided it was done. Raising `max_tokens` changed nothing;
+keeping requests small did.
 
-- Blank lines are skipped and repeated lines (choruses) are sent once, so a song costs
-  far fewer characters than its line count suggests. Results are cached per track,
-  target and provider.
-- Translations are paired with their originals **by index**, so a reply whose line
-  count doesn't match the request is discarded rather than shifted onto the wrong
-  lines. The keyless provider batches by newline and halves any batch that comes back
-  misaligned; the Cloud provider uses the API's array input, which keeps alignment by
-  contract.
+### Cost
+
+Only **Better** can cost money: Google Cloud Translation is free for the first
+500,000 characters a month, then about $20 per million. Measured across real
+songs, a track costs roughly **400 characters** — blank lines are skipped,
+repeated lines are sent once, and results are cached per track and target — so
+the free tier covers on the order of 1,000 songs a month.
+
+The dependable cap is a quota override in the Google Cloud console, under
+**APIs & Services → Cloud Translation API → Quotas & System Limits**. Past the
+limit the API errors, the chain falls back, and no charge accrues. Divide by the
+longest month, not the average one: **16,129 characters/day** (`500,000 / 31`)
+stays inside the free tier every month, whereas a figure derived from a 28-day
+month overshoots by ~$1 in a 31-day one.
+
+Note that a **billing budget does not cap spend** — it only sends email. The
+quota override is the control that actually stops requests.
+
+OpenRouter's free tier allows 50 requests per day per account, so
+`nemotron-3-super-120b:free` stops working once that is spent and returns the
+next day. The Gemini free tier is more generous but still finite.
 
 ## How It Works
 

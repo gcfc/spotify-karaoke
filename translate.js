@@ -316,37 +316,155 @@ async function translateViaLlm(texts, target, provider, workerUrl) {
   return results;
 }
 
+// ── Automatic provider chain ──
+
+/**
+ * Tried in order when no provider is pinned.  The keyless endpoint measured
+ * about twice as fast as the model, so it sits second as a quick rescue
+ * rather than first: the model is worth the extra second because it sees the
+ * whole song at once.  Google Cloud is last because it is the only one that
+ * can cost money.
+ */
+export const TRANSLATE_CHAIN = ['gemini-flash-lite-latest', 'free', 'cloud'];
+
+// A provider that is merely slow should not hold up the queue: once it has
+// been thinking this long, the next one starts alongside it and whichever
+// answers first wins.  Set above the model's measured spread so a healthy
+// request almost never triggers it.
+export const HEDGE_DELAY_MS = 2500;
+
+// How long a provider stays benched after failing.  Remembering a failure is
+// worth far more than racing: during an outage every later track skips the
+// dead provider instead of waiting for it to time out again.
+export const PROVIDER_COOLDOWN_MS = 5 * 60 * 1000;
+
+const failedAt = new Map();
+
+function isProviderAvailable(id) {
+  const when = failedAt.get(id);
+  return !when || Date.now() - when > PROVIDER_COOLDOWN_MS;
+}
+
+/** Exposed for tests and for a manual retry after a known outage. */
+export function resetProviderHealth() {
+  failedAt.clear();
+}
+
+async function runProvider(id, texts, target, workerUrl) {
+  const provider = findProvider(id);
+  if (provider?.llm) return translateViaLlm(texts, target, provider.id, workerUrl);
+  if (provider?.id === 'cloud') return translateViaWorker(texts, target, workerUrl);
+  return translateViaFree(texts, target);
+}
+
+/** Never rejects: a failed attempt resolves with no translations. */
+function attemptProvider(id, texts, target, workerUrl) {
+  return runProvider(id, texts, target, workerUrl)
+    .then((translations) => {
+      failedAt.delete(id);
+      return { id, translations };
+    })
+    .catch((err) => {
+      console.debug(`[translate] ${id} failed:`, err.message);
+      failedAt.set(id, Date.now());
+      return { id, translations: null };
+    });
+}
+
+const HEDGE = Symbol('hedge');
+
+function hedgeTimer(ms) {
+  let cancel = () => {};
+  const promise = new Promise((resolve) => {
+    const handle = setTimeout(() => resolve(HEDGE), ms);
+    cancel = () => clearTimeout(handle);
+  });
+  return { promise, cancel };
+}
+
+/**
+ * Walk the chain, starting the next provider early when the current one is
+ * slow and immediately when it fails.  Returns the first successful result
+ * along with the provider that produced it, or null once the chain runs out.
+ */
+async function translateViaChain(texts, target, workerUrl, hedgeDelayMs) {
+  const healthy = TRANSLATE_CHAIN.filter(isProviderAvailable);
+  // Everything is benched: the cooldowns are stale or the network was down,
+  // so give the whole chain another go rather than refusing outright.
+  const order = healthy.length > 0 ? healthy : TRANSLATE_CHAIN.slice();
+
+  const inFlight = new Map();
+  let next = 0;
+
+  const startNext = () => {
+    if (next >= order.length) return false;
+    const id = order[next++];
+    inFlight.set(id, attemptProvider(id, texts, target, workerUrl));
+    return true;
+  };
+
+  startNext();
+
+  while (inFlight.size > 0) {
+    const timer = next < order.length ? hedgeTimer(hedgeDelayMs) : null;
+    const racers = [...inFlight.values()];
+    if (timer) racers.push(timer.promise);
+
+    const winner = await Promise.race(racers);
+    timer?.cancel();
+
+    if (winner === HEDGE) {
+      startNext();
+      continue;
+    }
+
+    inFlight.delete(winner.id);
+    if (winner.translations) return winner;
+    startNext();
+  }
+
+  return null;
+}
+
 // ── Entry point ──
 
 /**
  * Translate lyrics lines, returning an array the same length as the input so
  * translations can be paired with their originals by index.  Blank lines come
- * back blank.  Returns null if the provider fails, leaving the caller showing
+ * back blank.  Returns null when nothing worked, leaving the caller showing
  * the original lyrics alone.
  *
+ * With no `provider` the chain above runs automatically.  Passing one pins
+ * that provider instead, which is how the console override compares models.
+ *
  * @param {string[]} lines
- * @param {{target: string, provider: string, workerUrl?: string}} options
+ * @param {{target: string, workerUrl?: string, provider?: string,
+ *          hedgeDelayMs?: number}} options
  */
-export async function translateLines(lines, { target, provider, workerUrl }) {
+export async function translateLines(lines, options) {
+  const { target, provider, workerUrl, hedgeDelayMs = HEDGE_DELAY_MS } = options || {};
   if (!Array.isArray(lines) || lines.length === 0) return null;
 
   const { unique, slots } = planTranslation(lines);
   if (unique.length === 0) return null;
 
-  const chosen = findProvider(provider);
+  const finish = (translations) => applyTranslationPlan(slots, translations.map(decodeHtmlEntities));
 
-  try {
-    let translated;
-    if (chosen?.llm) {
-      translated = await translateViaLlm(unique, target, chosen.id, workerUrl);
-    } else if (chosen?.id === 'cloud') {
-      translated = await translateViaWorker(unique, target, workerUrl);
-    } else {
-      translated = await translateViaFree(unique, target);
+  if (provider) {
+    try {
+      return finish(await runProvider(provider, unique, target, workerUrl));
+    } catch (err) {
+      console.debug(`[translate] pinned provider ${provider} failed:`, err.message);
+      return null;
     }
-    return applyTranslationPlan(slots, translated.map(decodeHtmlEntities));
-  } catch (err) {
-    console.debug('[translate] failed:', err.message);
+  }
+
+  const won = await translateViaChain(unique, target, workerUrl, hedgeDelayMs);
+  if (!won) {
+    console.debug('[translate] every provider in the chain failed');
     return null;
   }
+
+  console.debug('[translate] served by', won.id);
+  return finish(won.translations);
 }

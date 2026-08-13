@@ -763,7 +763,25 @@ const TRANSLATE_PROVIDER_KEY = 'translate-provider';
 
 let translateEnabled = localStorage.getItem(TRANSLATE_ON_KEY) === '1';
 let translateTarget = localStorage.getItem(TRANSLATE_TARGET_KEY) === 'zh' ? 'zh' : 'en';
-let translateProvider = normalizeProvider(localStorage.getItem(TRANSLATE_PROVIDER_KEY));
+
+/**
+ * Normally empty, which lets translate.js run its own provider chain. Setting
+ * it pins one provider, which is how a single model can be compared against
+ * another on the same track without a menu full of them:
+ *
+ *   localStorage.setItem('translate-provider', 'gemini-3.5-flash-lite')
+ *   localStorage.removeItem('translate-provider')   // back to automatic
+ */
+function providerOverride() {
+  const stored = localStorage.getItem(TRANSLATE_PROVIDER_KEY);
+  if (!stored) return '';
+  const known = normalizeProvider(stored);
+  if (known !== stored) {
+    console.debug('[translate] ignoring unknown provider override:', stored);
+    return '';
+  }
+  return known;
+}
 
 let lyricsTranslations = null;   // aligned with the rendered lines, or null
 let translationRequestId = 0;    // guards against a slow reply for an old track
@@ -774,7 +792,7 @@ const TRANSLATION_CACHE_MAX = 30;
 const translationCache = new Map();
 
 function translationCacheKey() {
-  return `${currentTrackId}:${translateTarget}:${translateProvider}`;
+  return `${currentTrackId}:${translateTarget}:${providerOverride() || 'auto'}`;
 }
 
 function translationCacheGet(key) {
@@ -849,7 +867,7 @@ async function loadTranslations() {
 
   const result = await translateLines(texts, {
     target: translateTarget,
-    provider: translateProvider,
+    provider: providerOverride(),
     workerUrl: CONFIG.WORKER_URL,
   });
 
@@ -884,13 +902,9 @@ function setTranslateEnabled(enabled) {
 }
 
 function setTranslateOption(setting, value) {
-  if (setting === 'target') {
-    translateTarget = value;
-    localStorage.setItem(TRANSLATE_TARGET_KEY, value);
-  } else {
-    translateProvider = normalizeProvider(value);
-    localStorage.setItem(TRANSLATE_PROVIDER_KEY, translateProvider);
-  }
+  if (setting !== 'target') return;
+  translateTarget = value;
+  localStorage.setItem(TRANSLATE_TARGET_KEY, value);
   markTranslateOptions();
 
   if (translateEnabled) {
@@ -906,8 +920,7 @@ function closeTranslateMenu() {
 
 function markTranslateOptions() {
   translateControl.querySelectorAll('.translate-option').forEach((opt) => {
-    const current = opt.dataset.setting === 'target' ? translateTarget : translateProvider;
-    opt.classList.toggle('selected', opt.dataset.value === current);
+    opt.classList.toggle('selected', opt.dataset.value === translateTarget);
   });
 }
 
