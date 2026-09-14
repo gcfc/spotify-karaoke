@@ -86,8 +86,18 @@ async function convertLyricsToSimplified(result) {
   return result;
 }
 
+/** Spotify track ids are 22 characters of base62 — anything else is another source's key. */
+const SPOTIFY_TRACK_ID_RE = /^[A-Za-z0-9]{22}$/;
+
 export async function fetchLyricsFromWorker(workerUrl, trackId, spotifyToken) {
   if (!workerUrl) return null;
+  // The Worker's /lyrics route looks a track up in Spotify's own catalogue, so
+  // a synthesised id from another source (see teslaTrackId in sources.js) can
+  // only 404.  Skipping it keeps the fallback chain one round trip shorter.
+  if (!SPOTIFY_TRACK_ID_RE.test(String(trackId || ''))) {
+    console.debug('[lyrics] Worker: skipped — not a Spotify track id');
+    return null;
+  }
   const url = `${workerUrl}/lyrics?track_id=${trackId}`;
   console.debug('[lyrics] Worker:', url);
   try {

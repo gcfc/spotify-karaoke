@@ -109,6 +109,40 @@ result = await run({ '/qq-lyrics': () => json({ syncedLyrics: 'no timestamps her
 assert(result.source === 'KKBOX',
   'QQ lyrics that parse to zero timed lines fall through');
 
+console.log('\n── Spotify tier is gated on a Spotify track id ──');
+
+// The Worker's /lyrics route resolves a track against Spotify's own catalogue,
+// so it is only worth calling for a real Spotify id.  Sources that synthesise
+// their own key (see teslaTrackId in sources.js) must skip straight to the
+// crowdsourced tiers instead of spending a round trip on a certain 404.
+
+const SPOTIFY_WORD_SYNCED = () => json({
+  lyrics: {
+    syncType: 'WORD_SYNCED',
+    language: 'en',
+    lines: [{ startTimeMs: '0', words: 'first line', syllables: [] }],
+  },
+});
+
+async function runWithId(trackId, routes) {
+  stubFetch(routes);
+  return fetchLyrics(WORKER, trackId, 'Song', 'Artist', 180000, null);
+}
+
+result = await runWithId('3n3Ppam7vgaVa1iaRUc9Lp', {
+  '/lyrics': SPOTIFY_WORD_SYNCED,
+  '/api/get': LRCLIB_SYNCED,
+});
+assert(result.source === 'Spotify' && result.syncType === 'WORD_SYNCED',
+  'a real Spotify id reaches the Worker and word-synced wins');
+
+result = await runWithId('tesla|song|artist|album', {
+  '/lyrics': SPOTIFY_WORD_SYNCED,
+  '/api/get': LRCLIB_SYNCED,
+});
+assert(result.source === 'LRCLIB',
+  'a synthesised id skips the Worker and falls to LRCLIB');
+
 globalThis.fetch = realFetch;
 
 // ── Summary ──

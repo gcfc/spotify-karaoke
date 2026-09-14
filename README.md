@@ -193,11 +193,80 @@ OpenRouter's free tier allows 50 requests per day per account, so
 `nemotron-3-super-120b:free` stops working once that is spent and returns the
 next day. The Gemini free tier is more generous but still finite.
 
+## Now-Playing Sources
+
+The page reads what is playing through a **source** (`sources.js`). A source
+answers one question — what is playing right now? — and returns the same shape
+whatever service it talked to:
+
+```js
+{ trackId, title, artist, durationMs, progressMs, isPlaying, artworkUrl }
+```
+
+Everything downstream — the lyrics chain, the karaoke animation loop, the
+progress bar — consumes that shape and neither knows nor cares which source
+produced it.
+
+| Source | `?source=` | Position | Seek | Artwork |
+|---|---|---|---|---|
+| Spotify Web API | `spotify` (default) | precise, once a second | yes | yes |
+| Tesla Fleet API | `tesla` | coarse | no | no |
+
+Pick one with `?source=tesla`; the choice is remembered in `localStorage`. A
+source that cannot seek hides the touch-control toggle rather than offering a
+control that does nothing, and one with no artwork hides the album art — the
+stored preference itself is left alone, so switching back to Spotify restores it.
+
+### Why Spotify already works in a Tesla
+
+The car's built-in Spotify is a Spotify Connect device, so
+`/v1/me/player/currently-playing` reports it like any other device, with a real
+`progress_ms`. The Spotify source needs **no Tesla API at all** and costs
+nothing to run. The Tesla source exists for everything else the car can play —
+Apple Music, Tidal, USB, Bluetooth, radio — which Spotify cannot see.
+
+### Position estimation
+
+Sources report position at very different cadences, and some cannot report it
+at all, so `PositionEstimator` normalises them into the one anchor the
+animation loop extrapolates from:
+
+- **`precise`** (Spotify) — re-anchors on every poll. The loop's LERP absorbs
+  the poll-to-poll jitter, exactly as before.
+- **`coarse`** (Tesla) — only corrects past `SNAP_THRESHOLD_MS` (1.5s), so a
+  low-cadence read does not jerk the highlight back and forth. Tesla's
+  `MediaNowPlayingElapsed` arrives about twice a second over streaming
+  telemetry, but Tesla documents the now-playing fields as sometimes empty
+  depending on the media source, so an absent elapsed degrades to no position
+  rather than becoming a `0` that would yank the lyrics back to line one.
+- **`none`** — free-runs from the track change, freezing on pause and resuming
+  where it froze. Enough for line-synced lyrics with the manual offset.
+
+### Tesla source status
+
+The adapter and its response mapping are complete and tested, but **auth is not
+wired**. Fleet API authentication is a server-side flow — partner token, a
+registered public key on your domain, per-vehicle pairing — that does not belong
+in a static page, so `createTeslaFleetSource` takes an injected
+`fetchVehicleData` and the app points it at a `/tesla-media` Worker route that
+does not exist yet. Until it does, the Tesla source reports silence instead of
+throwing on every poll.
+
+Note the poll interval. Fleet API is billed per request: polling `vehicle_data`
+once a minute runs about **$0.12 per vehicle-hour**, while streaming telemetry
+is roughly eighteen times cheaper and is where this should end up. The default
+15s poll is a deliberate fallback — the estimator is what keeps the lyrics
+moving between reads.
+
 ## How It Works
 
 1. **Auth**: Spotify PKCE flow (browser-only, no client secret needed)
-2. **Polling**: Every 3 seconds, fetches the currently playing track from Spotify's Web API
-3. **Lyrics**: On track change, tries Spotify via the Worker first. On a miss it queries LRCLIB, QQ Music and KKBOX in parallel and takes the best result:
+2. **Polling**: The active source is polled on its own cadence (Spotify: 1s)
+   for the currently playing track
+3. **Lyrics**: On track change, tries Spotify via the Worker first — skipped
+   unless the track id is a real Spotify id, since that route resolves against
+   Spotify's own catalogue. On a miss it queries LRCLIB, QQ Music and KKBOX in
+   parallel and takes the best result:
 
    ```
    Spotify word-synced > Spotify line-synced > LRCLIB synced >
@@ -214,7 +283,8 @@ next day. The Gemini free tier is more generous but still finite.
 - **LRCLIB coverage**: Not all songs have synced lyrics in LRCLIB's crowdsourced database.
 - **KKBOX is currently blocked**: KKBOX song pages sit behind an AWS WAF JavaScript challenge (`x-amzn-waf-action: challenge`) that rejects datacenter IPs, so the Worker cannot scrape them — its search API still answers, but every page fetch returns the challenge instead of the lyrics. QQ Music covers most of what KKBOX used to, and with line-level timing rather than plain text. The KKBOX path is left in place as a fallback in case the rule is relaxed.
 - **QQ Music access**: Must be fetched through the Worker — the endpoints send no CORS headers, and the lyric API rejects requests without a `y.qq.com` referer, which a browser cannot set cross-origin.
-- **Polling latency**: Lyrics sync is approximate (±3 seconds) due to polling interval.
+- **Polling latency**: Lyrics sync is approximate — the animation loop interpolates between polls, so accuracy tracks the active source's cadence rather than matching playback exactly.
+- **Tesla source auth is not wired**: the adapter is complete and tested, but it needs a server-side Fleet API route before it returns anything. See *Tesla source status* above.
 
 ## File Structure
 
@@ -223,6 +293,7 @@ spotify-karaoke/
 ├── index.html          # Page shell
 ├── style.css           # Dark karaoke theme
 ├── app.js              # All client-side logic
+├── sources.js          # Now-playing sources + position estimator (no DOM deps)
 ├── lyrics.js           # Lyrics fetch chain (no DOM dependencies)
 ├── matching.js         # Script-insensitive search matching (see below)
 ├── translate.js        # Language detection + translation providers
@@ -231,6 +302,7 @@ spotify-karaoke/
 │   └── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
 ├── tests/              # Node and Python tests — `node tests/test_matching.mjs`,
 │                       # `node tests/test_source_priority.mjs`,
+│                       # `node tests/test_sources.mjs`,
 │                       # `node tests/test_translate.mjs`
 ├── worker/
 │   ├── worker.js       # Cloudflare Worker (lyrics proxy)
