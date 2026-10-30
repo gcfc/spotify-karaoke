@@ -219,6 +219,127 @@ async function fetchQQLyrics(mid) {
   }
 }
 
+// ── Kugou Music (line-synced LRC) ──
+//
+// Stands in for kugeci.com, which serves the same kind of LRC but sits behind
+// a Cloudflare managed challenge that no fetch() — here or in the browser —
+// can pass.  Both Kugou endpoints are plain HTTP only (the HTTPS hosts present
+// a mismatched certificate or reset the connection), so a page served over
+// HTTPS could not call them even if they sent CORS headers.
+
+const KUGOU_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  Accept: 'application/json',
+};
+
+// The same recording is listed a few seconds apart across platforms (up to
+// ~4s measured), while a remix or radio edit of the same title is usually
+// further off.  Lyrics timed for a different cut would drift out of sync.
+const KUGOU_DURATION_TOLERANCE_S = 5;
+
+function kugouDurationMatches(candidateSec, wantedSec) {
+  if (!wantedSec) return true;
+  return Math.abs(candidateSec - wantedSec) <= KUGOU_DURATION_TOLERANCE_S;
+}
+
+// `songname` sometimes drops the version suffix — the original 不能成情人 and
+// its 港风电音 remix are both listed as plain "不能成情人" — whereas
+// `filename` ("<singers> - <title>") keeps it.  `filename` can also carry a
+// promo note instead (小幸运【《我的少女时代》电影主题曲】), so neither field
+// alone is the title.
+function kugouFilenameTitle(song) {
+  const prefix = `${song?.singername || ''} - `;
+  const filename = song?.filename || '';
+  if (song?.singername && filename.startsWith(prefix)) return filename.slice(prefix.length);
+  return song?.songname || '';
+}
+
+/**
+ * Find the Kugou recording that is the track being played.  The song search
+ * resolves romanized artists ("Hebe Tien" → 田馥甄), which the lyric search
+ * cannot, and returns each recording's hash and length so the lyrics can be
+ * tied to the right cut.
+ */
+async function searchKugou(title, artist, durationSec) {
+  const wantedTitle = normalizeForMatch(title);
+
+  for (const name of titleQueryVariants(title)) {
+    const q = encodeURIComponent(`${name} ${artist}`.trim());
+    const url = `http://mobilecdn.kugou.com/api/v3/search/song?format=json&keyword=${q}&page=1&pagesize=20`;
+    try {
+      const resp = await fetch(url, { headers: KUGOU_HEADERS });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      const results = data?.data?.info;
+      if (!Array.isArray(results) || results.length === 0) continue;
+
+      const candidates = results
+        .map((song) => ({
+          title: song?.songname || '',
+          filenameTitle: kugouFilenameTitle(song),
+          artist: song?.singername || '',
+          hash: song?.hash || '',
+          durationSec: Number(song?.duration) || 0,
+        }))
+        .filter((c) => c.hash && kugouDurationMatches(c.durationSec, durationSec));
+
+      // A title that matches suffix and all goes first.  Otherwise a live cut
+      // that happens to fall inside the tolerance ties with the studio
+      // recording once suffixes are stripped, and can win on search order.
+      const exact = candidates.filter((c) =>
+        normalizeForMatch(c.title) === wantedTitle || normalizeForMatch(c.filenameTitle) === wantedTitle);
+      for (const pool of [exact, candidates]) {
+        const index = selectBestMatch(pool, title, artist);
+        if (index >= 0) return pool[index];
+      }
+    } catch { continue; }
+  }
+  return null;
+}
+
+function decodeBase64Utf8(base64) {
+  const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+async function fetchKugouLyrics(song) {
+  try {
+    const searchParams = new URLSearchParams({
+      ver: '1',
+      man: 'yes',
+      client: 'pc',
+      keyword: `${song.artist} - ${song.title}`,
+      duration: String(song.durationSec * 1000),
+      hash: song.hash,
+    });
+    const searchResp = await fetch(`http://lyrics.kugou.com/search?${searchParams}`, { headers: KUGOU_HEADERS });
+    if (!searchResp.ok) return null;
+    const candidates = (await searchResp.json())?.candidates;
+    if (!Array.isArray(candidates)) return null;
+
+    // Kugou also files ringtone-length snippets — 30 seconds of chorus —
+    // under a song's title, so the lyric's own length is checked as well.
+    const lyric = candidates.find((c) =>
+      c?.id && c?.accesskey && kugouDurationMatches((Number(c.duration) || 0) / 1000, song.durationSec));
+    if (!lyric) return null;
+
+    const downloadParams = new URLSearchParams({
+      ver: '1',
+      client: 'pc',
+      id: lyric.id,
+      accesskey: lyric.accesskey,
+      fmt: 'lrc',
+      charset: 'utf8',
+    });
+    const downloadResp = await fetch(`http://lyrics.kugou.com/download?${downloadParams}`, { headers: KUGOU_HEADERS });
+    if (!downloadResp.ok) return null;
+    const content = (await downloadResp.json())?.content;
+    return content ? decodeBase64Utf8(content) : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Google Cloud Translation v2 ──
 
 const GOOGLE_TRANSLATE_ENDPOINT = 'https://translation.googleapis.com/language/translate/v2';
@@ -436,6 +557,32 @@ async function handleQQLyrics(url) {
   });
 }
 
+async function handleKugouLyrics(url) {
+  const title = url.searchParams.get('title');
+  const artist = url.searchParams.get('artist');
+  const durationSec = Number(url.searchParams.get('duration')) || 0;
+  if (!title) {
+    return jsonResponse({ error: 'Missing title parameter' }, 400);
+  }
+
+  const match = await searchKugou(title, artist || '', durationSec);
+  if (!match) {
+    return jsonResponse({ error: 'No matching Kugou song found' }, 404);
+  }
+
+  const syncedLyrics = await fetchKugouLyrics(match);
+  if (!syncedLyrics) {
+    return jsonResponse({ error: 'Lyrics not available for this Kugou song' }, 404);
+  }
+
+  return jsonResponse({
+    syncedLyrics,
+    matchedTitle: match.filenameTitle,
+    matchedArtist: match.artist,
+    matchedDurationSec: match.durationSec,
+  });
+}
+
 async function handleTranslate(request, env) {
   const apiKey = env.GOOGLE_TRANSLATE_API_KEY;
   if (!apiKey) {
@@ -541,6 +688,9 @@ export default {
       }
       if (url.pathname === '/qq-lyrics') {
         return await handleQQLyrics(url);
+      }
+      if (url.pathname === '/kugou-lyrics') {
+        return await handleKugouLyrics(url);
       }
       if (url.pathname === '/kkbox-lyrics') {
         return await handleKKBOXLyrics(url);

@@ -6,7 +6,7 @@ A static website that connects to your Spotify account and displays real-time sy
 
 - **Real-time karaoke display** — lyrics highlight line-by-line (or word-by-word with the Cloudflare Worker) synced to your playback
 - **Spotify integration** — uses the official Spotify Web API with PKCE auth (no backend needed for auth)
-- **Layered lyrics** — Spotify's internal Musixmatch-powered lyrics via the Cloudflare Worker as primary, then LRCLIB (free, open), QQ Music (line-synced, strong Chinese coverage) and KKBOX (plain text) as fallbacks
+- **Layered lyrics** — Spotify's internal Musixmatch-powered lyrics via the Cloudflare Worker as primary, then LRCLIB (free, open), QQ Music and Kugou Music (both line-synced, strong Chinese coverage) and KKBOX (plain text) as fallbacks
 - **Graceful degradation** — word-synced → line-synced → plain scrollable lyrics → "no lyrics" message
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
 - **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Pick the target language from the dropdown; the app falls back across an LLM, a keyless endpoint and Google Cloud on its own
@@ -197,11 +197,11 @@ next day. The Gemini free tier is more generous but still finite.
 
 1. **Auth**: Spotify PKCE flow (browser-only, no client secret needed)
 2. **Polling**: Every 3 seconds, fetches the currently playing track from Spotify's Web API
-3. **Lyrics**: On track change, tries Spotify via the Worker first. On a miss it queries LRCLIB, QQ Music and KKBOX in parallel and takes the best result:
+3. **Lyrics**: On track change, tries Spotify via the Worker first. On a miss it queries LRCLIB, QQ Music, Kugou Music and KKBOX in parallel and takes the best result:
 
    ```
    Spotify word-synced > Spotify line-synced > LRCLIB synced >
-   QQ Music synced > LRCLIB plain > KKBOX
+   QQ Music synced > Kugou Music synced > LRCLIB plain > KKBOX
    ```
 
    Synced always beats plain, which is why KKBOX — the only plain-text source — sits last.
@@ -214,6 +214,8 @@ next day. The Gemini free tier is more generous but still finite.
 - **LRCLIB coverage**: Not all songs have synced lyrics in LRCLIB's crowdsourced database.
 - **KKBOX is currently blocked**: KKBOX song pages sit behind an AWS WAF JavaScript challenge (`x-amzn-waf-action: challenge`) that rejects datacenter IPs, so the Worker cannot scrape them — its search API still answers, but every page fetch returns the challenge instead of the lyrics. QQ Music covers most of what KKBOX used to, and with line-level timing rather than plain text. The KKBOX path is left in place as a fallback in case the rule is relaxed.
 - **QQ Music access**: Must be fetched through the Worker — the endpoints send no CORS headers, and the lyric API rejects requests without a `y.qq.com` referer, which a browser cannot set cross-origin.
+- **Kugou Music access**: Also Worker-only, because Kugou's search and lyric endpoints answer only over plain HTTP, which an HTTPS page may not call. Kugou lists remixes and live cuts under the same title, so the Worker matches on duration too: a recording more than 5 seconds off the Spotify length is rejected rather than shown with the wrong timing.
+- **kugeci.com is not used directly**: it serves the same kind of LRC, but every page sits behind a Cloudflare managed challenge ("Just a moment…") that needs JavaScript and a cookie, so neither the Worker nor the page can fetch it. Kugou's API is the direct route to equivalent data.
 - **Polling latency**: Lyrics sync is approximate (±3 seconds) due to polling interval.
 
 ## File Structure
@@ -231,7 +233,9 @@ spotify-karaoke/
 │   └── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
 ├── tests/              # Node and Python tests — `node tests/test_matching.mjs`,
 │                       # `node tests/test_source_priority.mjs`,
-│                       # `node tests/test_translate.mjs`
+│                       # `node tests/test_kugou.mjs`,
+│                       # `node tests/test_translate.mjs`;
+│                       # live: `node tests/test_kugou_live.mjs`
 ├── worker/
 │   ├── worker.js       # Cloudflare Worker (lyrics proxy)
 │   └── wrangler.toml   # Worker config
