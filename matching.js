@@ -253,6 +253,11 @@ function titleScore(candidateTitle, wantedTitle) {
   return best;
 }
 
+/** Whether a candidate title plausibly names the wanted song (any titleScore). */
+export function titleMatches(candidateTitle, wantedTitle) {
+  return titleScore(candidateTitle || '', wantedTitle || '') > 0;
+}
+
 // 2 exact, 1 substring, 0 otherwise.  Substring credit covers KKBOX's
 // bilingual artist names — "周杰倫 (Jay Chou)" for Spotify's "Jay Chou" —
 // and collaboration lists like "Ecrolyn, DJHZ".  An unknown artist scores 0
@@ -294,4 +299,76 @@ export function selectBestMatch(candidates, title, artist) {
   }
 
   return bestIndex;
+}
+
+// ── Covers and backing tracks ──
+
+// Markers services put in a title for a cover or a track without vocals.
+// 原唱 ("original singer: …") only ever appears on covers.
+const COVER_MARKER_RE = /原唱|翻唱|翻自|伴奏|纯音乐|\bcover\b|\binstrumental\b|\bkaraoke\b|\boff vocal\b/i;
+
+/**
+ * Whether a search result is marked as a cover, instrumental or karaoke track
+ * when the title wanted is not.  NetEase's only Dynamite of the right length
+ * is "Dynamite（原唱：BTS）", sung by someone else; the artist can't expose it,
+ * because 柏奈 and Spotify's "BTS" are in different scripts.  A wanted title
+ * carrying the same marker ("… (Cover)") is a request for that version.
+ */
+export function isMarkedCover(candidateTitle, wantedTitle) {
+  return COVER_MARKER_RE.test(foldToSimplified(candidateTitle || ''))
+    && !COVER_MARKER_RE.test(foldToSimplified(wantedTitle || ''));
+}
+
+// ── Artist plausibility ──
+
+const ARTIST_SCRIPTS = [
+  /\p{Script=Latin}/u,
+  /\p{Script=Han}/u,
+  /[\p{Script=Hiragana}\p{Script=Katakana}]/u,
+  /\p{Script=Hangul}/u,
+];
+
+// Spotify joins collaborators with ", ", Kugou with "、".
+function artistParts(str) {
+  return (str || '').split(/[,，、&/]/).map(normalizeForMatch).filter(Boolean);
+}
+
+/**
+ * Compare a search result's artist with the one wanted: 'match', 'mismatch',
+ * or 'unknown' when the names can't be compared.
+ *
+ * Spotify often gives the romanized name ("Jay Chou") where Chinese services
+ * give the native one (周杰伦), so names written in different scripts prove
+ * nothing either way.  Names that share a script are compared per artist, so
+ * a collaboration listed in another order still matches.
+ */
+function compareArtists(candidateArtist, wantedArtist) {
+  const wanted = artistParts(wantedArtist);
+  const candidate = artistParts(candidateArtist);
+  if (wanted.length === 0 || candidate.length === 0) return 'unknown';
+
+  const sharesScript = ARTIST_SCRIPTS.some((re) => re.test(wantedArtist) && re.test(candidateArtist));
+  if (!sharesScript) return 'unknown';
+
+  // Substring credit covers "G.E.M." in "G.E.M.邓紫棋" and "BTS" in
+  // "BTS (防弹少年团)"; it needs two characters so a one-letter name can't
+  // match half the catalogue.
+  const overlaps = wanted.some((w) => candidate.some((c) =>
+    c === w || (Math.min(c.length, w.length) >= 2 && (c.includes(w) || w.includes(c)))));
+  return overlaps ? 'match' : 'mismatch';
+}
+
+/**
+ * Whether a search result's artist could be the artist wanted.  Unlike
+ * artistScore, which only ranks, this rejects — it exists for services that
+ * answer a search for a song they lack with covers of it under the same title
+ * and length (NetEase's top hit for 小幸運 is "田馥甄的小迷妹").
+ */
+export function artistMayMatch(candidateArtist, wantedArtist) {
+  return compareArtists(candidateArtist, wantedArtist) !== 'mismatch';
+}
+
+/** Whether a search result is recognisably credited to the artist wanted. */
+export function artistMatches(candidateArtist, wantedArtist) {
+  return compareArtists(candidateArtist, wantedArtist) === 'match';
 }

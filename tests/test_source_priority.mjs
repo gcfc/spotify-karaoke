@@ -2,8 +2,8 @@
  * Unit tests for the lyrics source priority chain, with every network call
  * stubbed so the ordering is checked deterministically and offline:
  *
- *   LRCLIB synced > QQ synced > Kugou synced > LRCLIB plain >
- *   KKBOX Worker > KKBOX Direct
+ *   LRCLIB synced > QQ synced > Kugou synced > NetEase synced >
+ *   LRCLIB plain > KKBOX Worker > KKBOX Direct
  *
  * Synced always beats plain, and KKBOX stays a last resort because it only
  * ever yields plain text.
@@ -56,6 +56,7 @@ const LRCLIB_SYNCED = () => json({ syncedLyrics: LRC, plainLyrics: PLAIN });
 const LRCLIB_PLAIN = () => json({ plainLyrics: PLAIN });
 const QQ_SYNCED = () => json({ syncedLyrics: LRC, matchedTitle: 'Song', matchedArtist: 'Artist' });
 const KUGOU_SYNCED = () => json({ syncedLyrics: LRC, matchedTitle: 'Song', matchedArtist: 'Artist' });
+const NETEASE_SYNCED = () => json({ syncedLyrics: LRC, matchedTitle: 'Song', matchedArtist: 'Artist' });
 const KKBOX_PLAIN = () => json({ plainLyrics: PLAIN, territory: 'hk', exact: true });
 
 // Every case needs its own track id — fetchLyrics caches by it.
@@ -111,7 +112,7 @@ result = await run({ '/qq-lyrics': () => json({ syncedLyrics: 'no timestamps her
 assert(result.source === 'KKBOX',
   'QQ lyrics that parse to zero timed lines fall through');
 
-console.log('\n── Kugou, the last synced fallback ──');
+console.log('\n── Kugou ──');
 
 result = await run({ '/qq-lyrics': QQ_SYNCED, '/kugou-lyrics': KUGOU_SYNCED });
 assert(result.source === 'QQ Music',
@@ -141,17 +142,43 @@ result = await run({ '/kugou-lyrics': () => json({ syncedLyrics: 'no timestamps 
 assert(result.source === 'KKBOX',
   'Kugou lyrics that parse to zero timed lines fall through');
 
+console.log('\n── NetEase, the last synced fallback ──');
+
+result = await run({ '/kugou-lyrics': KUGOU_SYNCED, '/netease-lyrics': NETEASE_SYNCED });
+assert(result.source === 'Kugou Music',
+  'Kugou synced outranks NetEase synced');
+
+result = await run({ '/qq-lyrics': QQ_SYNCED, '/netease-lyrics': NETEASE_SYNCED });
+assert(result.source === 'QQ Music',
+  'QQ synced outranks NetEase synced');
+
+result = await run({ '/netease-lyrics': NETEASE_SYNCED, '/kkbox-lyrics': KKBOX_PLAIN });
+assert(result.source === 'NetEase Cloud Music' && result.syncType === 'LINE_SYNCED'
+  && result.lyrics.length === 3,
+  'NetEase synced is used when LRCLIB, QQ and Kugou have nothing');
+
+result = await run({ '/api/get': LRCLIB_PLAIN, '/netease-lyrics': NETEASE_SYNCED });
+assert(result.source === 'NetEase Cloud Music',
+  'NetEase synced outranks LRCLIB plain — synced beats plain');
+
+result = await run({ '/api/get': LRCLIB_PLAIN, '/netease-lyrics': () => json({ error: 'No matching NetEase song found' }, 404) });
+assert(result.source === 'LRCLIB' && result.syncType === 'PLAIN',
+  'a NetEase 404 falls through to plain lyrics');
+
 // The Worker needs the track length to tell a song from its remixes.
-let kugouUrl = null;
-stubFetch({ '/kugou-lyrics': () => json({ error: 'not found' }, 404) });
+const durationSent = {};
+stubFetch({});
 const stubbed = globalThis.fetch;
 globalThis.fetch = async (url) => {
-  if (String(url).includes('/kugou-lyrics')) kugouUrl = new URL(String(url));
+  const target = new URL(String(url));
+  if (/\/(kugou|netease)-lyrics$/.test(target.pathname)) {
+    durationSent[target.pathname] = target.searchParams.get('duration');
+  }
   return stubbed(url);
 };
 await fetchLyrics(WORKER, `track-${trackCounter++}`, 'Song', 'Artist', 194040, null);
-assert(kugouUrl?.searchParams.get('duration') === '194',
-  'the track length is sent to the Worker in whole seconds');
+assert(durationSent['/kugou-lyrics'] === '194' && durationSent['/netease-lyrics'] === '194',
+  'the track length is sent to both routes in whole seconds');
 
 globalThis.fetch = realFetch;
 

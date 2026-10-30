@@ -1,4 +1,12 @@
-import { normalizeForMatch, selectBestMatch, titleQueryVariants } from '../matching.js';
+import {
+  artistMatches,
+  artistMayMatch,
+  isMarkedCover,
+  normalizeForMatch,
+  selectBestMatch,
+  titleMatches,
+  titleQueryVariants,
+} from '../matching.js';
 import {
   buildTranslationPrompt,
   decodeHtmlEntities,
@@ -219,6 +227,56 @@ async function fetchQQLyrics(mid) {
   }
 }
 
+// ── Recording matching for sources that report track length ──
+
+// The same recording is listed a few seconds apart across platforms (up to
+// ~4s measured), while a remix or radio edit of the same title is usually
+// further off.  Lyrics timed for a different cut would drift out of sync.
+const DURATION_TOLERANCE_S = 5;
+
+function durationMatches(candidateSec, wantedSec) {
+  if (!wantedSec) return true;
+  return Math.abs(candidateSec - wantedSec) <= DURATION_TOLERANCE_S;
+}
+
+/**
+ * Pick the search result that is the recording being played, for sources
+ * that report each result's length (Kugou, NetEase).  Candidates are
+ * `{ title, artist, durationSec, titles? }`; `titles` lists every form of the
+ * title the source gives, defaulting to `[title]`.
+ *
+ * Results more than DURATION_TOLERANCE_S off are dropped, and so are covers:
+ * by an artist who is recognisably someone else, or labelled as one in the
+ * title.  Of the rest, a title that matches suffix and all goes first:
+ * otherwise a live cut that happens to fall inside the tolerance ties with the
+ * studio recording once suffixes are stripped, and can win on search order.
+ *
+ * A romanized artist can't be compared with a native name, so on its own a
+ * cover by 睿轩 passes for BTS.  But when another recording of the same song
+ * is credited to the artist under Spotify's name — NetEase lists "Dynamite
+ * (Live)" by "BTS (防弹少年团)" — the service evidently knows them by it, and
+ * a result credited to someone else is a cover.  Only recordings of the song
+ * count: NetEase's 孤勇者 page also carries an unrelated track by an artist
+ * named "Eason Chan", which says nothing about 陈奕迅's listing.
+ */
+function pickRecording(candidates, title, artist, durationSec) {
+  const wantedTitle = normalizeForMatch(title);
+  const artistKnown = candidates.some((c) =>
+    titleMatches(c.title, title) && artistMatches(c.artist, artist));
+  const plausible = candidates.filter((c) =>
+    durationMatches(c.durationSec, durationSec)
+    && (artistKnown ? artistMatches(c.artist, artist) : artistMayMatch(c.artist, artist))
+    && !(c.titles || [c.title]).some((t) => isMarkedCover(t, title)));
+  const exact = plausible.filter((c) =>
+    (c.titles || [c.title]).some((t) => normalizeForMatch(t) === wantedTitle));
+
+  for (const pool of [exact, plausible]) {
+    const index = selectBestMatch(pool, title, artist);
+    if (index >= 0) return pool[index];
+  }
+  return null;
+}
+
 // ── Kugou Music (line-synced LRC) ──
 //
 // Stands in for kugeci.com, which serves the same kind of LRC but sits behind
@@ -231,16 +289,6 @@ const KUGOU_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
   Accept: 'application/json',
 };
-
-// The same recording is listed a few seconds apart across platforms (up to
-// ~4s measured), while a remix or radio edit of the same title is usually
-// further off.  Lyrics timed for a different cut would drift out of sync.
-const KUGOU_DURATION_TOLERANCE_S = 5;
-
-function kugouDurationMatches(candidateSec, wantedSec) {
-  if (!wantedSec) return true;
-  return Math.abs(candidateSec - wantedSec) <= KUGOU_DURATION_TOLERANCE_S;
-}
 
 // `songname` sometimes drops the version suffix — the original 不能成情人 and
 // its 港风电音 remix are both listed as plain "不能成情人" — whereas
@@ -261,8 +309,6 @@ function kugouFilenameTitle(song) {
  * tied to the right cut.
  */
 async function searchKugou(title, artist, durationSec) {
-  const wantedTitle = normalizeForMatch(title);
-
   for (const name of titleQueryVariants(title)) {
     const q = encodeURIComponent(`${name} ${artist}`.trim());
     const url = `http://mobilecdn.kugou.com/api/v3/search/song?format=json&keyword=${q}&page=1&pagesize=20`;
@@ -274,24 +320,22 @@ async function searchKugou(title, artist, durationSec) {
       if (!Array.isArray(results) || results.length === 0) continue;
 
       const candidates = results
-        .map((song) => ({
-          title: song?.songname || '',
-          filenameTitle: kugouFilenameTitle(song),
-          artist: song?.singername || '',
-          hash: song?.hash || '',
-          durationSec: Number(song?.duration) || 0,
-        }))
-        .filter((c) => c.hash && kugouDurationMatches(c.durationSec, durationSec));
+        .map((song) => {
+          const songname = song?.songname || '';
+          const filenameTitle = kugouFilenameTitle(song);
+          return {
+            title: songname,
+            titles: [songname, filenameTitle],
+            filenameTitle,
+            artist: song?.singername || '',
+            hash: song?.hash || '',
+            durationSec: Number(song?.duration) || 0,
+          };
+        })
+        .filter((c) => c.hash);
 
-      // A title that matches suffix and all goes first.  Otherwise a live cut
-      // that happens to fall inside the tolerance ties with the studio
-      // recording once suffixes are stripped, and can win on search order.
-      const exact = candidates.filter((c) =>
-        normalizeForMatch(c.title) === wantedTitle || normalizeForMatch(c.filenameTitle) === wantedTitle);
-      for (const pool of [exact, candidates]) {
-        const index = selectBestMatch(pool, title, artist);
-        if (index >= 0) return pool[index];
-      }
+      const match = pickRecording(candidates, title, artist, durationSec);
+      if (match) return match;
     } catch { continue; }
   }
   return null;
@@ -320,7 +364,7 @@ async function fetchKugouLyrics(song) {
     // Kugou also files ringtone-length snippets — 30 seconds of chorus —
     // under a song's title, so the lyric's own length is checked as well.
     const lyric = candidates.find((c) =>
-      c?.id && c?.accesskey && kugouDurationMatches((Number(c.duration) || 0) / 1000, song.durationSec));
+      c?.id && c?.accesskey && durationMatches((Number(c.duration) || 0) / 1000, song.durationSec));
     if (!lyric) return null;
 
     const downloadParams = new URLSearchParams({
@@ -335,6 +379,61 @@ async function fetchKugouLyrics(song) {
     if (!downloadResp.ok) return null;
     const content = (await downloadResp.json())?.content;
     return content ? decodeBase64Utf8(content) : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── NetEase Cloud Music (line-synced LRC) ──
+//
+// A lyric database of its own — Kugou and QQ are both Tencent Music and often
+// serve identical LRC — so it covers different gaps.  Its own gap is
+// licensing: Jay Chou and Hebe Tien's originals aren't there, and a search
+// for them returns covers under the same title and length, which is what
+// pickRecording's artist check is for.  The endpoints send no CORS headers.
+
+const NETEASE_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  Accept: 'application/json',
+};
+
+const LRC_TIMESTAMP_RE = /^\[\d+:\d+\.\d+\]/m;
+
+async function searchNetEase(title, artist, durationSec) {
+  for (const name of titleQueryVariants(title)) {
+    const q = encodeURIComponent(`${name} ${artist}`.trim());
+    const url = `https://music.163.com/api/search/get?s=${q}&type=1&limit=20`;
+    try {
+      const resp = await fetch(url, { headers: NETEASE_HEADERS });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      const results = data?.result?.songs;
+      if (data?.code !== 200 || !Array.isArray(results) || results.length === 0) continue;
+
+      const candidates = results
+        .map((song) => ({
+          title: song?.name || '',
+          artist: (song?.artists || []).map((a) => a?.name || '').join(', '),
+          id: song?.id,
+          durationSec: (Number(song?.duration) || 0) / 1000,
+        }))
+        .filter((c) => c.id);
+
+      const match = pickRecording(candidates, title, artist, durationSec);
+      if (match) return match;
+    } catch { continue; }
+  }
+  return null;
+}
+
+async function fetchNetEaseLyrics(id) {
+  const url = `https://music.163.com/api/song/lyric?id=${encodeURIComponent(id)}&lv=1`;
+  try {
+    const resp = await fetch(url, { headers: NETEASE_HEADERS });
+    if (!resp.ok) return null;
+    const lyric = (await resp.json())?.lrc?.lyric;
+    // Some songs carry untimed text in the same field.
+    return lyric && LRC_TIMESTAMP_RE.test(lyric) ? lyric : null;
   } catch {
     return null;
   }
@@ -583,6 +682,32 @@ async function handleKugouLyrics(url) {
   });
 }
 
+async function handleNetEaseLyrics(url) {
+  const title = url.searchParams.get('title');
+  const artist = url.searchParams.get('artist');
+  const durationSec = Number(url.searchParams.get('duration')) || 0;
+  if (!title) {
+    return jsonResponse({ error: 'Missing title parameter' }, 400);
+  }
+
+  const match = await searchNetEase(title, artist || '', durationSec);
+  if (!match) {
+    return jsonResponse({ error: 'No matching NetEase song found' }, 404);
+  }
+
+  const syncedLyrics = await fetchNetEaseLyrics(match.id);
+  if (!syncedLyrics) {
+    return jsonResponse({ error: 'Synced lyrics not available for this NetEase song' }, 404);
+  }
+
+  return jsonResponse({
+    syncedLyrics,
+    matchedTitle: match.title,
+    matchedArtist: match.artist,
+    matchedDurationSec: match.durationSec,
+  });
+}
+
 async function handleTranslate(request, env) {
   const apiKey = env.GOOGLE_TRANSLATE_API_KEY;
   if (!apiKey) {
@@ -691,6 +816,9 @@ export default {
       }
       if (url.pathname === '/kugou-lyrics') {
         return await handleKugouLyrics(url);
+      }
+      if (url.pathname === '/netease-lyrics') {
+        return await handleNetEaseLyrics(url);
       }
       if (url.pathname === '/kkbox-lyrics') {
         return await handleKKBOXLyrics(url);

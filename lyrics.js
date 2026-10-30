@@ -249,30 +249,45 @@ export async function fetchLyricsFromQQ(workerUrl, trackName, artistName) {
 }
 
 /**
- * Kugou Music via the Cloudflare Worker — the last line-synced fallback.
- * The Worker matches the recording by duration as well as title, since Kugou
- * lists remixes and live cuts under the same name, so the track length is
- * passed along.  Worker-only because Kugou's endpoints are plain HTTP, which
- * an HTTPS page is not allowed to call.
+ * Line-synced LRC from one of the Worker's duration-matched routes.  These
+ * services list remixes and live cuts under the same title, so the Worker
+ * matches the recording by length too, and the track length is passed along.
  */
-export async function fetchLyricsFromKugou(workerUrl, trackName, artistName, durationSec) {
+async function fetchSyncedViaWorker(workerUrl, route, label, trackName, artistName, durationSec) {
   if (!workerUrl) return null;
 
   const params = new URLSearchParams({ title: trackName, artist: artistName });
   if (durationSec) params.set('duration', String(Math.round(durationSec)));
-  const url = `${workerUrl}/kugou-lyrics?${params}`;
-  console.debug('[lyrics] Kugou:', url);
+  const url = `${workerUrl}/${route}?${params}`;
+  console.debug(`[lyrics] ${label}:`, url);
   try {
     const resp = await fetch(url);
-    if (!resp.ok) { console.debug('[lyrics] Kugou: HTTP', resp.status); return null; }
+    if (!resp.ok) { console.debug(`[lyrics] ${label}: HTTP`, resp.status); return null; }
     const data = await resp.json();
-    if (!data.syncedLyrics) { console.debug('[lyrics] Kugou: response OK but no syncedLyrics'); return null; }
-    console.debug('[lyrics] Kugou: matched', data.matchedTitle, '—', data.matchedArtist);
+    if (!data.syncedLyrics) { console.debug(`[lyrics] ${label}: response OK but no syncedLyrics`); return null; }
+    console.debug(`[lyrics] ${label}: matched`, data.matchedTitle, '—', data.matchedArtist);
     return { syncedLyrics: data.syncedLyrics };
   } catch (err) {
-    console.debug('[lyrics] Kugou: error', err.message);
+    console.debug(`[lyrics] ${label}: error`, err.message);
     return null;
   }
+}
+
+/**
+ * Kugou Music via the Cloudflare Worker.  Worker-only because Kugou's
+ * endpoints are plain HTTP, which an HTTPS page is not allowed to call.
+ */
+export function fetchLyricsFromKugou(workerUrl, trackName, artistName, durationSec) {
+  return fetchSyncedViaWorker(workerUrl, 'kugou-lyrics', 'Kugou', trackName, artistName, durationSec);
+}
+
+/**
+ * NetEase Cloud Music via the Cloudflare Worker — an independent lyric
+ * database, so it fills different gaps from QQ and Kugou.  Worker-only
+ * because its endpoints send no CORS headers.
+ */
+export function fetchLyricsFromNetEase(workerUrl, trackName, artistName, durationSec) {
+  return fetchSyncedViaWorker(workerUrl, 'netease-lyrics', 'NetEase', trackName, artistName, durationSec);
 }
 
 /**
@@ -401,10 +416,10 @@ const NO_RESULT = Object.freeze({ lyrics: null, syncType: null, source: null });
  *
  *  1. Returns immediately on cache hit.
  *  2. Tries Spotify (highest-quality, word/line synced) first.
- *  3. On miss, fires LRCLIB + QQ Music + Kugou + KKBOX Worker + KKBOX Direct
- *     in parallel, then picks the best result by priority:
- *       LRCLIB synced > QQ synced > Kugou synced > LRCLIB plain >
- *       KKBOX Worker > KKBOX Direct
+ *  3. On miss, fires LRCLIB + QQ Music + Kugou + NetEase + KKBOX Worker +
+ *     KKBOX Direct in parallel, then picks the best result by priority:
+ *       LRCLIB synced > QQ synced > Kugou synced > NetEase synced >
+ *       LRCLIB plain > KKBOX Worker > KKBOX Direct
  *     Synced beats plain throughout; KKBOX stays last because it only ever
  *     yields plain text.
  *  4. Caches successful results for instant re-visits.
@@ -435,11 +450,12 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
   }
 
   // 2. Fire remaining sources in parallel
-  console.debug('[lyrics] Spotify miss — querying LRCLIB + QQ + Kugou + KKBOX in parallel');
-  const [lrcData, qqData, kugouData, kkboxWorker, kkboxDirect] = await Promise.all([
+  console.debug('[lyrics] Spotify miss — querying LRCLIB + QQ + Kugou + NetEase + KKBOX in parallel');
+  const [lrcData, qqData, kugouData, neteaseData, kkboxWorker, kkboxDirect] = await Promise.all([
     fetchLyricsFromLRCLIB(trackName, artistName, trackDurationMs / 1000),
     fetchLyricsFromQQ(workerUrl, trackName, artistName),
     fetchLyricsFromKugou(workerUrl, trackName, artistName, trackDurationMs / 1000),
+    fetchLyricsFromNetEase(workerUrl, trackName, artistName, trackDurationMs / 1000),
     fetchLyricsFromKKBOX(workerUrl, trackName, artistName),
     fetchLyricsFromKKBOXDirect(trackName, artistName),
   ]);
@@ -463,6 +479,12 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
     const lines = parseLRC(kugouData.syncedLyrics);
     if (lines.length > 0) {
       result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'Kugou Music' };
+    }
+  }
+  if (!result && neteaseData?.syncedLyrics) {
+    const lines = parseLRC(neteaseData.syncedLyrics);
+    if (lines.length > 0) {
+      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'NetEase Cloud Music' };
     }
   }
   if (!result && lrcData?.plainLyrics) {

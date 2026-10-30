@@ -10,10 +10,14 @@
  */
 
 import {
+  artistMatches,
+  artistMayMatch,
   cleanTrackName,
   foldToSimplified,
+  isMarkedCover,
   normalizeForMatch,
   selectBestMatch,
+  titleMatches,
   titleQueryVariants,
 } from '../matching.js';
 
@@ -141,6 +145,69 @@ assert(selectBestMatch([], '在松手跟不松手之间', 'Ecrolyn') === -1,
 
 assert(selectBestMatch([{ title: '后', artist: '' }], '来', '') === -1,
   'single-character titles need an exact match, not a substring');
+
+// ── 5. Rejecting covers by artist ──
+
+console.log('\n── artistMayMatch ──');
+
+assert(artistMayMatch('周杰伦', 'Jay Chou') && artistMayMatch('田馥甄', 'Hebe Tien'),
+  'romanized vs native names are in different scripts, so they pass');
+
+assert(artistMayMatch('米津玄師', 'Kenshi Yonezu') && artistMayMatch('告五人', 'Accusefive'),
+  '…for Japanese and band names too');
+
+assert(!artistMayMatch('鱼蛋', '丁家怡'),
+  'a Chinese cover by another singer is rejected');
+
+assert(!artistMayMatch('Piano Echoes', 'Jay Chou') && !artistMayMatch('Jesse T', 'Hebe Tien'),
+  'a Latin-named cover artist is rejected against a Latin-named original');
+
+assert(artistMayMatch('陈奕迅', '陳奕迅'),
+  'Traditional vs Simplified forms of one name match');
+
+assert(artistMayMatch('Bruno Mars、ROSÉ', 'ROSÉ, Bruno Mars'),
+  'a collaboration listed in another order and separator matches');
+
+assert(artistMayMatch('G.E.M.邓紫棋', 'G.E.M.') && artistMayMatch('BTS (防弹少年团)', 'BTS'),
+  'a Latin name inside a bilingual listing matches');
+
+assert(artistMayMatch('BEYOND', 'Beyond'),
+  'case is ignored');
+
+assert(artistMayMatch('Anyone', '') && artistMayMatch('', 'Anyone'),
+  'an unknown artist on either side passes');
+
+assert(!artistMayMatch('Bad Omens', 'A'),
+  'a one-letter name needs an exact match, not a substring');
+
+assert(artistMatches('BTS (防弹少年团)', 'BTS') && artistMatches('陈奕迅', '陳奕迅'),
+  'artistMatches confirms names that can be compared');
+
+assert(!artistMatches('周杰伦', 'Jay Chou') && !artistMatches('鱼蛋', '丁家怡'),
+  'artistMatches is false both when names can\'t be compared and when they differ');
+
+assert(titleMatches('Dynamite (Live)', 'Dynamite') && !titleMatches('回应的', '孤勇者'),
+  'titleMatches accepts another cut of the song and rejects a different song');
+
+console.log('\n── isMarkedCover ──');
+
+assert(isMarkedCover('Dynamite（原唱：BTS）', 'Dynamite'),
+  '原唱 ("original singer") marks a cover — NetEase\'s Dynamite by 柏奈');
+
+assert(isMarkedCover('小幸運 (翻唱版)', '小幸運') && isMarkedCover('后来 (伴奏)', '後來'),
+  'cover and backing-track markers are caught, in either script');
+
+assert(isMarkedCover('Lemon (Cover)', 'Lemon') && isMarkedCover('Lemon - Instrumental', 'Lemon'),
+  'English cover and instrumental markers are caught');
+
+assert(!isMarkedCover('Lemon (Cover)', 'Lemon (Cover)'),
+  'a cover is fine when Spotify is playing a cover');
+
+assert(!isMarkedCover('不能成情人 (港风电音)', '不能成情人') && !isMarkedCover('光年之外【《太空旅客》电影中国区主题曲】', '光年之外'),
+  'remix and promo suffixes are not cover markers');
+
+assert(!isMarkedCover('Discovery', 'Discovery') && !isMarkedCover('Recover', 'Recover'),
+  'English markers are whole words, so titles containing "cover" pass');
 
 // ── Summary ──
 
