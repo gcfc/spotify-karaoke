@@ -85,87 +85,98 @@ async function fetchLyrics(trackId, token) {
   return resp.json();
 }
 
-// ── KKBOX scraping helpers ──
-
-const KKBOX_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-  Accept: 'text/html',
-};
-
-const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
-
-/**
- * Pick the song in a KKBOX search response that really is the track we asked
- * for.  KKBOX answers every query with a full page of ~20 songs — even
- * nonsense ones — so the top hit is not evidence of a match.  Matching folds
- * Traditional to Simplified first, so Spotify's "在松手跟不松手之间" finds
- * KKBOX's "在鬆手跟不鬆手之間".
- */
-function pickKKBOXResult(data, title, artist) {
-  const results = data?.data?.result;
-  if (!Array.isArray(results) || results.length === 0) return null;
-
-  const candidates = results.map((r) => ({
-    title: r?.name || '',
-    artist: r?.album?.artist?.name || '',
-    url: r?.url || '',
-  }));
-
-  const index = selectBestMatch(candidates, title, artist);
-  if (index < 0 || !candidates[index].url) return null;
-  return candidates[index];
-}
-
-async function searchKKBOX(title, artist) {
-  const fullTitle = normalizeForMatch(title);
-  const queries = titleQueryVariants(title).map((name) => ({
-    q: `${name} ${artist}`.trim(),
-    exact: normalizeForMatch(name) === fullTitle,
-  }));
-
-  for (const { q, exact } of queries) {
-    for (const terr of KKBOX_TERRITORIES) {
-      const url = `https://www.kkbox.com/api/search/song?q=${encodeURIComponent(q)}&terr=${terr}&lang=tc`;
-      try {
-        const resp = await fetch(url, {
-          headers: { ...KKBOX_HEADERS, Accept: 'application/json' },
-        });
-        if (!resp.ok) continue;
-        const data = await resp.json();
-        const hit = pickKKBOXResult(data, title, artist);
-        if (hit) {
-          return {
-            url: hit.url,
-            territory: terr,
-            exact,
-            matchedTitle: hit.title,
-            matchedArtist: hit.artist,
-          };
-        }
-      } catch { continue; }
-    }
-  }
-  return null;
-}
-
-async function scrapeKKBOXLyrics(songUrl) {
-  const resp = await fetch(songUrl, { headers: KKBOX_HEADERS });
-  if (!resp.ok) return null;
-  const html = await resp.text();
-
-  const jsonLdRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
-  let match;
-  while ((match = jsonLdRegex.exec(html)) !== null) {
-    try {
-      const data = JSON.parse(match[1]);
-      const text = data?.recordingOf?.lyrics?.text;
-      if (text) return text;
-    } catch {
-      // not the right JSON-LD block, keep looking
-    }
-  }
-  return null;
-}
+// ── KKBOX scraping helpers (deprecated) ──
+//
+// DEPRECATED (2026-10-31) — commented out to save the requests it made on
+// every lookup.  KKBOX's lyrics live in each song page's JSON-LD, and those
+// pages now sit behind an AWS WAF challenge: a request without an
+// aws-waf-token cookie gets HTTP 202 + `x-amzn-waf-action: challenge` and a
+// challenge page instead, which neither the Worker nor a cross-origin fetch()
+// can get past.  The search API still answers, so every lookup spent five
+// or more searches (five territories per title variant), from the Worker and
+// from the browser each, finding a song whose page then failed.  Kept rather
+// than deleted in case KKBOX drops the challenge; tests/test_kkbox.py checks
+// whether it has.
+//
+// const KKBOX_HEADERS = {
+//   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+//   Accept: 'text/html',
+// };
+//
+// const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
+//
+// /**
+//  * Pick the song in a KKBOX search response that really is the track we asked
+//  * for.  KKBOX answers every query with a full page of ~20 songs — even
+//  * nonsense ones — so the top hit is not evidence of a match.  Matching folds
+//  * Traditional to Simplified first, so Spotify's "在松手跟不松手之间" finds
+//  * KKBOX's "在鬆手跟不鬆手之間".
+//  */
+// function pickKKBOXResult(data, title, artist) {
+//   const results = data?.data?.result;
+//   if (!Array.isArray(results) || results.length === 0) return null;
+//
+//   const candidates = results.map((r) => ({
+//     title: r?.name || '',
+//     artist: r?.album?.artist?.name || '',
+//     url: r?.url || '',
+//   }));
+//
+//   const index = selectBestMatch(candidates, title, artist);
+//   if (index < 0 || !candidates[index].url) return null;
+//   return candidates[index];
+// }
+//
+// async function searchKKBOX(title, artist) {
+//   const fullTitle = normalizeForMatch(title);
+//   const queries = titleQueryVariants(title).map((name) => ({
+//     q: `${name} ${artist}`.trim(),
+//     exact: normalizeForMatch(name) === fullTitle,
+//   }));
+//
+//   for (const { q, exact } of queries) {
+//     for (const terr of KKBOX_TERRITORIES) {
+//       const url = `https://www.kkbox.com/api/search/song?q=${encodeURIComponent(q)}&terr=${terr}&lang=tc`;
+//       try {
+//         const resp = await fetch(url, {
+//           headers: { ...KKBOX_HEADERS, Accept: 'application/json' },
+//         });
+//         if (!resp.ok) continue;
+//         const data = await resp.json();
+//         const hit = pickKKBOXResult(data, title, artist);
+//         if (hit) {
+//           return {
+//             url: hit.url,
+//             territory: terr,
+//             exact,
+//             matchedTitle: hit.title,
+//             matchedArtist: hit.artist,
+//           };
+//         }
+//       } catch { continue; }
+//     }
+//   }
+//   return null;
+// }
+//
+// async function scrapeKKBOXLyrics(songUrl) {
+//   const resp = await fetch(songUrl, { headers: KKBOX_HEADERS });
+//   if (!resp.ok) return null;
+//   const html = await resp.text();
+//
+//   const jsonLdRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
+//   let match;
+//   while ((match = jsonLdRegex.exec(html)) !== null) {
+//     try {
+//       const data = JSON.parse(match[1]);
+//       const text = data?.recordingOf?.lyrics?.text;
+//       if (text) return text;
+//     } catch {
+//       // not the right JSON-LD block, keep looking
+//     }
+//   }
+//   return null;
+// }
 
 // ── QQ Music (line-synced LRC) ──
 
@@ -612,31 +623,33 @@ async function handleDebugToken(env) {
   });
 }
 
-async function handleKKBOXLyrics(url) {
-  const title = url.searchParams.get('title');
-  const artist = url.searchParams.get('artist');
-  if (!title) {
-    return jsonResponse({ error: 'Missing title parameter' }, 400);
-  }
-
-  const match = await searchKKBOX(title, artist || '');
-  if (!match) {
-    return jsonResponse({ error: 'No matching KKBOX song found' }, 404);
-  }
-
-  const plainLyrics = await scrapeKKBOXLyrics(match.url);
-  if (!plainLyrics) {
-    return jsonResponse({ error: 'Lyrics not found on KKBOX page', songUrl: match.url }, 404);
-  }
-
-  return jsonResponse({
-    plainLyrics,
-    territory: match.territory,
-    exact: match.exact,
-    matchedTitle: match.matchedTitle,
-    matchedArtist: match.matchedArtist,
-  });
-}
+// DEPRECATED (2026-10-31) — see the KKBOX note above.  /kkbox-lyrics now
+// falls through to the 404 for unknown routes.
+// async function handleKKBOXLyrics(url) {
+//   const title = url.searchParams.get('title');
+//   const artist = url.searchParams.get('artist');
+//   if (!title) {
+//     return jsonResponse({ error: 'Missing title parameter' }, 400);
+//   }
+//
+//   const match = await searchKKBOX(title, artist || '');
+//   if (!match) {
+//     return jsonResponse({ error: 'No matching KKBOX song found' }, 404);
+//   }
+//
+//   const plainLyrics = await scrapeKKBOXLyrics(match.url);
+//   if (!plainLyrics) {
+//     return jsonResponse({ error: 'Lyrics not found on KKBOX page', songUrl: match.url }, 404);
+//   }
+//
+//   return jsonResponse({
+//     plainLyrics,
+//     territory: match.territory,
+//     exact: match.exact,
+//     matchedTitle: match.matchedTitle,
+//     matchedArtist: match.matchedArtist,
+//   });
+// }
 
 async function handleQQLyrics(url) {
   const title = url.searchParams.get('title');
@@ -828,9 +841,10 @@ export default {
       if (url.pathname === '/netease-lyrics') {
         return await handleNetEaseLyrics(url);
       }
-      if (url.pathname === '/kkbox-lyrics') {
-        return await handleKKBOXLyrics(url);
-      }
+      // Deprecated — see the KKBOX note above.
+      // if (url.pathname === '/kkbox-lyrics') {
+      //   return await handleKKBOXLyrics(url);
+      // }
       if (url.pathname === '/debug-token') {
         return await handleDebugToken(env);
       }

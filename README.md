@@ -6,7 +6,7 @@ A static website that connects to your Spotify account and displays real-time sy
 
 - **Real-time karaoke display** — lyrics highlight line-by-line (or word-by-word with the Cloudflare Worker) synced to your playback
 - **Spotify integration** — uses the official Spotify Web API with PKCE auth (no backend needed for auth)
-- **Layered lyrics** — Spotify's internal Musixmatch-powered lyrics via the Cloudflare Worker as primary, then LRCLIB (free, open), QQ Music, Kugou Music and NetEase Cloud Music (all line-synced, strong Chinese coverage) and KKBOX (plain text) as fallbacks
+- **Layered lyrics** — Spotify's internal Musixmatch-powered lyrics via the Cloudflare Worker as primary, then LRCLIB (free, open), Kugou Music, QQ Music and NetEase Cloud Music (all line-synced, strong Chinese coverage) as fallbacks. KKBOX (plain text) is deprecated — see Limitations
 - **Graceful degradation** — word-synced → line-synced → plain scrollable lyrics → "no lyrics" message
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
 - **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Pick the target language from the dropdown; the app falls back across an LLM, a keyless endpoint and Google Cloud on its own
@@ -265,20 +265,20 @@ moving between reads.
    for the currently playing track
 3. **Lyrics**: On track change, tries Spotify via the Worker first — skipped
    unless the track id is a real Spotify id, since that route resolves against
-   Spotify's own catalogue. On a miss it queries LRCLIB, Kugou Music, QQ Music,
-   NetEase Cloud Music and KKBOX in parallel and takes the best result:
+   Spotify's own catalogue. On a miss it queries LRCLIB, Kugou Music, QQ Music
+   and NetEase Cloud Music in parallel and takes the best result:
 
    ```
    Spotify word-synced > Spotify line-synced > LRCLIB synced >
    Kugou Music synced > QQ Music synced > NetEase synced >
-   LRCLIB plain > KKBOX
+   LRCLIB plain
    ```
 
    It returns as soon as the winner is known — the moment a source has lyrics
    and every source ranked above it has answered — rather than waiting for the
    slowest. On a 27-song benchmark that cut typical loading from 3.4s to about
    0.7s. Synced always beats plain, so plain lyrics are used only once every
-   synced source has missed; KKBOX, the only plain-only source, sits last.
+   synced source has missed.
    Kugou outranks QQ because both are Tencent Music, Kugou found every song QQ
    did, and it answered about three times faster.
 4. **Display**: `requestAnimationFrame` loop interpolates playback position between polls and highlights the current line/word
@@ -288,7 +288,7 @@ moving between reads.
 - **Spotify Dev Mode (Feb 2026)**: Requires Spotify Premium for the app owner, max 5 authorized users. Fine for personal use.
 - **sp_dc cookie**: Unofficial, lasts ~1 year. If it expires, the Worker will return errors and the site falls back to LRCLIB automatically.
 - **LRCLIB coverage**: Not all songs have synced lyrics in LRCLIB's crowdsourced database.
-- **KKBOX is currently blocked**: the lyrics live in each song page's JSON-LD, and the song pages sit behind an AWS WAF challenge on CloudFront. A request without an `aws-waf-token` cookie — which only a browser that has run KKBOX's challenge script holds — gets HTTP 202 with `x-amzn-waf-action: challenge` and a challenge page instead. Neither the Worker nor the page's cross-origin `fetch()` can carry that token, and a full set of browser headers makes no difference. The search API is not behind the challenge, so searches still succeed and only the page fetch fails. KKBOX's official Open API has no lyrics endpoint.
+- **KKBOX is deprecated**: its code is commented out in `lyrics.js` and `worker.js` (and `/kkbox-lyrics` now 404s), because every lookup spent five or more searches from both the Worker and the browser on a source that could no longer return lyrics. `python tests/test_kkbox.py "稻香" "周杰倫"` checks whether KKBOX has dropped the block; if it prints lyrics again, the code can be restored. The cause: the lyrics live in each song page's JSON-LD, and the song pages sit behind an AWS WAF challenge on CloudFront. A request without an `aws-waf-token` cookie — which only a browser that has run KKBOX's challenge script holds — gets HTTP 202 with `x-amzn-waf-action: challenge` and a challenge page instead. Neither the Worker nor the page's cross-origin `fetch()` can carry that token, and a full set of browser headers makes no difference. The search API is not behind the challenge, so searches still succeed and only the page fetch fails. KKBOX's official Open API has no lyrics endpoint.
 - **QQ Music access**: Must be fetched through the Worker — the endpoints send no CORS headers, and the lyric API rejects requests without a `y.qq.com` referer, which a browser cannot set cross-origin. Its search endpoint also refuses datacenter traffic for stretches (HTTP 500 for every query, while the lyric endpoint keeps answering), seen on 2026-10-31 from both a test machine and the deployed Worker.
 - **Kugou Music access**: Also Worker-only, because Kugou's search and lyric endpoints answer only over plain HTTP, which an HTTPS page may not call.
 - **NetEase Cloud Music access**: Worker-only too — its endpoints send no CORS headers. NetEase lacks the licence for some catalogues (Jay Chou, BTS) and answers those searches with other singers' covers, so it sits last among the synced sources.
@@ -349,4 +349,5 @@ This matters for correctness as well as coverage: KKBOX's search endpoint
 answers *every* query with a full page of ~20 songs, even nonsense ones, so the
 top hit is not evidence of a match. Results are now scored against the
 requested title and artist, and a page with no plausible match is rejected
-rather than scraped.
+rather than scraped. KKBOX itself is now deprecated, but QQ, Kugou and NetEase
+searches go through the same matcher.
