@@ -1,4 +1,12 @@
-import { normalizeForMatch, selectBestMatch, titleQueryVariants } from '../matching.js';
+import {
+  artistMatches,
+  artistMayMatch,
+  isMarkedCover,
+  normalizeForMatch,
+  selectBestMatch,
+  titleMatches,
+  titleQueryVariants,
+} from '../matching.js';
 import {
   buildTranslationPrompt,
   decodeHtmlEntities,
@@ -77,87 +85,98 @@ async function fetchLyrics(trackId, token) {
   return resp.json();
 }
 
-// ── KKBOX scraping helpers ──
-
-const KKBOX_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-  Accept: 'text/html',
-};
-
-const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
-
-/**
- * Pick the song in a KKBOX search response that really is the track we asked
- * for.  KKBOX answers every query with a full page of ~20 songs — even
- * nonsense ones — so the top hit is not evidence of a match.  Matching folds
- * Traditional to Simplified first, so Spotify's "在松手跟不松手之间" finds
- * KKBOX's "在鬆手跟不鬆手之間".
- */
-function pickKKBOXResult(data, title, artist) {
-  const results = data?.data?.result;
-  if (!Array.isArray(results) || results.length === 0) return null;
-
-  const candidates = results.map((r) => ({
-    title: r?.name || '',
-    artist: r?.album?.artist?.name || '',
-    url: r?.url || '',
-  }));
-
-  const index = selectBestMatch(candidates, title, artist);
-  if (index < 0 || !candidates[index].url) return null;
-  return candidates[index];
-}
-
-async function searchKKBOX(title, artist) {
-  const fullTitle = normalizeForMatch(title);
-  const queries = titleQueryVariants(title).map((name) => ({
-    q: `${name} ${artist}`.trim(),
-    exact: normalizeForMatch(name) === fullTitle,
-  }));
-
-  for (const { q, exact } of queries) {
-    for (const terr of KKBOX_TERRITORIES) {
-      const url = `https://www.kkbox.com/api/search/song?q=${encodeURIComponent(q)}&terr=${terr}&lang=tc`;
-      try {
-        const resp = await fetch(url, {
-          headers: { ...KKBOX_HEADERS, Accept: 'application/json' },
-        });
-        if (!resp.ok) continue;
-        const data = await resp.json();
-        const hit = pickKKBOXResult(data, title, artist);
-        if (hit) {
-          return {
-            url: hit.url,
-            territory: terr,
-            exact,
-            matchedTitle: hit.title,
-            matchedArtist: hit.artist,
-          };
-        }
-      } catch { continue; }
-    }
-  }
-  return null;
-}
-
-async function scrapeKKBOXLyrics(songUrl) {
-  const resp = await fetch(songUrl, { headers: KKBOX_HEADERS });
-  if (!resp.ok) return null;
-  const html = await resp.text();
-
-  const jsonLdRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
-  let match;
-  while ((match = jsonLdRegex.exec(html)) !== null) {
-    try {
-      const data = JSON.parse(match[1]);
-      const text = data?.recordingOf?.lyrics?.text;
-      if (text) return text;
-    } catch {
-      // not the right JSON-LD block, keep looking
-    }
-  }
-  return null;
-}
+// ── KKBOX scraping helpers (deprecated) ──
+//
+// DEPRECATED (2026-10-31) — commented out to save the requests it made on
+// every lookup.  KKBOX's lyrics live in each song page's JSON-LD, and those
+// pages now sit behind an AWS WAF challenge: a request without an
+// aws-waf-token cookie gets HTTP 202 + `x-amzn-waf-action: challenge` and a
+// challenge page instead, which neither the Worker nor a cross-origin fetch()
+// can get past.  The search API still answers, so every lookup spent five
+// or more searches (five territories per title variant), from the Worker and
+// from the browser each, finding a song whose page then failed.  Kept rather
+// than deleted in case KKBOX drops the challenge; tests/test_kkbox.py checks
+// whether it has.
+//
+// const KKBOX_HEADERS = {
+//   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+//   Accept: 'text/html',
+// };
+//
+// const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
+//
+// /**
+//  * Pick the song in a KKBOX search response that really is the track we asked
+//  * for.  KKBOX answers every query with a full page of ~20 songs — even
+//  * nonsense ones — so the top hit is not evidence of a match.  Matching folds
+//  * Traditional to Simplified first, so Spotify's "在松手跟不松手之间" finds
+//  * KKBOX's "在鬆手跟不鬆手之間".
+//  */
+// function pickKKBOXResult(data, title, artist) {
+//   const results = data?.data?.result;
+//   if (!Array.isArray(results) || results.length === 0) return null;
+//
+//   const candidates = results.map((r) => ({
+//     title: r?.name || '',
+//     artist: r?.album?.artist?.name || '',
+//     url: r?.url || '',
+//   }));
+//
+//   const index = selectBestMatch(candidates, title, artist);
+//   if (index < 0 || !candidates[index].url) return null;
+//   return candidates[index];
+// }
+//
+// async function searchKKBOX(title, artist) {
+//   const fullTitle = normalizeForMatch(title);
+//   const queries = titleQueryVariants(title).map((name) => ({
+//     q: `${name} ${artist}`.trim(),
+//     exact: normalizeForMatch(name) === fullTitle,
+//   }));
+//
+//   for (const { q, exact } of queries) {
+//     for (const terr of KKBOX_TERRITORIES) {
+//       const url = `https://www.kkbox.com/api/search/song?q=${encodeURIComponent(q)}&terr=${terr}&lang=tc`;
+//       try {
+//         const resp = await fetch(url, {
+//           headers: { ...KKBOX_HEADERS, Accept: 'application/json' },
+//         });
+//         if (!resp.ok) continue;
+//         const data = await resp.json();
+//         const hit = pickKKBOXResult(data, title, artist);
+//         if (hit) {
+//           return {
+//             url: hit.url,
+//             territory: terr,
+//             exact,
+//             matchedTitle: hit.title,
+//             matchedArtist: hit.artist,
+//           };
+//         }
+//       } catch { continue; }
+//     }
+//   }
+//   return null;
+// }
+//
+// async function scrapeKKBOXLyrics(songUrl) {
+//   const resp = await fetch(songUrl, { headers: KKBOX_HEADERS });
+//   if (!resp.ok) return null;
+//   const html = await resp.text();
+//
+//   const jsonLdRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
+//   let match;
+//   while ((match = jsonLdRegex.exec(html)) !== null) {
+//     try {
+//       const data = JSON.parse(match[1]);
+//       const text = data?.recordingOf?.lyrics?.text;
+//       if (text) return text;
+//     } catch {
+//       // not the right JSON-LD block, keep looking
+//     }
+//   }
+//   return null;
+// }
 
 // ── QQ Music (line-synced LRC) ──
 
@@ -180,7 +199,7 @@ function parseMaybeJSONP(text) {
   }
 }
 
-async function searchQQ(title, artist) {
+async function searchQQ(title, artist, durationSec) {
   for (const name of titleQueryVariants(title)) {
     const q = encodeURIComponent(`${name} ${artist}`.trim());
     const url = `https://c.y.qq.com/soso/fcgi-bin/client_search_cp?format=json&p=1&n=10&w=${q}`;
@@ -191,16 +210,22 @@ async function searchQQ(title, artist) {
       const results = data?.data?.song?.list;
       if (!Array.isArray(results) || results.length === 0) continue;
 
-      const candidates = results.map((song) => ({
-        title: song?.songname || '',
-        artist: (song?.singer || []).map((a) => a?.name || '').join(', '),
-        mid: song?.songmid || '',
-      }));
+      const candidates = results
+        .map((song) => ({
+          title: song?.songname || '',
+          artist: (song?.singer || []).map((a) => a?.name || '').join(', '),
+          mid: song?.songmid || '',
+          durationSec: Number(song?.interval) || 0,
+        }))
+        .filter((c) => c.mid);
 
       // QQ ranks loosely — a search for a song it does not carry still returns
-      // a page of the artist's other work — so the hit has to be verified.
-      const index = selectBestMatch(candidates, title, artist);
-      if (index >= 0 && candidates[index].mid) return candidates[index];
+      // a page of the artist's other work — so the hit has to be verified.  It
+      // also carries several cuts of one song (起风了 by 买辣椒也用券 at 312,
+      // 321, 323, 325, 328 and 329s), so the length decides between them;
+      // taking the first hit gave the 312s 旧版 (old version).
+      const match = pickRecording(candidates, title, artist, durationSec);
+      if (match) return match;
     } catch { continue; }
   }
   return null;
@@ -214,6 +239,237 @@ async function fetchQQLyrics(mid) {
     const data = parseMaybeJSONP(await resp.text());
     if (data?.retcode !== 0) return null;
     return data.lyric || null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Retrying transient failures ──
+
+// Kugou and NetEase occasionally fail a single request and then answer the
+// next one — one Kugou lookup in about seventy came back empty in testing and
+// succeeded on re-run.  So a request that fails in a way that may not repeat
+// (a network error, a 5xx, or a body that isn't JSON) is retried once after a
+// short pause.  A 4xx is an answer, not a blip, and is not retried.  QQ is
+// deliberately left out: its failures so far have been blocks lasting
+// minutes, which a retry only prolongs.
+const RETRY_DELAY_MS = 500;
+
+/** GET a JSON endpoint, retrying once on a transient failure.  Resolves to
+ *  null on a 4xx; throws if the retry fails too. */
+async function fetchJSONWithRetry(url, init) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const resp = await fetch(url, init);
+      if (resp.status >= 500) throw new Error(`HTTP ${resp.status}`);
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch (err) {
+      if (attempt >= 2) throw err;
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    }
+  }
+}
+
+// ── Recording matching for sources that report track length ──
+
+// The same recording is listed a few seconds apart across platforms (up to
+// ~4s measured), while a remix or radio edit of the same title is usually
+// further off.  Lyrics timed for a different cut would drift out of sync.
+const DURATION_TOLERANCE_S = 5;
+
+function durationMatches(candidateSec, wantedSec) {
+  if (!wantedSec) return true;
+  return Math.abs(candidateSec - wantedSec) <= DURATION_TOLERANCE_S;
+}
+
+/**
+ * Pick the search result that is the recording being played, for sources
+ * that report each result's length (QQ, Kugou, NetEase).  Candidates are
+ * `{ title, artist, durationSec, titles? }`; `titles` lists every form of the
+ * title the source gives, defaulting to `[title]`.
+ *
+ * Results more than DURATION_TOLERANCE_S off are dropped, and so are covers:
+ * by an artist who is recognisably someone else, or labelled as one in the
+ * title.  Of the rest, a title that matches suffix and all goes first:
+ * otherwise a live cut that happens to fall inside the tolerance ties with the
+ * studio recording once suffixes are stripped, and can win on search order.
+ *
+ * A romanized artist can't be compared with a native name, so on its own a
+ * cover by 睿轩 passes for BTS.  But when another recording of the same song
+ * is credited to the artist under Spotify's name — NetEase lists "Dynamite
+ * (Live)" by "BTS (防弹少年团)" — the service evidently knows them by it, and
+ * a result credited to someone else is a cover.  Only recordings of the song
+ * count: NetEase's 孤勇者 page also carries an unrelated track by an artist
+ * named "Eason Chan", which says nothing about 陈奕迅's listing.
+ */
+function pickRecording(candidates, title, artist, durationSec) {
+  const wantedTitle = normalizeForMatch(title);
+  const artistKnown = candidates.some((c) =>
+    titleMatches(c.title, title) && artistMatches(c.artist, artist));
+  const plausible = candidates.filter((c) =>
+    durationMatches(c.durationSec, durationSec)
+    && (artistKnown ? artistMatches(c.artist, artist) : artistMayMatch(c.artist, artist))
+    && !(c.titles || [c.title]).some((t) => isMarkedCover(t, title)));
+  const exact = plausible.filter((c) =>
+    (c.titles || [c.title]).some((t) => normalizeForMatch(t) === wantedTitle));
+
+  for (const pool of [exact, plausible]) {
+    const index = selectBestMatch(pool, title, artist);
+    if (index >= 0) return pool[index];
+  }
+  return null;
+}
+
+// ── Kugou Music (line-synced LRC) ──
+//
+// Stands in for kugeci.com, which serves the same kind of LRC but sits behind
+// a Cloudflare managed challenge that no fetch() — here or in the browser —
+// can pass.  Both Kugou endpoints are plain HTTP only (the HTTPS hosts present
+// a mismatched certificate or reset the connection), so a page served over
+// HTTPS could not call them even if they sent CORS headers.
+
+const KUGOU_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  Accept: 'application/json',
+};
+
+// `songname` sometimes drops the version suffix — the original 不能成情人 and
+// its 港风电音 remix are both listed as plain "不能成情人" — whereas
+// `filename` ("<singers> - <title>") keeps it.  `filename` can also carry a
+// promo note instead (小幸运【《我的少女时代》电影主题曲】), so neither field
+// alone is the title.
+function kugouFilenameTitle(song) {
+  const prefix = `${song?.singername || ''} - `;
+  const filename = song?.filename || '';
+  if (song?.singername && filename.startsWith(prefix)) return filename.slice(prefix.length);
+  return song?.songname || '';
+}
+
+/**
+ * Find the Kugou recording that is the track being played.  The song search
+ * resolves romanized artists ("Hebe Tien" → 田馥甄), which the lyric search
+ * cannot, and returns each recording's hash and length so the lyrics can be
+ * tied to the right cut.
+ */
+async function searchKugou(title, artist, durationSec) {
+  for (const name of titleQueryVariants(title)) {
+    const q = encodeURIComponent(`${name} ${artist}`.trim());
+    const url = `http://mobilecdn.kugou.com/api/v3/search/song?format=json&keyword=${q}&page=1&pagesize=20`;
+    try {
+      const data = await fetchJSONWithRetry(url, { headers: KUGOU_HEADERS });
+      const results = data?.data?.info;
+      if (!Array.isArray(results) || results.length === 0) continue;
+
+      const candidates = results
+        .map((song) => {
+          const songname = song?.songname || '';
+          const filenameTitle = kugouFilenameTitle(song);
+          return {
+            title: songname,
+            titles: [songname, filenameTitle],
+            filenameTitle,
+            artist: song?.singername || '',
+            hash: song?.hash || '',
+            durationSec: Number(song?.duration) || 0,
+          };
+        })
+        .filter((c) => c.hash);
+
+      const match = pickRecording(candidates, title, artist, durationSec);
+      if (match) return match;
+    } catch { continue; }
+  }
+  return null;
+}
+
+function decodeBase64Utf8(base64) {
+  const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+async function fetchKugouLyrics(song) {
+  try {
+    const searchParams = new URLSearchParams({
+      ver: '1',
+      man: 'yes',
+      client: 'pc',
+      keyword: `${song.artist} - ${song.title}`,
+      duration: String(song.durationSec * 1000),
+      hash: song.hash,
+    });
+    const search = await fetchJSONWithRetry(`http://lyrics.kugou.com/search?${searchParams}`, { headers: KUGOU_HEADERS });
+    const candidates = search?.candidates;
+    if (!Array.isArray(candidates)) return null;
+
+    // Kugou also files ringtone-length snippets — 30 seconds of chorus —
+    // under a song's title, so the lyric's own length is checked as well.
+    const lyric = candidates.find((c) =>
+      c?.id && c?.accesskey && durationMatches((Number(c.duration) || 0) / 1000, song.durationSec));
+    if (!lyric) return null;
+
+    const downloadParams = new URLSearchParams({
+      ver: '1',
+      client: 'pc',
+      id: lyric.id,
+      accesskey: lyric.accesskey,
+      fmt: 'lrc',
+      charset: 'utf8',
+    });
+    const download = await fetchJSONWithRetry(`http://lyrics.kugou.com/download?${downloadParams}`, { headers: KUGOU_HEADERS });
+    const content = download?.content;
+    return content ? decodeBase64Utf8(content) : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── NetEase Cloud Music (line-synced LRC) ──
+//
+// A lyric database of its own — Kugou and QQ are both Tencent Music and often
+// serve identical LRC — so it covers different gaps.  Its own gap is
+// licensing: Jay Chou and Hebe Tien's originals aren't there, and a search
+// for them returns covers under the same title and length, which is what
+// pickRecording's artist check is for.  The endpoints send no CORS headers.
+
+const NETEASE_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  Accept: 'application/json',
+};
+
+const LRC_TIMESTAMP_RE = /^\[\d+:\d+\.\d+\]/m;
+
+async function searchNetEase(title, artist, durationSec) {
+  for (const name of titleQueryVariants(title)) {
+    const q = encodeURIComponent(`${name} ${artist}`.trim());
+    const url = `https://music.163.com/api/search/get?s=${q}&type=1&limit=20`;
+    try {
+      const data = await fetchJSONWithRetry(url, { headers: NETEASE_HEADERS });
+      const results = data?.result?.songs;
+      if (data?.code !== 200 || !Array.isArray(results) || results.length === 0) continue;
+
+      const candidates = results
+        .map((song) => ({
+          title: song?.name || '',
+          artist: (song?.artists || []).map((a) => a?.name || '').join(', '),
+          id: song?.id,
+          durationSec: (Number(song?.duration) || 0) / 1000,
+        }))
+        .filter((c) => c.id);
+
+      const match = pickRecording(candidates, title, artist, durationSec);
+      if (match) return match;
+    } catch { continue; }
+  }
+  return null;
+}
+
+async function fetchNetEaseLyrics(id) {
+  const url = `https://music.163.com/api/song/lyric?id=${encodeURIComponent(id)}&lv=1`;
+  try {
+    const lyric = (await fetchJSONWithRetry(url, { headers: NETEASE_HEADERS }))?.lrc?.lyric;
+    // Some songs carry untimed text in the same field.
+    return lyric && LRC_TIMESTAMP_RE.test(lyric) ? lyric : null;
   } catch {
     return null;
   }
@@ -386,40 +642,43 @@ async function handleDebugToken(env) {
   });
 }
 
-async function handleKKBOXLyrics(url) {
-  const title = url.searchParams.get('title');
-  const artist = url.searchParams.get('artist');
-  if (!title) {
-    return jsonResponse({ error: 'Missing title parameter' }, 400);
-  }
-
-  const match = await searchKKBOX(title, artist || '');
-  if (!match) {
-    return jsonResponse({ error: 'No matching KKBOX song found' }, 404);
-  }
-
-  const plainLyrics = await scrapeKKBOXLyrics(match.url);
-  if (!plainLyrics) {
-    return jsonResponse({ error: 'Lyrics not found on KKBOX page', songUrl: match.url }, 404);
-  }
-
-  return jsonResponse({
-    plainLyrics,
-    territory: match.territory,
-    exact: match.exact,
-    matchedTitle: match.matchedTitle,
-    matchedArtist: match.matchedArtist,
-  });
-}
+// DEPRECATED (2026-10-31) — see the KKBOX note above.  /kkbox-lyrics now
+// falls through to the 404 for unknown routes.
+// async function handleKKBOXLyrics(url) {
+//   const title = url.searchParams.get('title');
+//   const artist = url.searchParams.get('artist');
+//   if (!title) {
+//     return jsonResponse({ error: 'Missing title parameter' }, 400);
+//   }
+//
+//   const match = await searchKKBOX(title, artist || '');
+//   if (!match) {
+//     return jsonResponse({ error: 'No matching KKBOX song found' }, 404);
+//   }
+//
+//   const plainLyrics = await scrapeKKBOXLyrics(match.url);
+//   if (!plainLyrics) {
+//     return jsonResponse({ error: 'Lyrics not found on KKBOX page', songUrl: match.url }, 404);
+//   }
+//
+//   return jsonResponse({
+//     plainLyrics,
+//     territory: match.territory,
+//     exact: match.exact,
+//     matchedTitle: match.matchedTitle,
+//     matchedArtist: match.matchedArtist,
+//   });
+// }
 
 async function handleQQLyrics(url) {
   const title = url.searchParams.get('title');
   const artist = url.searchParams.get('artist');
+  const durationSec = Number(url.searchParams.get('duration')) || 0;
   if (!title) {
     return jsonResponse({ error: 'Missing title parameter' }, 400);
   }
 
-  const match = await searchQQ(title, artist || '');
+  const match = await searchQQ(title, artist || '', durationSec);
   if (!match) {
     return jsonResponse({ error: 'No matching QQ Music song found' }, 404);
   }
@@ -433,6 +692,59 @@ async function handleQQLyrics(url) {
     syncedLyrics,
     matchedTitle: match.title,
     matchedArtist: match.artist,
+    matchedDurationSec: match.durationSec,
+  });
+}
+
+async function handleKugouLyrics(url) {
+  const title = url.searchParams.get('title');
+  const artist = url.searchParams.get('artist');
+  const durationSec = Number(url.searchParams.get('duration')) || 0;
+  if (!title) {
+    return jsonResponse({ error: 'Missing title parameter' }, 400);
+  }
+
+  const match = await searchKugou(title, artist || '', durationSec);
+  if (!match) {
+    return jsonResponse({ error: 'No matching Kugou song found' }, 404);
+  }
+
+  const syncedLyrics = await fetchKugouLyrics(match);
+  if (!syncedLyrics) {
+    return jsonResponse({ error: 'Lyrics not available for this Kugou song' }, 404);
+  }
+
+  return jsonResponse({
+    syncedLyrics,
+    matchedTitle: match.filenameTitle,
+    matchedArtist: match.artist,
+    matchedDurationSec: match.durationSec,
+  });
+}
+
+async function handleNetEaseLyrics(url) {
+  const title = url.searchParams.get('title');
+  const artist = url.searchParams.get('artist');
+  const durationSec = Number(url.searchParams.get('duration')) || 0;
+  if (!title) {
+    return jsonResponse({ error: 'Missing title parameter' }, 400);
+  }
+
+  const match = await searchNetEase(title, artist || '', durationSec);
+  if (!match) {
+    return jsonResponse({ error: 'No matching NetEase song found' }, 404);
+  }
+
+  const syncedLyrics = await fetchNetEaseLyrics(match.id);
+  if (!syncedLyrics) {
+    return jsonResponse({ error: 'Synced lyrics not available for this NetEase song' }, 404);
+  }
+
+  return jsonResponse({
+    syncedLyrics,
+    matchedTitle: match.title,
+    matchedArtist: match.artist,
+    matchedDurationSec: match.durationSec,
   });
 }
 
@@ -542,9 +854,16 @@ export default {
       if (url.pathname === '/qq-lyrics') {
         return await handleQQLyrics(url);
       }
-      if (url.pathname === '/kkbox-lyrics') {
-        return await handleKKBOXLyrics(url);
+      if (url.pathname === '/kugou-lyrics') {
+        return await handleKugouLyrics(url);
       }
+      if (url.pathname === '/netease-lyrics') {
+        return await handleNetEaseLyrics(url);
+      }
+      // Deprecated — see the KKBOX note above.
+      // if (url.pathname === '/kkbox-lyrics') {
+      //   return await handleKKBOXLyrics(url);
+      // }
       if (url.pathname === '/debug-token') {
         return await handleDebugToken(env);
       }

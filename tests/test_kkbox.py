@@ -2,6 +2,12 @@
 Test script for KKBOX lyrics fetching.
 Replicates the same logic as the Cloudflare Worker's /kkbox-lyrics endpoint.
 
+DEPRECATED (2026-10-31): KKBOX is disabled in lyrics.js and the Worker.  Its
+song pages sit behind an AWS WAF challenge (HTTP 202 with
+x-amzn-waf-action: challenge), so the page scrape below fails.  Kept as the
+quick check for whether KKBOX has dropped the challenge — if this starts
+printing lyrics again, the commented-out KKBOX code can be restored.
+
 Usage:
   python test_kkbox.py "APT." "ROSÉ"
   python test_kkbox.py "稻香" "周杰倫"

@@ -130,50 +130,55 @@ def parse_lrc(lrc_string):
     return "\n".join(lines) if lines else None
 
 
-# ── Source 3: KKBOX (plain text via JSON API + JSON-LD) ──
-
-def fetch_from_kkbox(track_name, artist_name):
-    """Priority 3 — KKBOX search API + song page JSON-LD scrape."""
-    q = f"{track_name} {artist_name}".strip()
-    url = (
-        "https://www.kkbox.com/api/search/song?q="
-        + urllib.parse.quote(q)
-        + "&terr=hk&lang=tc"
-    )
-    print(f"  [KKBOX] Search API: {url}")
-    try:
-        data = http_get_json(url)
-    except Exception as e:
-        print(f"  [KKBOX] Search failed: {e}")
-        return None, None
-
-    results = data.get("data", {}).get("result", [])
-    if not results:
-        print("  [KKBOX] No search results")
-        return None, None
-
-    song_url = results[0].get("url")
-    print(f"  [KKBOX] Song page: {song_url}")
-
-    try:
-        html = http_get_text(song_url)
-    except Exception as e:
-        print(f"  [KKBOX] Song page failed: {e}")
-        return None, None
-
-    for m in re.finditer(
-        r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL
-    ):
-        try:
-            ld = json.loads(m.group(1))
-            text = (ld.get("recordingOf") or {}).get("lyrics", {}).get("text")
-            if text:
-                return text, "KKBOX · plain"
-        except json.JSONDecodeError:
-            continue
-
-    print("  [KKBOX] No lyrics in JSON-LD")
-    return None, None
+# ── Source 3: KKBOX (deprecated) ──
+#
+# DEPRECATED (2026-10-31): KKBOX's song pages, where the lyrics live, sit
+# behind an AWS WAF challenge (HTTP 202, x-amzn-waf-action: challenge), so
+# this never returns lyrics.  Disabled in lyrics.js and the Worker as well;
+# tests/test_kkbox.py checks whether KKBOX has dropped the challenge.
+#
+# def fetch_from_kkbox(track_name, artist_name):
+#     """Priority 3 — KKBOX search API + song page JSON-LD scrape."""
+#     q = f"{track_name} {artist_name}".strip()
+#     url = (
+#         "https://www.kkbox.com/api/search/song?q="
+#         + urllib.parse.quote(q)
+#         + "&terr=hk&lang=tc"
+#     )
+#     print(f"  [KKBOX] Search API: {url}")
+#     try:
+#         data = http_get_json(url)
+#     except Exception as e:
+#         print(f"  [KKBOX] Search failed: {e}")
+#         return None, None
+#
+#     results = data.get("data", {}).get("result", [])
+#     if not results:
+#         print("  [KKBOX] No search results")
+#         return None, None
+#
+#     song_url = results[0].get("url")
+#     print(f"  [KKBOX] Song page: {song_url}")
+#
+#     try:
+#         html = http_get_text(song_url)
+#     except Exception as e:
+#         print(f"  [KKBOX] Song page failed: {e}")
+#         return None, None
+#
+#     for m in re.finditer(
+#         r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL
+#     ):
+#         try:
+#             ld = json.loads(m.group(1))
+#             text = (ld.get("recordingOf") or {}).get("lyrics", {}).get("text")
+#             if text:
+#                 return text, "KKBOX · plain"
+#         except json.JSONDecodeError:
+#             continue
+#
+#     print("  [KKBOX] No lyrics in JSON-LD")
+#     return None, None
 
 
 # ── Main: same priority chain as fetchAndSetLyrics ──
@@ -184,7 +189,8 @@ def fetch_and_set_lyrics(track_id, track_name, artist_name, duration_ms=None):
     sources = [
         ("1. Spotify (Worker)", lambda: fetch_from_worker(track_id)),
         ("2. LRCLIB",           lambda: fetch_from_lrclib(track_name, artist_name, duration_sec)),
-        ("3. KKBOX",            lambda: fetch_from_kkbox(track_name, artist_name)),
+        # Deprecated — see the KKBOX note above.
+        # ("3. KKBOX",            lambda: fetch_from_kkbox(track_name, artist_name)),
     ]
 
     for label, fn in sources:

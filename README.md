@@ -6,7 +6,7 @@ A static website that connects to your Spotify account and displays real-time sy
 
 - **Real-time karaoke display** — lyrics highlight line-by-line (or word-by-word with the Cloudflare Worker) synced to your playback
 - **Spotify integration** — uses the official Spotify Web API with PKCE auth (no backend needed for auth)
-- **Layered lyrics** — Spotify's internal Musixmatch-powered lyrics via the Cloudflare Worker as primary, then LRCLIB (free, open), QQ Music (line-synced, strong Chinese coverage) and KKBOX (plain text) as fallbacks
+- **Layered lyrics** — Spotify's internal Musixmatch-powered lyrics via the Cloudflare Worker as primary, then LRCLIB (free, open), Kugou Music, QQ Music and NetEase Cloud Music (all line-synced, strong Chinese coverage) as fallbacks. KKBOX (plain text) is deprecated — see Limitations
 - **Graceful degradation** — word-synced → line-synced → plain scrollable lyrics → "no lyrics" message
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
 - **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Pick the target language from the dropdown; the app falls back across an LLM, a keyless endpoint and Google Cloud on its own
@@ -193,18 +193,94 @@ OpenRouter's free tier allows 50 requests per day per account, so
 `nemotron-3-super-120b:free` stops working once that is spent and returns the
 next day. The Gemini free tier is more generous but still finite.
 
+## Now-Playing Sources
+
+The page reads what is playing through a **source** (`sources.js`). A source
+answers one question — what is playing right now? — and returns the same shape
+whatever service it talked to:
+
+```js
+{ trackId, title, artist, durationMs, progressMs, isPlaying, artworkUrl }
+```
+
+Everything downstream — the lyrics chain, the karaoke animation loop, the
+progress bar — consumes that shape and neither knows nor cares which source
+produced it.
+
+| Source | `?source=` | Position | Seek | Artwork |
+|---|---|---|---|---|
+| Spotify Web API | `spotify` (default) | precise, once a second | yes | yes |
+| Tesla Fleet API | `tesla` | coarse | no | no |
+
+Pick one with `?source=tesla`; the choice is remembered in `localStorage`. A
+source that cannot seek hides the touch-control toggle rather than offering a
+control that does nothing, and one with no artwork hides the album art — the
+stored preference itself is left alone, so switching back to Spotify restores it.
+
+### Why Spotify already works in a Tesla
+
+The car's built-in Spotify is a Spotify Connect device, so
+`/v1/me/player/currently-playing` reports it like any other device, with a real
+`progress_ms`. The Spotify source needs **no Tesla API at all** and costs
+nothing to run. The Tesla source exists for everything else the car can play —
+Apple Music, Tidal, USB, Bluetooth, radio — which Spotify cannot see.
+
+### Position estimation
+
+Sources report position at very different cadences, and some cannot report it
+at all, so `PositionEstimator` normalises them into the one anchor the
+animation loop extrapolates from:
+
+- **`precise`** (Spotify) — re-anchors on every poll. The loop's LERP absorbs
+  the poll-to-poll jitter, exactly as before.
+- **`coarse`** (Tesla) — only corrects past `SNAP_THRESHOLD_MS` (1.5s), so a
+  low-cadence read does not jerk the highlight back and forth. Tesla's
+  `MediaNowPlayingElapsed` arrives about twice a second over streaming
+  telemetry, but Tesla documents the now-playing fields as sometimes empty
+  depending on the media source, so an absent elapsed degrades to no position
+  rather than becoming a `0` that would yank the lyrics back to line one.
+- **`none`** — free-runs from the track change, freezing on pause and resuming
+  where it froze. Enough for line-synced lyrics with the manual offset.
+
+### Tesla source status
+
+The adapter and its response mapping are complete and tested, but **auth is not
+wired**. Fleet API authentication is a server-side flow — partner token, a
+registered public key on your domain, per-vehicle pairing — that does not belong
+in a static page, so `createTeslaFleetSource` takes an injected
+`fetchVehicleData` and the app points it at a `/tesla-media` Worker route that
+does not exist yet. Until it does, the Tesla source reports silence instead of
+throwing on every poll.
+
+Note the poll interval. Fleet API is billed per request: polling `vehicle_data`
+once a minute runs about **$0.12 per vehicle-hour**, while streaming telemetry
+is roughly eighteen times cheaper and is where this should end up. The default
+15s poll is a deliberate fallback — the estimator is what keeps the lyrics
+moving between reads.
+
 ## How It Works
 
 1. **Auth**: Spotify PKCE flow (browser-only, no client secret needed)
-2. **Polling**: Every 3 seconds, fetches the currently playing track from Spotify's Web API
-3. **Lyrics**: On track change, tries Spotify via the Worker first. On a miss it queries LRCLIB, QQ Music and KKBOX in parallel and takes the best result:
+2. **Polling**: The active source is polled on its own cadence (Spotify: 1s)
+   for the currently playing track
+3. **Lyrics**: On track change, tries Spotify via the Worker first — skipped
+   unless the track id is a real Spotify id, since that route resolves against
+   Spotify's own catalogue. On a miss it queries LRCLIB, Kugou Music, QQ Music
+   and NetEase Cloud Music in parallel and takes the best result:
 
    ```
    Spotify word-synced > Spotify line-synced > LRCLIB synced >
-   QQ Music synced > LRCLIB plain > KKBOX
+   Kugou Music synced > QQ Music synced > NetEase synced >
+   LRCLIB plain
    ```
 
-   Synced always beats plain, which is why KKBOX — the only plain-text source — sits last.
+   It returns as soon as the winner is known — the moment a source has lyrics
+   and every source ranked above it has answered — rather than waiting for the
+   slowest. On a 27-song benchmark that cut typical loading from 3.4s to about
+   0.7s. Synced always beats plain, so plain lyrics are used only once every
+   synced source has missed.
+   Kugou outranks QQ because both are Tencent Music, Kugou found every song QQ
+   did, and it answered about three times faster.
 4. **Display**: `requestAnimationFrame` loop interpolates playback position between polls and highlights the current line/word
 
 ## Limitations
@@ -212,9 +288,16 @@ next day. The Gemini free tier is more generous but still finite.
 - **Spotify Dev Mode (Feb 2026)**: Requires Spotify Premium for the app owner, max 5 authorized users. Fine for personal use.
 - **sp_dc cookie**: Unofficial, lasts ~1 year. If it expires, the Worker will return errors and the site falls back to LRCLIB automatically.
 - **LRCLIB coverage**: Not all songs have synced lyrics in LRCLIB's crowdsourced database.
-- **KKBOX is currently blocked**: KKBOX song pages sit behind an AWS WAF JavaScript challenge (`x-amzn-waf-action: challenge`) that rejects datacenter IPs, so the Worker cannot scrape them — its search API still answers, but every page fetch returns the challenge instead of the lyrics. QQ Music covers most of what KKBOX used to, and with line-level timing rather than plain text. The KKBOX path is left in place as a fallback in case the rule is relaxed.
-- **QQ Music access**: Must be fetched through the Worker — the endpoints send no CORS headers, and the lyric API rejects requests without a `y.qq.com` referer, which a browser cannot set cross-origin.
-- **Polling latency**: Lyrics sync is approximate (±3 seconds) due to polling interval.
+- **KKBOX is deprecated**: its code is commented out in `lyrics.js` and `worker.js` (and `/kkbox-lyrics` now 404s), because every lookup spent five or more searches from both the Worker and the browser on a source that could no longer return lyrics. `python tests/test_kkbox.py "稻香" "周杰倫"` checks whether KKBOX has dropped the block; if it prints lyrics again, the code can be restored. The cause: the lyrics live in each song page's JSON-LD, and the song pages sit behind an AWS WAF challenge on CloudFront. A request without an `aws-waf-token` cookie — which only a browser that has run KKBOX's challenge script holds — gets HTTP 202 with `x-amzn-waf-action: challenge` and a challenge page instead. Neither the Worker nor the page's cross-origin `fetch()` can carry that token, and a full set of browser headers makes no difference. The search API is not behind the challenge, so searches still succeed and only the page fetch fails. KKBOX's official Open API has no lyrics endpoint.
+- **QQ Music access**: Must be fetched through the Worker — the endpoints send no CORS headers, and the lyric API rejects requests without a `y.qq.com` referer, which a browser cannot set cross-origin. Its search endpoint also refuses datacenter traffic for stretches (HTTP 500 for every query, while the lyric endpoint keeps answering), seen on 2026-10-31 from both a test machine and the deployed Worker.
+- **Kugou Music access**: Also Worker-only, because Kugou's search and lyric endpoints answer only over plain HTTP, which an HTTPS page may not call.
+- **Transient failures**: Kugou and NetEase occasionally fail one request and answer the next, so the Worker retries a request once, after 500ms, on a network error, a 5xx or a body that isn't JSON. A 4xx is treated as an answer. QQ is not retried: its failures so far have been blocks lasting minutes or hours, which a retry only prolongs.
+- **NetEase Cloud Music access**: Worker-only too — its endpoints send no CORS headers. NetEase lacks the licence for some catalogues (Jay Chou, BTS) and answers those searches with other singers' covers, so it sits last among the synced sources.
+- **Matching for QQ, Kugou and NetEase**: all three list remixes, live cuts and covers under the same title (QQ has 起风了 at six lengths), so the Worker also checks length and artist. A recording more than 5 seconds off the Spotify length is rejected rather than shown with the wrong timing. A cover is rejected when its artist is recognisably someone else, when its title says so (原唱, 翻唱, Cover…), or when another cut of the song on the same page is credited to the artist under Spotify's name. A romanized artist ("Hebe Tien") can't be compared with a native name (田馥甄), so a cover by a Chinese-named singer with no such marker can still get through.
+- **kugeci.com is not used directly**: it serves the same kind of LRC, but every page sits behind a Cloudflare managed challenge ("Just a moment…") that needs JavaScript and a cookie, so neither the Worker nor the page can fetch it. Kugou's API is the direct route to equivalent data.
+- **Kuwo and Migu are not used**: on a 20-song benchmark Kuwo's search found synced lyrics for 1 song. Migu's search reports no track lengths, so it can't tell a song from its remixes, and it showed it — its Blinding Lights was timed about 14 seconds away from the three other sources that had the song.
+- **Polling latency**: Lyrics sync is approximate — the animation loop interpolates between polls, so accuracy tracks the active source's cadence rather than matching playback exactly.
+- **Tesla source auth is not wired**: the adapter is complete and tested, but it needs a server-side Fleet API route before it returns anything. See *Tesla source status* above.
 
 ## File Structure
 
@@ -223,6 +306,7 @@ spotify-karaoke/
 ├── index.html          # Page shell
 ├── style.css           # Dark karaoke theme
 ├── app.js              # All client-side logic
+├── sources.js          # Now-playing sources + position estimator (no DOM deps)
 ├── lyrics.js           # Lyrics fetch chain (no DOM dependencies)
 ├── matching.js         # Script-insensitive search matching (see below)
 ├── translate.js        # Language detection + translation providers
@@ -231,7 +315,12 @@ spotify-karaoke/
 │   └── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
 ├── tests/              # Node and Python tests — `node tests/test_matching.mjs`,
 │                       # `node tests/test_source_priority.mjs`,
-│                       # `node tests/test_translate.mjs`
+│                       # `node tests/test_sources.mjs`,
+│                       # `node tests/test_kugou.mjs`,
+│                       # `node tests/test_netease.mjs`,
+│                       # `node tests/test_qq.mjs`,
+│                       # `node tests/test_translate.mjs`;
+│                       # live: `node tests/test_cn_lyrics_live.mjs`
 ├── worker/
 │   ├── worker.js       # Cloudflare Worker (lyrics proxy)
 │   └── wrangler.toml   # Worker config
@@ -261,4 +350,5 @@ This matters for correctness as well as coverage: KKBOX's search endpoint
 answers *every* query with a full page of ~20 songs, even nonsense ones, so the
 top hit is not evidence of a match. Results are now scored against the
 requested title and artist, and a page with no plausible match is rejected
-rather than scraped.
+rather than scraped. KKBOX itself is now deprecated, but QQ, Kugou and NetEase
+searches go through the same matcher.

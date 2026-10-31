@@ -5,9 +5,10 @@
 
 import {
   cleanTrackName,
-  normalizeForMatch,
-  selectBestMatch,
-  titleQueryVariants,
+  // Used only by the deprecated KKBOX code below.
+  // normalizeForMatch,
+  // selectBestMatch,
+  // titleQueryVariants,
 } from './matching.js';
 
 // Re-exported so callers (app.js, the test scripts) keep importing the whole
@@ -86,8 +87,18 @@ async function convertLyricsToSimplified(result) {
   return result;
 }
 
+/** Spotify track ids are 22 characters of base62 — anything else is another source's key. */
+const SPOTIFY_TRACK_ID_RE = /^[A-Za-z0-9]{22}$/;
+
 export async function fetchLyricsFromWorker(workerUrl, trackId, spotifyToken) {
   if (!workerUrl) return null;
+  // The Worker's /lyrics route looks a track up in Spotify's own catalogue, so
+  // a synthesised id from another source (see teslaTrackId in sources.js) can
+  // only 404.  Skipping it keeps the fallback chain one round trip shorter.
+  if (!SPOTIFY_TRACK_ID_RE.test(String(trackId || ''))) {
+    console.debug('[lyrics] Worker: skipped — not a Spotify track id');
+    return null;
+  }
   const url = `${workerUrl}/lyrics?track_id=${trackId}`;
   console.debug('[lyrics] Worker:', url);
   try {
@@ -171,56 +182,69 @@ export async function fetchLyricsFromLRCLIB(trackName, artistName, durationSec) 
   }
 }
 
-export async function fetchLyricsFromKKBOX(workerUrl, trackName, artistName) {
-  if (!workerUrl) return null;
-
-  for (const name of titleQueryVariants(trackName)) {
-    const params = new URLSearchParams({ title: name, artist: artistName });
-    const url = `${workerUrl}/kkbox-lyrics?${params}`;
-    console.debug('[lyrics] KKBOX:', url);
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) { console.debug('[lyrics] KKBOX: HTTP', resp.status); continue; }
-      const data = await resp.json();
-      if (data.plainLyrics) {
-        console.debug('[lyrics] KKBOX: matched', data.matchedTitle || '(unknown)');
-        return {
-          plainLyrics: data.plainLyrics,
-          territory: data.territory || '?',
-          exact: data.exact ?? (name === trackName),
-        };
-      }
-      console.debug('[lyrics] KKBOX: response OK but no plainLyrics');
-    } catch (err) {
-      console.debug('[lyrics] KKBOX: error', err.message);
-    }
-  }
-  return null;
-}
-
-const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
-
-/**
- * Pick the song in a KKBOX search response that really is the track we asked
- * for.  KKBOX answers every query with a full page of ~20 songs — even
- * nonsense ones — so trusting the top hit is how an unrelated song's lyrics
- * end up on screen.  Matching folds Traditional to Simplified first, so
- * Spotify's "在松手跟不松手之间" finds KKBOX's "在鬆手跟不鬆手之間".
- */
-function pickKKBOXResult(searchData, trackName, artistName) {
-  const results = searchData?.data?.result;
-  if (!Array.isArray(results) || results.length === 0) return null;
-
-  const candidates = results.map((r) => ({
-    title: r?.name || '',
-    artist: r?.album?.artist?.name || '',
-    url: r?.url || '',
-  }));
-
-  const index = selectBestMatch(candidates, trackName, artistName);
-  if (index < 0 || !candidates[index].url) return null;
-  return candidates[index];
-}
+// ── KKBOX (deprecated) ──
+//
+// DEPRECATED (2026-10-31) — commented out to save the requests it made on
+// every lookup.  KKBOX's lyrics live in each song page's JSON-LD, and those
+// pages now sit behind an AWS WAF challenge: a request without an
+// aws-waf-token cookie gets HTTP 202 + `x-amzn-waf-action: challenge` and a
+// challenge page instead, which neither the Worker nor a cross-origin fetch()
+// can get past.  The search API still answers, so every lookup spent five
+// or more searches (five territories per title variant), from the Worker and
+// from the browser each, finding a song whose page then failed.  Kept rather
+// than deleted in case KKBOX drops the challenge; tests/test_kkbox.py checks
+// whether it has.
+//
+// export async function fetchLyricsFromKKBOX(workerUrl, trackName, artistName) {
+//   if (!workerUrl) return null;
+//
+//   for (const name of titleQueryVariants(trackName)) {
+//     const params = new URLSearchParams({ title: name, artist: artistName });
+//     const url = `${workerUrl}/kkbox-lyrics?${params}`;
+//     console.debug('[lyrics] KKBOX:', url);
+//     try {
+//       const resp = await fetch(url);
+//       if (!resp.ok) { console.debug('[lyrics] KKBOX: HTTP', resp.status); continue; }
+//       const data = await resp.json();
+//       if (data.plainLyrics) {
+//         console.debug('[lyrics] KKBOX: matched', data.matchedTitle || '(unknown)');
+//         return {
+//           plainLyrics: data.plainLyrics,
+//           territory: data.territory || '?',
+//           exact: data.exact ?? (name === trackName),
+//         };
+//       }
+//       console.debug('[lyrics] KKBOX: response OK but no plainLyrics');
+//     } catch (err) {
+//       console.debug('[lyrics] KKBOX: error', err.message);
+//     }
+//   }
+//   return null;
+// }
+//
+// const KKBOX_TERRITORIES = ['hk', 'tw', 'jp', 'sg', 'my'];
+//
+// /**
+//  * Pick the song in a KKBOX search response that really is the track we asked
+//  * for.  KKBOX answers every query with a full page of ~20 songs — even
+//  * nonsense ones — so trusting the top hit is how an unrelated song's lyrics
+//  * end up on screen.  Matching folds Traditional to Simplified first, so
+//  * Spotify's "在松手跟不松手之间" finds KKBOX's "在鬆手跟不鬆手之間".
+//  */
+// function pickKKBOXResult(searchData, trackName, artistName) {
+//   const results = searchData?.data?.result;
+//   if (!Array.isArray(results) || results.length === 0) return null;
+//
+//   const candidates = results.map((r) => ({
+//     title: r?.name || '',
+//     artist: r?.album?.artist?.name || '',
+//     url: r?.url || '',
+//   }));
+//
+//   const index = selectBestMatch(candidates, trackName, artistName);
+//   if (index < 0 || !candidates[index].url) return null;
+//   return candidates[index];
+// }
 
 /**
  * QQ Music via the Cloudflare Worker.  Line-synced LRC with strong Mandarin
@@ -229,107 +253,138 @@ function pickKKBOXResult(searchData, trackName, artistName) {
  * lyric API rejects requests without a y.qq.com referer, which a browser
  * cannot set cross-origin.
  */
-export async function fetchLyricsFromQQ(workerUrl, trackName, artistName) {
+export function fetchLyricsFromQQ(workerUrl, trackName, artistName, durationSec) {
+  return fetchSyncedViaWorker(workerUrl, 'qq-lyrics', 'QQ', trackName, artistName, durationSec);
+}
+
+/**
+ * Line-synced LRC from one of the Worker's duration-matched routes.  These
+ * services list remixes and live cuts under the same title, so the Worker
+ * matches the recording by length too, and the track length is passed along.
+ */
+async function fetchSyncedViaWorker(workerUrl, route, label, trackName, artistName, durationSec) {
   if (!workerUrl) return null;
 
   const params = new URLSearchParams({ title: trackName, artist: artistName });
-  const url = `${workerUrl}/qq-lyrics?${params}`;
-  console.debug('[lyrics] QQ:', url);
+  if (durationSec) params.set('duration', String(Math.round(durationSec)));
+  const url = `${workerUrl}/${route}?${params}`;
+  console.debug(`[lyrics] ${label}:`, url);
   try {
     const resp = await fetch(url);
-    if (!resp.ok) { console.debug('[lyrics] QQ: HTTP', resp.status); return null; }
+    if (!resp.ok) { console.debug(`[lyrics] ${label}: HTTP`, resp.status); return null; }
     const data = await resp.json();
-    if (!data.syncedLyrics) { console.debug('[lyrics] QQ: response OK but no syncedLyrics'); return null; }
-    console.debug('[lyrics] QQ: matched', data.matchedTitle, '—', data.matchedArtist);
+    if (!data.syncedLyrics) { console.debug(`[lyrics] ${label}: response OK but no syncedLyrics`); return null; }
+    console.debug(`[lyrics] ${label}: matched`, data.matchedTitle, '—', data.matchedArtist);
     return { syncedLyrics: data.syncedLyrics };
   } catch (err) {
-    console.debug('[lyrics] QQ: error', err.message);
+    console.debug(`[lyrics] ${label}: error`, err.message);
     return null;
   }
 }
 
 /**
- * Browser-direct fallback: calls KKBOX search API + scrapes song page JSON-LD
- * without going through the Cloudflare Worker. Works when the Worker is
- * unreachable or KKBOX blocks Worker IPs but allows browser requests.
+ * Kugou Music via the Cloudflare Worker.  Worker-only because Kugou's
+ * endpoints are plain HTTP, which an HTTPS page is not allowed to call.
  */
-export async function fetchLyricsFromKKBOXDirect(trackName, artistName) {
-  const KKBOX_UA_HEADERS = {
-    Accept: 'application/json',
-  };
-
-  try {
-    const fullTitle = normalizeForMatch(trackName);
-    const queries = titleQueryVariants(trackName).map((name) => ({
-      q: `${name} ${artistName}`.trim(),
-      exact: normalizeForMatch(name) === fullTitle,
-    }));
-
-    let songUrl = null;
-    let matchTerr = null;
-    let matchExact = true;
-    outer:
-    for (const { q, exact } of queries) {
-      for (const terr of KKBOX_TERRITORIES) {
-        const searchUrl =
-          'https://www.kkbox.com/api/search/song?q=' +
-          encodeURIComponent(q) +
-          `&terr=${terr}&lang=tc`;
-        console.debug('[lyrics] KKBOX-direct: search', searchUrl);
-
-        try {
-          const searchResp = await fetch(searchUrl, { headers: KKBOX_UA_HEADERS });
-          if (!searchResp.ok) {
-            console.debug('[lyrics] KKBOX-direct: search HTTP', searchResp.status);
-            continue;
-          }
-          const searchData = await searchResp.json();
-          const hit = pickKKBOXResult(searchData, trackName, artistName);
-          if (hit) {
-            console.debug('[lyrics] KKBOX-direct: matched', hit.title, '—', hit.artist);
-            songUrl = hit.url;
-            matchTerr = terr;
-            matchExact = exact;
-            break outer;
-          }
-          console.debug('[lyrics] KKBOX-direct: no result matched the track');
-        } catch { continue; }
-      }
-    }
-
-    if (!songUrl) {
-      console.debug('[lyrics] KKBOX-direct: no matching song in any territory');
-      return null;
-    }
-    console.debug('[lyrics] KKBOX-direct: song page', songUrl);
-
-    const pageResp = await fetch(songUrl, { headers: { Accept: 'text/html' } });
-    if (!pageResp.ok) {
-      console.debug('[lyrics] KKBOX-direct: page HTTP', pageResp.status);
-      return null;
-    }
-    const html = await pageResp.text();
-
-    const jsonLdRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
-    let match;
-    while ((match = jsonLdRegex.exec(html)) !== null) {
-      try {
-        const ld = JSON.parse(match[1]);
-        const text = ld?.recordingOf?.lyrics?.text;
-        if (text) {
-          console.debug('[lyrics] KKBOX-direct: found plain lyrics');
-          return { plainLyrics: text, territory: matchTerr, exact: matchExact };
-        }
-      } catch { /* not the right JSON-LD block */ }
-    }
-
-    console.debug('[lyrics] KKBOX-direct: no lyrics in JSON-LD');
-    return null;
-  } catch (err) {
-    console.debug('[lyrics] KKBOX-direct: error', err.message);
-    return null;
-  }
+export function fetchLyricsFromKugou(workerUrl, trackName, artistName, durationSec) {
+  return fetchSyncedViaWorker(workerUrl, 'kugou-lyrics', 'Kugou', trackName, artistName, durationSec);
 }
+
+/**
+ * NetEase Cloud Music via the Cloudflare Worker — an independent lyric
+ * database, so it fills different gaps from QQ and Kugou.  Worker-only
+ * because its endpoints send no CORS headers.
+ */
+export function fetchLyricsFromNetEase(workerUrl, trackName, artistName, durationSec) {
+  return fetchSyncedViaWorker(workerUrl, 'netease-lyrics', 'NetEase', trackName, artistName, durationSec);
+}
+
+// ── KKBOX, browser-direct (deprecated) ──
+//
+// DEPRECATED (2026-10-31) — see the note above fetchLyricsFromKKBOX.
+//
+// /**
+//  * Browser-direct fallback: calls KKBOX search API + scrapes song page JSON-LD
+//  * without going through the Cloudflare Worker. Works when the Worker is
+//  * unreachable or KKBOX blocks Worker IPs but allows browser requests.
+//  */
+// export async function fetchLyricsFromKKBOXDirect(trackName, artistName) {
+//   const KKBOX_UA_HEADERS = {
+//     Accept: 'application/json',
+//   };
+//
+//   try {
+//     const fullTitle = normalizeForMatch(trackName);
+//     const queries = titleQueryVariants(trackName).map((name) => ({
+//       q: `${name} ${artistName}`.trim(),
+//       exact: normalizeForMatch(name) === fullTitle,
+//     }));
+//
+//     let songUrl = null;
+//     let matchTerr = null;
+//     let matchExact = true;
+//     outer:
+//     for (const { q, exact } of queries) {
+//       for (const terr of KKBOX_TERRITORIES) {
+//         const searchUrl =
+//           'https://www.kkbox.com/api/search/song?q=' +
+//           encodeURIComponent(q) +
+//           `&terr=${terr}&lang=tc`;
+//         console.debug('[lyrics] KKBOX-direct: search', searchUrl);
+//
+//         try {
+//           const searchResp = await fetch(searchUrl, { headers: KKBOX_UA_HEADERS });
+//           if (!searchResp.ok) {
+//             console.debug('[lyrics] KKBOX-direct: search HTTP', searchResp.status);
+//             continue;
+//           }
+//           const searchData = await searchResp.json();
+//           const hit = pickKKBOXResult(searchData, trackName, artistName);
+//           if (hit) {
+//             console.debug('[lyrics] KKBOX-direct: matched', hit.title, '—', hit.artist);
+//             songUrl = hit.url;
+//             matchTerr = terr;
+//             matchExact = exact;
+//             break outer;
+//           }
+//           console.debug('[lyrics] KKBOX-direct: no result matched the track');
+//         } catch { continue; }
+//       }
+//     }
+//
+//     if (!songUrl) {
+//       console.debug('[lyrics] KKBOX-direct: no matching song in any territory');
+//       return null;
+//     }
+//     console.debug('[lyrics] KKBOX-direct: song page', songUrl);
+//
+//     const pageResp = await fetch(songUrl, { headers: { Accept: 'text/html' } });
+//     if (!pageResp.ok) {
+//       console.debug('[lyrics] KKBOX-direct: page HTTP', pageResp.status);
+//       return null;
+//     }
+//     const html = await pageResp.text();
+//
+//     const jsonLdRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
+//     let match;
+//     while ((match = jsonLdRegex.exec(html)) !== null) {
+//       try {
+//         const ld = JSON.parse(match[1]);
+//         const text = ld?.recordingOf?.lyrics?.text;
+//         if (text) {
+//           console.debug('[lyrics] KKBOX-direct: found plain lyrics');
+//           return { plainLyrics: text, territory: matchTerr, exact: matchExact };
+//         }
+//       } catch { /* not the right JSON-LD block */ }
+//     }
+//
+//     console.debug('[lyrics] KKBOX-direct: no lyrics in JSON-LD');
+//     return null;
+//   } catch (err) {
+//     console.debug('[lyrics] KKBOX-direct: error', err.message);
+//     return null;
+//   }
+// }
 
 // ── LRU Cache ──
 
@@ -374,11 +429,16 @@ const NO_RESULT = Object.freeze({ lyrics: null, syncType: null, source: null });
  *
  *  1. Returns immediately on cache hit.
  *  2. Tries Spotify (highest-quality, word/line synced) first.
- *  3. On miss, fires LRCLIB + QQ Music + KKBOX Worker + KKBOX Direct in
- *     parallel, then picks the best result by priority:
- *       LRCLIB synced > QQ synced > LRCLIB plain > KKBOX Worker > KKBOX Direct
- *     Synced beats plain throughout; KKBOX stays last because it only ever
- *     yields plain text.
+ *  3. On miss, fires LRCLIB + Kugou + QQ Music + NetEase in parallel, and
+ *     returns the best by priority as soon as it is known, without waiting
+ *     for lower-ranked sources:
+ *       LRCLIB synced > Kugou synced > QQ synced > NetEase synced >
+ *       LRCLIB plain
+ *     Synced beats plain throughout.  Kugou leads the Chinese services: like
+ *     QQ it is Tencent Music, it found every song QQ did in testing, and it
+ *     answers about three times faster.  KKBOX, which only ever yielded plain
+ *     text and sat last, is deprecated — see the note above
+ *     fetchLyricsFromKKBOX.
  *  4. Caches successful results for instant re-visits.
  */
 export async function fetchLyrics(workerUrl, trackId, trackName, artistName, trackDurationMs, spotifyToken) {
@@ -406,40 +466,49 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
     }
   }
 
-  // 2. Fire remaining sources in parallel
-  console.debug('[lyrics] Spotify miss — querying LRCLIB + QQ + KKBOX in parallel');
-  const [lrcData, qqData, kkboxWorker, kkboxDirect] = await Promise.all([
-    fetchLyricsFromLRCLIB(trackName, artistName, trackDurationMs / 1000),
-    fetchLyricsFromQQ(workerUrl, trackName, artistName),
-    fetchLyricsFromKKBOX(workerUrl, trackName, artistName),
-    fetchLyricsFromKKBOXDirect(trackName, artistName),
-  ]);
+  // 2. Fire every remaining source at once
+  console.debug('[lyrics] Spotify miss — querying LRCLIB + Kugou + QQ + NetEase in parallel');
+  const durationSec = trackDurationMs / 1000;
+  const lrclib = fetchLyricsFromLRCLIB(trackName, artistName, durationSec);
+  const kugou = fetchLyricsFromKugou(workerUrl, trackName, artistName, durationSec);
+  const qq = fetchLyricsFromQQ(workerUrl, trackName, artistName, durationSec);
+  const netease = fetchLyricsFromNetEase(workerUrl, trackName, artistName, durationSec);
+  // Deprecated — see the KKBOX note above fetchLyricsFromKKBOX.
+  // const kkboxWorker = fetchLyricsFromKKBOX(workerUrl, trackName, artistName);
+  // const kkboxDirect = fetchLyricsFromKKBOXDirect(trackName, artistName);
 
-  // 3. Pick best result by priority
+  const synced = (source, pending) => async () => {
+    const lines = parseLRC((await pending)?.syncedLyrics || '');
+    return lines.length > 0 ? { lyrics: lines, syncType: 'LINE_SYNCED', source } : null;
+  };
+  const plain = (source, pending) => async () => {
+    const data = await pending;
+    if (!data?.plainLyrics) return null;
+    // KKBOX reported where it matched (deprecated):
+    // if (data.territory) console.debug(`[lyrics] ${source}:`, data.territory, data.exact ? 'exact' : 'title only');
+    return { lyrics: data.plainLyrics, syncType: 'PLAIN', source };
+  };
+
+  // 3. Take the best result as soon as it can be chosen: the first source, in
+  //    priority order, with lyrics — once it and every source ranked above it
+  //    have answered.  Everything is already in flight, so a slow source only
+  //    costs time while it is still the best hope, and the plain tier is
+  //    consulted only after every synced source has missed.
+  const ranked = [
+    synced('LRCLIB', lrclib),
+    synced('Kugou Music', kugou),
+    synced('QQ Music', qq),
+    synced('NetEase Cloud Music', netease),
+    plain('LRCLIB', lrclib),
+    // Deprecated — see the KKBOX note above fetchLyricsFromKKBOX.
+    // plain('KKBOX', kkboxWorker),
+    // plain('KKBOX', kkboxDirect),
+  ];
+
   let result = null;
-
-  if (lrcData?.syncedLyrics) {
-    const lines = parseLRC(lrcData.syncedLyrics);
-    if (lines.length > 0) {
-      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'LRCLIB' };
-    }
-  }
-  if (!result && qqData?.syncedLyrics) {
-    const lines = parseLRC(qqData.syncedLyrics);
-    if (lines.length > 0) {
-      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'QQ Music' };
-    }
-  }
-  if (!result && lrcData?.plainLyrics) {
-    result = { lyrics: lrcData.plainLyrics, syncType: 'PLAIN', source: 'LRCLIB' };
-  }
-  if (!result && kkboxWorker) {
-    console.debug('[lyrics] KKBOX:', kkboxWorker.territory, kkboxWorker.exact ? 'exact' : 'title only');
-    result = { lyrics: kkboxWorker.plainLyrics, syncType: 'PLAIN', source: 'KKBOX' };
-  }
-  if (!result && kkboxDirect) {
-    console.debug('[lyrics] KKBOX-direct:', kkboxDirect.territory, kkboxDirect.exact ? 'exact' : 'title only');
-    result = { lyrics: kkboxDirect.plainLyrics, syncType: 'PLAIN', source: 'KKBOX' };
+  for (const pick of ranked) {
+    result = await pick();
+    if (result) break;
   }
 
   if (result) {
