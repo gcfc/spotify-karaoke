@@ -75,9 +75,25 @@ const LYRIC_SEARCH = {
 
 let requests = [];
 
+// Injected failures, { step, kind, times }: each matching request uses one up.
+let faults = [];
+const stepOf = (url) => (url.hostname === 'mobilecdn.kugou.com' ? 'song search'
+  : url.pathname === '/search' ? 'lyric search' : 'download');
+const FAULTS = {
+  'network error': () => { throw new TypeError('fetch failed'); },
+  503: () => json({ error: 'unavailable' }, 503),
+  'non-JSON body': () => new Response('<html>busy</html>', { status: 200 }),
+  404: () => json({ status: 404 }, 404),
+};
+
 globalThis.fetch = async (input) => {
   const url = new URL(String(input));
   requests.push(url);
+  const fault = faults.find((f) => f.step === stepOf(url) && f.times > 0);
+  if (fault) {
+    fault.times--;
+    return FAULTS[fault.kind]();
+  }
   const q = url.searchParams;
 
   if (url.hostname === 'mobilecdn.kugou.com') {
@@ -160,6 +176,30 @@ assert(r.status === 400,
 const corsResp = await worker.fetch(new Request('https://worker.test/kugou-lyrics?title=x'), {});
 assert(corsResp.headers.get('Access-Control-Allow-Origin') === '*',
   'responses carry the CORS header the page needs');
+
+console.log('\n── Transient failures ──');
+
+const attempts = (step) => requests.filter((u) => stepOf(u) === step).length;
+const ORIGINAL_SONG = { title: '不能成情人', artist: '丁家怡', duration: '194' };
+
+for (const [step, kind] of [['song search', 'network error'], ['lyric search', 503], ['download', 'non-JSON body']]) {
+  faults = [{ step, kind, times: 1 }];
+  r = await kugou(ORIGINAL_SONG);
+  assert(r.status === 200 && r.body.syncedLyrics?.includes('轻轻的风') && attempts(step) === 2,
+    `a ${kind} on the ${step} is retried once, and the lookup succeeds`);
+}
+
+faults = [{ step: 'download', kind: 503, times: 2 }];
+r = await kugou(ORIGINAL_SONG);
+assert(r.status === 404 && attempts('download') === 2,
+  'a failure that repeats is given up after one retry');
+
+faults = [{ step: 'lyric search', kind: 404, times: 1 }];
+r = await kugou(ORIGINAL_SONG);
+assert(r.status === 404 && attempts('lyric search') === 1,
+  'a 4xx is an answer, not a blip, and is not retried');
+
+faults = [];
 
 // ── Summary ──
 

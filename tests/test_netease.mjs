@@ -79,9 +79,20 @@ const LYRIC = {
 
 let searchCode = 200;
 
+// Injected failures, { path, times, respond }: each matching request uses one
+// up.  `calls` counts requests per path so retries can be checked.
+let faults = [];
+let calls = {};
+
 globalThis.fetch = async (input) => {
   const url = new URL(String(input));
   if (url.hostname !== 'music.163.com') return json({ error: 'unexpected request' }, 500);
+  calls[url.pathname] = (calls[url.pathname] || 0) + 1;
+  const fault = faults.find((f) => f.path === url.pathname && f.times > 0);
+  if (fault) {
+    fault.times--;
+    return fault.respond();
+  }
 
   if (url.pathname === '/api/search/get') {
     if (searchCode !== 200) return json({ code: searchCode, msg: 'Cheating' });
@@ -160,6 +171,22 @@ r = await netease({ title: '不能成情人', artist: '丁家怡', duration: '19
 assert(r.status === 404 && /No matching/.test(r.body.error),
   'a refused search (code -460) → 404 rather than an error');
 searchCode = 200;
+
+console.log('\n── Transient failures ──');
+
+faults = [{ path: '/api/search/get', times: 1, respond: () => json({ error: 'bad gateway' }, 502) }];
+calls = {};
+r = await netease({ title: '不能成情人', artist: '丁家怡', duration: '194' });
+assert(r.status === 200 && calls['/api/search/get'] === 2,
+  'a 502 on the search is retried once, and the lookup succeeds');
+
+faults = [{ path: '/api/song/lyric', times: 1, respond: () => { throw new TypeError('fetch failed'); } }];
+calls = {};
+r = await netease({ title: '不能成情人', artist: '丁家怡', duration: '194' });
+assert(r.status === 200 && calls['/api/song/lyric'] === 2 && r.body.syncedLyrics?.includes('[00:17.26]'),
+  'a network error on the lyric fetch is retried once, and the lookup succeeds');
+
+faults = [];
 
 r = await netease({ artist: '丁家怡' });
 assert(r.status === 400,

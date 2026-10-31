@@ -244,6 +244,33 @@ async function fetchQQLyrics(mid) {
   }
 }
 
+// ── Retrying transient failures ──
+
+// Kugou and NetEase occasionally fail a single request and then answer the
+// next one — one Kugou lookup in about seventy came back empty in testing and
+// succeeded on re-run.  So a request that fails in a way that may not repeat
+// (a network error, a 5xx, or a body that isn't JSON) is retried once after a
+// short pause.  A 4xx is an answer, not a blip, and is not retried.  QQ is
+// deliberately left out: its failures so far have been blocks lasting
+// minutes, which a retry only prolongs.
+const RETRY_DELAY_MS = 500;
+
+/** GET a JSON endpoint, retrying once on a transient failure.  Resolves to
+ *  null on a 4xx; throws if the retry fails too. */
+async function fetchJSONWithRetry(url, init) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const resp = await fetch(url, init);
+      if (resp.status >= 500) throw new Error(`HTTP ${resp.status}`);
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch (err) {
+      if (attempt >= 2) throw err;
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    }
+  }
+}
+
 // ── Recording matching for sources that report track length ──
 
 // The same recording is listed a few seconds apart across platforms (up to
@@ -330,9 +357,7 @@ async function searchKugou(title, artist, durationSec) {
     const q = encodeURIComponent(`${name} ${artist}`.trim());
     const url = `http://mobilecdn.kugou.com/api/v3/search/song?format=json&keyword=${q}&page=1&pagesize=20`;
     try {
-      const resp = await fetch(url, { headers: KUGOU_HEADERS });
-      if (!resp.ok) continue;
-      const data = await resp.json();
+      const data = await fetchJSONWithRetry(url, { headers: KUGOU_HEADERS });
       const results = data?.data?.info;
       if (!Array.isArray(results) || results.length === 0) continue;
 
@@ -373,9 +398,8 @@ async function fetchKugouLyrics(song) {
       duration: String(song.durationSec * 1000),
       hash: song.hash,
     });
-    const searchResp = await fetch(`http://lyrics.kugou.com/search?${searchParams}`, { headers: KUGOU_HEADERS });
-    if (!searchResp.ok) return null;
-    const candidates = (await searchResp.json())?.candidates;
+    const search = await fetchJSONWithRetry(`http://lyrics.kugou.com/search?${searchParams}`, { headers: KUGOU_HEADERS });
+    const candidates = search?.candidates;
     if (!Array.isArray(candidates)) return null;
 
     // Kugou also files ringtone-length snippets — 30 seconds of chorus —
@@ -392,9 +416,8 @@ async function fetchKugouLyrics(song) {
       fmt: 'lrc',
       charset: 'utf8',
     });
-    const downloadResp = await fetch(`http://lyrics.kugou.com/download?${downloadParams}`, { headers: KUGOU_HEADERS });
-    if (!downloadResp.ok) return null;
-    const content = (await downloadResp.json())?.content;
+    const download = await fetchJSONWithRetry(`http://lyrics.kugou.com/download?${downloadParams}`, { headers: KUGOU_HEADERS });
+    const content = download?.content;
     return content ? decodeBase64Utf8(content) : null;
   } catch {
     return null;
@@ -421,9 +444,7 @@ async function searchNetEase(title, artist, durationSec) {
     const q = encodeURIComponent(`${name} ${artist}`.trim());
     const url = `https://music.163.com/api/search/get?s=${q}&type=1&limit=20`;
     try {
-      const resp = await fetch(url, { headers: NETEASE_HEADERS });
-      if (!resp.ok) continue;
-      const data = await resp.json();
+      const data = await fetchJSONWithRetry(url, { headers: NETEASE_HEADERS });
       const results = data?.result?.songs;
       if (data?.code !== 200 || !Array.isArray(results) || results.length === 0) continue;
 
@@ -446,9 +467,7 @@ async function searchNetEase(title, artist, durationSec) {
 async function fetchNetEaseLyrics(id) {
   const url = `https://music.163.com/api/song/lyric?id=${encodeURIComponent(id)}&lv=1`;
   try {
-    const resp = await fetch(url, { headers: NETEASE_HEADERS });
-    if (!resp.ok) return null;
-    const lyric = (await resp.json())?.lrc?.lyric;
+    const lyric = (await fetchJSONWithRetry(url, { headers: NETEASE_HEADERS }))?.lrc?.lyric;
     // Some songs carry untimed text in the same field.
     return lyric && LRC_TIMESTAMP_RE.test(lyric) ? lyric : null;
   } catch {

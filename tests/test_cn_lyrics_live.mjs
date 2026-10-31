@@ -9,6 +9,12 @@
  * answers).  Its cases are skipped, not failed, when QQ's own search is
  * refusing — a failure there means the route broke, not QQ.
  *
+ * Lookups are paced a second apart, and a case that fails is retried once
+ * after two seconds.  A pass on the retry is marked "(passed on retry)" and
+ * counted in the summary, so a transient blip doesn't fail the run but stays
+ * visible; a real breakage fails both attempts.  (The Worker also retries a
+ * transient Kugou or NetEase failure once on its own.)
+ *
  * Each case pins the native artist the service should resolve to and one
  * line the lyrics must contain, and checks the matched recording is within
  * the duration tolerance of the Spotify length.  Lines are compared after
@@ -76,6 +82,30 @@ const SONGS = [
   ['Bohemian Rhapsody - Remastered 2011', 'Queen', 355, 'Queen', 'Mama just killed a man', { kugou: HAS, netease: HAS }],
 ];
 
+// Pacing and one retry.  Each lookup waits PACE_MS after the last, so a run
+// doesn't burst requests at services that block bursts.  A case that fails is
+// run once more after RETRY_MS; passing then is reported as such, so flakiness
+// stays visible, while a real breakage fails both times.
+const PACE_MS = 1000;
+const RETRY_MS = 2000;
+let retried = 0;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function runCase(check) {
+  await sleep(PACE_MS);
+  let { ok, label } = await check();
+  if (!ok) {
+    await sleep(RETRY_MS);
+    ({ ok, label } = await check());
+    if (ok) {
+      retried++;
+      label += ' (passed on retry)';
+    }
+  }
+  assert(ok, label);
+}
+
 async function lookup(service, title, artist, duration) {
   const params = new URLSearchParams({ title, artist });
   if (duration) params.set('duration', String(duration));
@@ -83,51 +113,57 @@ async function lookup(service, title, artist, duration) {
   return { status: resp.status, body: await resp.json() };
 }
 
+async function checkSong(service, [title, artist, duration, nativeArtist, line], expectation) {
+  const label = `${title} — ${artist}`;
+  const { status, body } = await lookup(service, title, artist, duration);
+  const byArtist = status === 200
+    && normalizeForMatch(body.matchedArtist).includes(normalizeForMatch(nativeArtist));
+
+  if (expectation === NO_COVER) {
+    return { ok: status === 404 || byArtist, label: `${label}: not a cover → ${status === 200 ? body.matchedArtist : status}` };
+  }
+  if (status !== 200) {
+    return { ok: false, label: `${label}: HTTP ${status} ${body.error || ''}` };
+  }
+  const lines = parseLRC(body.syncedLyrics);
+  const text = normalizeForMatch(lines.map((l) => l.words).join('\n'));
+  return {
+    ok: byArtist
+      && Math.abs(body.matchedDurationSec - duration) <= 5
+      && lines.length >= 20
+      && (!line || text.includes(normalizeForMatch(line))),
+    label: `${label} → ${body.matchedArtist} / ${body.matchedTitle} (${body.matchedDurationSec}s, ${lines.length} lines)`,
+  };
+}
+
 for (const service of ['kugou', 'netease']) {
   console.log(`\n── ${service}: songs ──`);
 
-  for (const [title, artist, duration, nativeArtist, line, expect] of SONGS) {
-    const expectation = expect[service];
-    if (!expectation) continue;
-
-    const label = `${title} — ${artist}`;
-    const { status, body } = await lookup(service, title, artist, duration);
-    const byArtist = status === 200
-      && normalizeForMatch(body.matchedArtist).includes(normalizeForMatch(nativeArtist));
-
-    if (expectation === NO_COVER) {
-      assert(status === 404 || byArtist,
-        `${label}: not a cover → ${status === 200 ? body.matchedArtist : status}`);
-      continue;
-    }
-    if (status !== 200) {
-      assert(false, `${label}: HTTP ${status} ${body.error || ''}`);
-      continue;
-    }
-    const lines = parseLRC(body.syncedLyrics);
-    const text = normalizeForMatch(lines.map((l) => l.words).join('\n'));
-    assert(
-      byArtist
-        && Math.abs(body.matchedDurationSec - duration) <= 5
-        && lines.length >= 20
-        && text.includes(normalizeForMatch(line)),
-      `${label} → ${body.matchedArtist} / ${body.matchedTitle} (${body.matchedDurationSec}s, ${lines.length} lines)`,
-    );
+  for (const song of SONGS) {
+    const expectation = song[5][service];
+    if (expectation) await runCase(() => checkSong(service, song, expectation));
   }
 
   console.log(`\n── ${service}: picking the right cut ──`);
 
   // Listed under the bare title on Kugou, 2s shorter than the original.
-  let r = await lookup(service, '不能成情人 (港风电音)', '丁家怡', 192);
-  assert(r.status === 200 && Math.round(r.body.matchedDurationSec) === 192 && r.body.matchedTitle.includes('港风电音'),
-    `the 港风电音 remix, not the original → ${r.body.matchedTitle} (${r.body.matchedDurationSec}s)`);
+  await runCase(async () => {
+    const r = await lookup(service, '不能成情人 (港风电音)', '丁家怡', 192);
+    return {
+      ok: r.status === 200 && Math.round(r.body.matchedDurationSec) === 192 && r.body.matchedTitle.includes('港风电音'),
+      label: `the 港风电音 remix, not the original → ${r.body.matchedTitle} (${r.body.matchedDurationSec}s)`,
+    };
+  });
 
-  r = await lookup(service, '不能成情人', '丁家怡', 240);
-  assert(r.status === 404,
-    'a length no recording is near → 404, rather than another cut\'s timing');
+  await runCase(async () => ({
+    ok: (await lookup(service, '不能成情人', '丁家怡', 240)).status === 404,
+    label: 'a length no recording is near → 404, rather than another cut\'s timing',
+  }));
 
-  r = await lookup(service, 'zzqx qwvb nonexistent', 'Nobody Atall', 200);
-  assert(r.status === 404, 'nonsense query → 404');
+  await runCase(async () => ({
+    ok: (await lookup(service, 'zzqx qwvb nonexistent', 'Nobody Atall', 200)).status === 404,
+    label: 'nonsense query → 404',
+  }));
 }
 
 console.log('\n── qq ──');
@@ -153,24 +189,18 @@ async function qqSearchAnswers() {
 }
 
 const qqDown = await qqSearchAnswers();
-for (const [title, artist, duration, nativeArtist] of QQ_SONGS) {
-  const label = `${title} — ${artist}`;
+for (const song of QQ_SONGS) {
   if (qqDown) {
-    skip(label, qqDown);
+    skip(`${song[0]} — ${song[1]}`, qqDown);
     continue;
   }
-  const { status, body } = await lookup('qq', title, artist, duration);
-  assert(status === 200
-      && normalizeForMatch(body.matchedArtist).includes(normalizeForMatch(nativeArtist))
-      && Math.abs(body.matchedDurationSec - duration) <= 5
-      && parseLRC(body.syncedLyrics).length >= 20,
-    `${label} → ${status === 200 ? `${body.matchedArtist} / ${body.matchedTitle} (${body.matchedDurationSec}s)` : `HTTP ${status}`}`);
+  await runCase(() => checkSong('qq', song, HAS));
 }
 
 // ── Summary ──
 
 console.log(`\n${'─'.repeat(40)}`);
-console.log(`Results: ${passed} passed, ${failed} failed, ${skipped} skipped, ${passed + failed + skipped} total`);
+console.log(`Results: ${passed} passed (${retried} on retry), ${failed} failed, ${skipped} skipped, ${passed + failed + skipped} total`);
 
 if (failed > 0) {
   process.exit(1);
