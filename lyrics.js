@@ -239,23 +239,8 @@ function pickKKBOXResult(searchData, trackName, artistName) {
  * lyric API rejects requests without a y.qq.com referer, which a browser
  * cannot set cross-origin.
  */
-export async function fetchLyricsFromQQ(workerUrl, trackName, artistName) {
-  if (!workerUrl) return null;
-
-  const params = new URLSearchParams({ title: trackName, artist: artistName });
-  const url = `${workerUrl}/qq-lyrics?${params}`;
-  console.debug('[lyrics] QQ:', url);
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) { console.debug('[lyrics] QQ: HTTP', resp.status); return null; }
-    const data = await resp.json();
-    if (!data.syncedLyrics) { console.debug('[lyrics] QQ: response OK but no syncedLyrics'); return null; }
-    console.debug('[lyrics] QQ: matched', data.matchedTitle, '—', data.matchedArtist);
-    return { syncedLyrics: data.syncedLyrics };
-  } catch (err) {
-    console.debug('[lyrics] QQ: error', err.message);
-    return null;
-  }
+export function fetchLyricsFromQQ(workerUrl, trackName, artistName, durationSec) {
+  return fetchSyncedViaWorker(workerUrl, 'qq-lyrics', 'QQ', trackName, artistName, durationSec);
 }
 
 /**
@@ -426,12 +411,15 @@ const NO_RESULT = Object.freeze({ lyrics: null, syncType: null, source: null });
  *
  *  1. Returns immediately on cache hit.
  *  2. Tries Spotify (highest-quality, word/line synced) first.
- *  3. On miss, fires LRCLIB + QQ Music + Kugou + NetEase + KKBOX Worker +
- *     KKBOX Direct in parallel, then picks the best result by priority:
- *       LRCLIB synced > QQ synced > Kugou synced > NetEase synced >
+ *  3. On miss, fires LRCLIB + Kugou + QQ Music + NetEase + KKBOX Worker +
+ *     KKBOX Direct in parallel, and returns the best by priority as soon as
+ *     it is known, without waiting for lower-ranked sources:
+ *       LRCLIB synced > Kugou synced > QQ synced > NetEase synced >
  *       LRCLIB plain > KKBOX Worker > KKBOX Direct
  *     Synced beats plain throughout; KKBOX stays last because it only ever
- *     yields plain text.
+ *     yields plain text.  Kugou leads the Chinese services: like QQ it is
+ *     Tencent Music, it found every song QQ did in testing, and it answers
+ *     about three times faster.
  *  4. Caches successful results for instant re-visits.
  */
 export async function fetchLyrics(workerUrl, trackId, trackName, artistName, trackDurationMs, spotifyToken) {
@@ -459,54 +447,46 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
     }
   }
 
-  // 2. Fire remaining sources in parallel
-  console.debug('[lyrics] Spotify miss — querying LRCLIB + QQ + Kugou + NetEase + KKBOX in parallel');
-  const [lrcData, qqData, kugouData, neteaseData, kkboxWorker, kkboxDirect] = await Promise.all([
-    fetchLyricsFromLRCLIB(trackName, artistName, trackDurationMs / 1000),
-    fetchLyricsFromQQ(workerUrl, trackName, artistName),
-    fetchLyricsFromKugou(workerUrl, trackName, artistName, trackDurationMs / 1000),
-    fetchLyricsFromNetEase(workerUrl, trackName, artistName, trackDurationMs / 1000),
-    fetchLyricsFromKKBOX(workerUrl, trackName, artistName),
-    fetchLyricsFromKKBOXDirect(trackName, artistName),
-  ]);
+  // 2. Fire every remaining source at once
+  console.debug('[lyrics] Spotify miss — querying LRCLIB + Kugou + QQ + NetEase + KKBOX in parallel');
+  const durationSec = trackDurationMs / 1000;
+  const lrclib = fetchLyricsFromLRCLIB(trackName, artistName, durationSec);
+  const kugou = fetchLyricsFromKugou(workerUrl, trackName, artistName, durationSec);
+  const qq = fetchLyricsFromQQ(workerUrl, trackName, artistName, durationSec);
+  const netease = fetchLyricsFromNetEase(workerUrl, trackName, artistName, durationSec);
+  const kkboxWorker = fetchLyricsFromKKBOX(workerUrl, trackName, artistName);
+  const kkboxDirect = fetchLyricsFromKKBOXDirect(trackName, artistName);
 
-  // 3. Pick best result by priority
+  const synced = (source, pending) => async () => {
+    const lines = parseLRC((await pending)?.syncedLyrics || '');
+    return lines.length > 0 ? { lyrics: lines, syncType: 'LINE_SYNCED', source } : null;
+  };
+  const plain = (source, pending) => async () => {
+    const data = await pending;
+    if (!data?.plainLyrics) return null;
+    if (data.territory) console.debug(`[lyrics] ${source}:`, data.territory, data.exact ? 'exact' : 'title only');
+    return { lyrics: data.plainLyrics, syncType: 'PLAIN', source };
+  };
+
+  // 3. Take the best result as soon as it can be chosen: the first source, in
+  //    priority order, with lyrics — once it and every source ranked above it
+  //    have answered.  Everything is already in flight, so a slow source only
+  //    costs time while it is still the best hope, and the plain tier is
+  //    consulted only after every synced source has missed.
+  const ranked = [
+    synced('LRCLIB', lrclib),
+    synced('Kugou Music', kugou),
+    synced('QQ Music', qq),
+    synced('NetEase Cloud Music', netease),
+    plain('LRCLIB', lrclib),
+    plain('KKBOX', kkboxWorker),
+    plain('KKBOX', kkboxDirect),
+  ];
+
   let result = null;
-
-  if (lrcData?.syncedLyrics) {
-    const lines = parseLRC(lrcData.syncedLyrics);
-    if (lines.length > 0) {
-      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'LRCLIB' };
-    }
-  }
-  if (!result && qqData?.syncedLyrics) {
-    const lines = parseLRC(qqData.syncedLyrics);
-    if (lines.length > 0) {
-      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'QQ Music' };
-    }
-  }
-  if (!result && kugouData?.syncedLyrics) {
-    const lines = parseLRC(kugouData.syncedLyrics);
-    if (lines.length > 0) {
-      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'Kugou Music' };
-    }
-  }
-  if (!result && neteaseData?.syncedLyrics) {
-    const lines = parseLRC(neteaseData.syncedLyrics);
-    if (lines.length > 0) {
-      result = { lyrics: lines, syncType: 'LINE_SYNCED', source: 'NetEase Cloud Music' };
-    }
-  }
-  if (!result && lrcData?.plainLyrics) {
-    result = { lyrics: lrcData.plainLyrics, syncType: 'PLAIN', source: 'LRCLIB' };
-  }
-  if (!result && kkboxWorker) {
-    console.debug('[lyrics] KKBOX:', kkboxWorker.territory, kkboxWorker.exact ? 'exact' : 'title only');
-    result = { lyrics: kkboxWorker.plainLyrics, syncType: 'PLAIN', source: 'KKBOX' };
-  }
-  if (!result && kkboxDirect) {
-    console.debug('[lyrics] KKBOX-direct:', kkboxDirect.territory, kkboxDirect.exact ? 'exact' : 'title only');
-    result = { lyrics: kkboxDirect.plainLyrics, syncType: 'PLAIN', source: 'KKBOX' };
+  for (const pick of ranked) {
+    result = await pick();
+    if (result) break;
   }
 
   if (result) {

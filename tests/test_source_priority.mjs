@@ -2,11 +2,13 @@
  * Unit tests for the lyrics source priority chain, with every network call
  * stubbed so the ordering is checked deterministically and offline:
  *
- *   LRCLIB synced > QQ synced > Kugou synced > NetEase synced >
+ *   LRCLIB synced > Kugou synced > QQ synced > NetEase synced >
  *   LRCLIB plain > KKBOX Worker > KKBOX Direct
  *
  * Synced always beats plain, and KKBOX stays a last resort because it only
- * ever yields plain text.
+ * ever yields plain text.  The chain returns as soon as the winner is known,
+ * so the timing cases check it neither waits on lower-ranked sources nor
+ * jumps ahead of higher-ranked ones.
  *
  * Usage:  node tests/test_source_priority.mjs
  */
@@ -37,6 +39,12 @@ const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 const NOT_FOUND = () => json({ error: 'not found' }, 404);
+
+// Answer after `ms`.  Slow answers stay on a live timer, so a chain that
+// wrongly waits for one fails its time limit instead of hanging.
+const after = (ms, respond) => () => new Promise((resolve) => {
+  setTimeout(() => resolve(respond()), ms);
+});
 
 /**
  * Route stubbed responses by URL fragment.  Anything unlisted 404s, which is
@@ -76,7 +84,7 @@ assert(result.source === 'LRCLIB' && result.syncType === 'LINE_SYNCED',
 
 result = await run({ '/qq-lyrics': QQ_SYNCED, '/kkbox-lyrics': KKBOX_PLAIN });
 assert(result.source === 'QQ Music' && result.syncType === 'LINE_SYNCED',
-  'QQ synced is used when LRCLIB has nothing');
+  'QQ synced is used when LRCLIB and Kugou have nothing');
 
 assert(Array.isArray(result.lyrics) && result.lyrics.length === 3
   && result.lyrics[1].startTimeMs === 2500,
@@ -115,8 +123,8 @@ assert(result.source === 'KKBOX',
 console.log('\n── Kugou ──');
 
 result = await run({ '/qq-lyrics': QQ_SYNCED, '/kugou-lyrics': KUGOU_SYNCED });
-assert(result.source === 'QQ Music',
-  'QQ synced outranks Kugou synced');
+assert(result.source === 'Kugou Music',
+  'Kugou synced outranks QQ synced');
 
 result = await run({ '/api/get': LRCLIB_SYNCED, '/kugou-lyrics': KUGOU_SYNCED });
 assert(result.source === 'LRCLIB',
@@ -124,7 +132,7 @@ assert(result.source === 'LRCLIB',
 
 result = await run({ '/kugou-lyrics': KUGOU_SYNCED, '/kkbox-lyrics': KKBOX_PLAIN });
 assert(result.source === 'Kugou Music' && result.syncType === 'LINE_SYNCED',
-  'Kugou synced is used when LRCLIB and QQ have nothing');
+  'Kugou synced is used when LRCLIB has nothing');
 
 assert(Array.isArray(result.lyrics) && result.lyrics.length === 3
   && result.lyrics[2].startTimeMs === 4000,
@@ -155,7 +163,7 @@ assert(result.source === 'QQ Music',
 result = await run({ '/netease-lyrics': NETEASE_SYNCED, '/kkbox-lyrics': KKBOX_PLAIN });
 assert(result.source === 'NetEase Cloud Music' && result.syncType === 'LINE_SYNCED'
   && result.lyrics.length === 3,
-  'NetEase synced is used when LRCLIB, QQ and Kugou have nothing');
+  'NetEase synced is used when LRCLIB, Kugou and QQ have nothing');
 
 result = await run({ '/api/get': LRCLIB_PLAIN, '/netease-lyrics': NETEASE_SYNCED });
 assert(result.source === 'NetEase Cloud Music',
@@ -171,14 +179,56 @@ stubFetch({});
 const stubbed = globalThis.fetch;
 globalThis.fetch = async (url) => {
   const target = new URL(String(url));
-  if (/\/(kugou|netease)-lyrics$/.test(target.pathname)) {
+  if (/\/(qq|kugou|netease)-lyrics$/.test(target.pathname)) {
     durationSent[target.pathname] = target.searchParams.get('duration');
   }
   return stubbed(url);
 };
 await fetchLyrics(WORKER, `track-${trackCounter++}`, 'Song', 'Artist', 194040, null);
-assert(durationSent['/kugou-lyrics'] === '194' && durationSent['/netease-lyrics'] === '194',
-  'the track length is sent to both routes in whole seconds');
+assert(['/qq-lyrics', '/kugou-lyrics', '/netease-lyrics'].every((route) => durationSent[route] === '194'),
+  'the track length is sent to the QQ, Kugou and NetEase routes in whole seconds');
+
+console.log('\n── Returning early ──');
+
+const SLOW = 3000;
+async function timed(routes) {
+  const start = performance.now();
+  const r = await run(routes);
+  return { result: r, ms: Math.round(performance.now() - start) };
+}
+
+let t = await timed({
+  '/api/get': LRCLIB_SYNCED,
+  '/kugou-lyrics': after(SLOW, KUGOU_SYNCED),
+  '/qq-lyrics': after(SLOW, QQ_SYNCED),
+  '/netease-lyrics': after(SLOW, NETEASE_SYNCED),
+  '/kkbox-lyrics': after(SLOW, KKBOX_PLAIN),
+});
+assert(t.result.source === 'LRCLIB' && t.ms < 1000,
+  `the top-ranked synced result returns without waiting for slower sources (${t.ms}ms)`);
+
+t = await timed({
+  '/api/get': after(300, NOT_FOUND),
+  '/kugou-lyrics': after(100, KUGOU_SYNCED),
+  '/qq-lyrics': after(SLOW, QQ_SYNCED),
+  '/netease-lyrics': NETEASE_SYNCED,
+});
+assert(t.result.source === 'Kugou Music' && t.ms >= 250 && t.ms < 1000,
+  `a lower-ranked answer waits for those above it: NetEase answered first, Kugou wins once LRCLIB misses, QQ isn't waited for (${t.ms}ms)`);
+
+t = await timed({
+  '/api/get': LRCLIB_PLAIN,
+  '/kkbox-lyrics': after(SLOW, KKBOX_PLAIN),
+});
+assert(t.result.source === 'LRCLIB' && t.result.syncType === 'PLAIN' && t.ms < 1000,
+  `once every synced source has missed, plain returns without waiting for KKBOX (${t.ms}ms)`);
+
+t = await timed({
+  '/api/get': LRCLIB_PLAIN,
+  '/netease-lyrics': after(300, NETEASE_SYNCED),
+});
+assert(t.result.source === 'NetEase Cloud Music' && t.ms >= 250,
+  `plain waits while a synced source is pending, and the synced answer wins (${t.ms}ms)`);
 
 console.log('\n── Spotify tier is gated on a Spotify track id ──');
 

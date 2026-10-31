@@ -265,16 +265,22 @@ moving between reads.
    for the currently playing track
 3. **Lyrics**: On track change, tries Spotify via the Worker first — skipped
    unless the track id is a real Spotify id, since that route resolves against
-   Spotify's own catalogue. On a miss it queries LRCLIB, QQ Music, Kugou Music,
+   Spotify's own catalogue. On a miss it queries LRCLIB, Kugou Music, QQ Music,
    NetEase Cloud Music and KKBOX in parallel and takes the best result:
 
    ```
    Spotify word-synced > Spotify line-synced > LRCLIB synced >
-   QQ Music synced > Kugou Music synced > NetEase synced >
+   Kugou Music synced > QQ Music synced > NetEase synced >
    LRCLIB plain > KKBOX
    ```
 
-   Synced always beats plain, which is why KKBOX — the only plain-text source — sits last.
+   It returns as soon as the winner is known — the moment a source has lyrics
+   and every source ranked above it has answered — rather than waiting for the
+   slowest. On a 27-song benchmark that cut typical loading from 3.4s to about
+   0.7s. Synced always beats plain, so plain lyrics are used only once every
+   synced source has missed; KKBOX, the only plain-only source, sits last.
+   Kugou outranks QQ because both are Tencent Music, Kugou found every song QQ
+   did, and it answered about three times faster.
 4. **Display**: `requestAnimationFrame` loop interpolates playback position between polls and highlights the current line/word
 
 ## Limitations
@@ -282,11 +288,11 @@ moving between reads.
 - **Spotify Dev Mode (Feb 2026)**: Requires Spotify Premium for the app owner, max 5 authorized users. Fine for personal use.
 - **sp_dc cookie**: Unofficial, lasts ~1 year. If it expires, the Worker will return errors and the site falls back to LRCLIB automatically.
 - **LRCLIB coverage**: Not all songs have synced lyrics in LRCLIB's crowdsourced database.
-- **KKBOX is currently blocked**: KKBOX song pages sit behind an AWS WAF JavaScript challenge (`x-amzn-waf-action: challenge`) that rejects datacenter IPs, so the Worker cannot scrape them — its search API still answers, but every page fetch returns the challenge instead of the lyrics. QQ Music covers most of what KKBOX used to, and with line-level timing rather than plain text. The KKBOX path is left in place as a fallback in case the rule is relaxed.
-- **QQ Music access**: Must be fetched through the Worker — the endpoints send no CORS headers, and the lyric API rejects requests without a `y.qq.com` referer, which a browser cannot set cross-origin.
+- **KKBOX is currently blocked**: the lyrics live in each song page's JSON-LD, and the song pages sit behind an AWS WAF challenge on CloudFront. A request without an `aws-waf-token` cookie — which only a browser that has run KKBOX's challenge script holds — gets HTTP 202 with `x-amzn-waf-action: challenge` and a challenge page instead. Neither the Worker nor the page's cross-origin `fetch()` can carry that token, and a full set of browser headers makes no difference. The search API is not behind the challenge, so searches still succeed and only the page fetch fails. KKBOX's official Open API has no lyrics endpoint.
+- **QQ Music access**: Must be fetched through the Worker — the endpoints send no CORS headers, and the lyric API rejects requests without a `y.qq.com` referer, which a browser cannot set cross-origin. Its search endpoint also refuses datacenter traffic for stretches (HTTP 500 for every query, while the lyric endpoint keeps answering), seen on 2026-10-31 from both a test machine and the deployed Worker.
 - **Kugou Music access**: Also Worker-only, because Kugou's search and lyric endpoints answer only over plain HTTP, which an HTTPS page may not call.
 - **NetEase Cloud Music access**: Worker-only too — its endpoints send no CORS headers. NetEase lacks the licence for some catalogues (Jay Chou, BTS) and answers those searches with other singers' covers, so it sits last among the synced sources.
-- **Matching for Kugou and NetEase**: both list remixes, live cuts and covers under the same title, so the Worker also checks length and artist. A recording more than 5 seconds off the Spotify length is rejected rather than shown with the wrong timing. A cover is rejected when its artist is recognisably someone else, when its title says so (原唱, 翻唱, Cover…), or when another cut of the song on the same page is credited to the artist under Spotify's name. A romanized artist ("Hebe Tien") can't be compared with a native name (田馥甄), so a cover by a Chinese-named singer with no such marker can still get through.
+- **Matching for QQ, Kugou and NetEase**: all three list remixes, live cuts and covers under the same title (QQ has 起风了 at six lengths), so the Worker also checks length and artist. A recording more than 5 seconds off the Spotify length is rejected rather than shown with the wrong timing. A cover is rejected when its artist is recognisably someone else, when its title says so (原唱, 翻唱, Cover…), or when another cut of the song on the same page is credited to the artist under Spotify's name. A romanized artist ("Hebe Tien") can't be compared with a native name (田馥甄), so a cover by a Chinese-named singer with no such marker can still get through.
 - **kugeci.com is not used directly**: it serves the same kind of LRC, but every page sits behind a Cloudflare managed challenge ("Just a moment…") that needs JavaScript and a cookie, so neither the Worker nor the page can fetch it. Kugou's API is the direct route to equivalent data.
 - **Kuwo and Migu are not used**: on a 20-song benchmark Kuwo's search found synced lyrics for 1 song. Migu's search reports no track lengths, so it can't tell a song from its remixes, and it showed it — its Blinding Lights was timed about 14 seconds away from the three other sources that had the song.
 - **Polling latency**: Lyrics sync is approximate — the animation loop interpolates between polls, so accuracy tracks the active source's cadence rather than matching playback exactly.
@@ -311,6 +317,7 @@ spotify-karaoke/
 │                       # `node tests/test_sources.mjs`,
 │                       # `node tests/test_kugou.mjs`,
 │                       # `node tests/test_netease.mjs`,
+│                       # `node tests/test_qq.mjs`,
 │                       # `node tests/test_translate.mjs`;
 │                       # live: `node tests/test_cn_lyrics_live.mjs`
 ├── worker/

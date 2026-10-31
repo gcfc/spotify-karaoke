@@ -1,7 +1,13 @@
 /**
- * Live API tests for the Worker's /kugou-lyrics and /netease-lyrics routes.
- * Runs the routes in-process against the real services, so it checks the
- * code in this checkout rather than whatever Worker is deployed.
+ * Live API tests for the Worker's /kugou-lyrics, /netease-lyrics and
+ * /qq-lyrics routes.  Runs the routes in-process against the real services,
+ * so it checks the code in this checkout rather than whatever Worker is
+ * deployed.
+ *
+ * QQ refuses search requests from datacenter IPs for stretches at a time
+ * (HTTP 500 from its search endpoint, while its lyric endpoint still
+ * answers).  Its cases are skipped, not failed, when QQ's own search is
+ * refusing — a failure there means the route broke, not QQ.
  *
  * Each case pins the native artist the service should resolve to and one
  * line the lyrics must contain, and checks the matched recording is within
@@ -25,6 +31,7 @@ import { normalizeForMatch } from '../matching.js';
 
 let passed = 0;
 let failed = 0;
+let skipped = 0;
 
 function assert(condition, label) {
   if (condition) {
@@ -34,6 +41,11 @@ function assert(condition, label) {
     console.error(`  ✗ ${label}`);
     failed++;
   }
+}
+
+function skip(label, reason) {
+  console.log(`  ⊘ ${label} — skipped: ${reason}`);
+  skipped++;
 }
 
 const HAS = 'has';
@@ -118,10 +130,47 @@ for (const service of ['kugou', 'netease']) {
   assert(r.status === 404, 'nonsense query → 404');
 }
 
+console.log('\n── qq ──');
+
+// [Spotify title, Spotify artist, Spotify length (s), native artist] — each
+// length checked against QQ's own listing.
+const QQ_SONGS = [
+  ['不能成情人', '丁家怡', 194, '丁家怡'],
+  // Listed at 312 (旧版), 321, 323, 325, 328 and 329s.
+  ['起风了', '买辣椒也用券', 326, '买辣椒也用券'],
+  ['稻香', 'Jay Chou', 223, '周杰伦'],
+  ['Blinding Lights', 'The Weeknd', 200, 'The Weeknd'],
+];
+
+async function qqSearchAnswers() {
+  const url = `https://c.y.qq.com/soso/fcgi-bin/client_search_cp?format=json&p=1&n=10&w=${encodeURIComponent('稻香 周杰伦')}`;
+  try {
+    const resp = await fetch(url, { headers: { Referer: 'https://y.qq.com/portal/player.html' } });
+    return resp.ok ? null : `QQ's search endpoint answered HTTP ${resp.status}`;
+  } catch (err) {
+    return `QQ's search endpoint is unreachable (${err.message})`;
+  }
+}
+
+const qqDown = await qqSearchAnswers();
+for (const [title, artist, duration, nativeArtist] of QQ_SONGS) {
+  const label = `${title} — ${artist}`;
+  if (qqDown) {
+    skip(label, qqDown);
+    continue;
+  }
+  const { status, body } = await lookup('qq', title, artist, duration);
+  assert(status === 200
+      && normalizeForMatch(body.matchedArtist).includes(normalizeForMatch(nativeArtist))
+      && Math.abs(body.matchedDurationSec - duration) <= 5
+      && parseLRC(body.syncedLyrics).length >= 20,
+    `${label} → ${status === 200 ? `${body.matchedArtist} / ${body.matchedTitle} (${body.matchedDurationSec}s)` : `HTTP ${status}`}`);
+}
+
 // ── Summary ──
 
 console.log(`\n${'─'.repeat(40)}`);
-console.log(`Results: ${passed} passed, ${failed} failed, ${passed + failed} total`);
+console.log(`Results: ${passed} passed, ${failed} failed, ${skipped} skipped, ${passed + failed + skipped} total`);
 
 if (failed > 0) {
   process.exit(1);
