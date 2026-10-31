@@ -1,4 +1,10 @@
 import { fetchLyrics } from './lyrics.js';
+import {
+  PositionEstimator,
+  createSpotifySource,
+  createTeslaFleetSource,
+  selectSourceId,
+} from './sources.js';
 import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
 import { detectLyricsLanguage, normalizeProvider, shouldOfferTranslation, translateLines } from './translate.js';
 
@@ -12,6 +18,7 @@ const CONFIG = {
   SCOPES: 'user-read-currently-playing user-read-playback-state user-modify-playback-state',
   // URL of your Cloudflare Worker lyrics proxy (leave empty to skip)
   WORKER_URL: 'https://spotify-lyrics-worker.spotify-karaoke.workers.dev',
+  // Fallback only — each source declares its own cadence (see sources.js).
   POLL_INTERVAL_MS: 1000,
 };
 
@@ -52,6 +59,9 @@ const translateMenuToggle = $('#translate-menu-toggle');
 let accessToken = null;
 let refreshToken = null;
 let tokenExpiresAt = 0;
+
+let source = null;          // the active now-playing source (see sources.js)
+let estimator = null;       // normalises each source's cadence into one anchor
 
 let currentTrackId = null;
 let isPlaying = false;
@@ -191,32 +201,60 @@ async function ensureValidToken() {
 }
 
 // ============================================================
-//  Spotify API — Currently Playing
+//  Now-Playing Source
 // ============================================================
 
-async function fetchCurrentlyPlaying() {
-  await ensureValidToken();
-  if (!accessToken) return null;
-
-  const resp = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
-    headers: { Authorization: 'Bearer ' + accessToken },
-  });
-
-  if (resp.status === 204 || resp.status === 202) return null;
-  if (resp.status === 401) {
-    await refreshAccessToken();
-    return null;
+/**
+ * Builds the active source.  Auth stays here — the sources take accessors so
+ * the PKCE flow keeps one owner.
+ */
+function buildSource(sourceId) {
+  if (sourceId === 'tesla') {
+    return createTeslaFleetSource({
+      // Fleet API auth is a server-side flow, so the Worker owns it.  Until
+      // that route exists this resolves to null and the source reports
+      // silence rather than throwing on every poll.
+      fetchVehicleData: async () => {
+        if (!CONFIG.WORKER_URL) return null;
+        try {
+          const resp = await fetch(`${CONFIG.WORKER_URL}/tesla-media`);
+          if (!resp.ok) return null;
+          return await resp.json();
+        } catch (err) {
+          console.debug('[source] tesla: ', err.message);
+          return null;
+        }
+      },
+    });
   }
-  if (!resp.ok) return null;
 
-  return resp.json();
+  return createSpotifySource({
+    getAccessToken: async () => {
+      await ensureValidToken();
+      return accessToken;
+    },
+    onUnauthorized: refreshAccessToken,
+  });
 }
 
-// ============================================================
-//  Spotify API — Seek
-// ============================================================
+function applySourceCapabilities(src) {
+  const { seek, artwork } = src.capabilities;
+
+  // A source that cannot be seeked must not offer controls that seek it.
+  // Suppress them for this session only — writing the preference away would
+  // lose the listener's Spotify setting the moment they tried another source.
+  touchControlToggle.classList.toggle('hidden', !seek);
+  if (!seek) {
+    touchControlEnabled = false;
+    document.documentElement.removeAttribute('data-touch-control');
+  }
+
+  albumArt.classList.toggle('hidden', !artwork);
+}
 
 async function seekToPosition(positionMs) {
+  if (!source?.capabilities.seek) return;
+
   const ms = Math.round(Math.max(0, Math.min(positionMs, durationMs)));
 
   // Update local state synchronously so the animation loop uses the new
@@ -225,18 +263,10 @@ async function seekToPosition(positionMs) {
   smoothPositionMs = ms;
   lastPollTimestamp = Date.now();
   lastSeekTimestamp = Date.now();
-
-  await ensureValidToken();
-  if (!accessToken) return;
+  estimator?.seek(ms);
 
   try {
-    const resp = await fetch(
-      `https://api.spotify.com/v1/me/player/seek?position_ms=${ms}`,
-      { method: 'PUT', headers: { Authorization: 'Bearer ' + accessToken } },
-    );
-    if (resp.status === 401) {
-      await refreshAccessToken();
-    }
+    await source.seek(ms);
   } catch (err) {
     console.error('Seek error:', err);
   }
@@ -462,7 +492,7 @@ function highlightLyrics(positionMs) {
 function startPolling() {
   if (pollTimer) return;
   pollOnce();
-  pollTimer = setInterval(pollOnce, CONFIG.POLL_INTERVAL_MS);
+  pollTimer = setInterval(pollOnce, source?.pollIntervalMs || CONFIG.POLL_INTERVAL_MS);
   startAnimationLoop();
 }
 
@@ -476,41 +506,41 @@ function stopPolling() {
 
 async function pollOnce() {
   try {
-    const data = await fetchCurrentlyPlaying();
+    const np = await source.poll();
 
-    if (!data || !data.item) {
+    if (!np) {
       if (currentTrackId !== null || !statusMessage.classList.contains('hidden')) {
         currentTrackId = null;
         clearLyricsDisplay();
         updateNowPlayingUI(null);
       }
       isPlaying = false;
-      showStatus('Nothing is playing on Spotify');
+      estimator.update(null);
+      showStatus(`Nothing is playing on ${source.label}`);
       return;
     }
 
-    const track = data.item;
-    const trackId = track.id;
-    isPlaying = data.is_playing;
-    durationMs = track.duration_ms || 0;
+    isPlaying = np.isPlaying;
+    durationMs = np.durationMs || 0;
 
+    // A seek has already moved the anchor locally; ignore the poll that is
+    // still reporting the old position so the highlight does not snap back.
     const SEEK_GRACE_MS = 2500;
     const inSeekGrace = (Date.now() - lastSeekTimestamp) < SEEK_GRACE_MS;
     if (!inSeekGrace) {
-      lastProgressMs = data.progress_ms || 0;
-      lastPollTimestamp = Date.now();
+      const anchor = estimator.update(np);
+      lastProgressMs = anchor.progressMs;
+      lastPollTimestamp = anchor.timestampMs;
     }
 
-    updateNowPlayingUI(track);
+    updateNowPlayingUI(np);
     updateProgressUI(lastProgressMs, durationMs);
 
     // Track changed — fetch new lyrics
-    if (trackId !== currentTrackId) {
-      currentTrackId = trackId;
+    if (np.trackId !== currentTrackId) {
+      currentTrackId = np.trackId;
       lastHighlightedIndex = -1;
-      const name = track.name;
-      const artist = track.artists.map((a) => a.name).join(', ');
-      await fetchAndSetLyrics(trackId, name, artist, durationMs);
+      await fetchAndSetLyrics(np.trackId, np.title, np.artist, durationMs);
     }
   } catch (err) {
     console.error('Poll error:', err);
@@ -528,18 +558,19 @@ function formatTime(ms) {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
-function updateNowPlayingUI(track) {
-  if (!track) {
+/** @param {import('./sources.js').NowPlaying|null} np */
+function updateNowPlayingUI(np) {
+  if (!np) {
     trackNameEl.textContent = 'Not Playing';
     artistNameEl.textContent = '';
     albumArt.src = '';
     return;
   }
 
-  trackNameEl.textContent = track.name;
-  artistNameEl.textContent = track.artists.map((a) => a.name).join(', ');
+  trackNameEl.textContent = np.title;
+  artistNameEl.textContent = np.artist;
 
-  const img = track.album?.images?.[0]?.url || '';
+  const img = np.artworkUrl || '';
   if (albumArt.src !== img) albumArt.src = img;
 }
 
@@ -587,6 +618,19 @@ function showMainScreen() {
 // ============================================================
 
 async function init() {
+  const sourceId = selectSourceId({ search: window.location.search, storage: localStorage });
+  source = buildSource(sourceId);
+  estimator = new PositionEstimator({ quality: source.capabilities.position });
+  applySourceCapabilities(source);
+
+  // Only Spotify needs an OAuth round trip; every other source authenticates
+  // server-side, so it goes straight to polling.
+  if (sourceId !== 'spotify') {
+    showMainScreen();
+    startPolling();
+    return;
+  }
+
   // Handle OAuth callback
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
