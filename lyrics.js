@@ -299,6 +299,32 @@ export function fetchLyricsFromNetEase(workerUrl, trackName, artistName, duratio
   return fetchSyncedViaWorker(workerUrl, 'netease-lyrics', 'NetEase', trackName, artistName, durationSec);
 }
 
+/**
+ * UtaTen via the Cloudflare Worker — plain-text Japanese lyrics, the last
+ * resort.  The Worker serves it only when deployed with UTATEN_ENABLED, since
+ * UtaTen's terms limit its lyrics to personal viewing; fetchLyrics asks only
+ * once every other source has missed, so UtaTen isn't sent a request for
+ * every track.
+ */
+export async function fetchLyricsFromUtaTen(workerUrl, trackName, artistName) {
+  if (!workerUrl) return null;
+
+  const params = new URLSearchParams({ title: trackName, artist: artistName });
+  const url = `${workerUrl}/utaten-lyrics?${params}`;
+  console.debug('[lyrics] UtaTen:', url);
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) { console.debug('[lyrics] UtaTen: HTTP', resp.status); return null; }
+    const data = await resp.json();
+    if (!data.plainLyrics) { console.debug('[lyrics] UtaTen: response OK but no plainLyrics'); return null; }
+    console.debug('[lyrics] UtaTen: matched', data.matchedTitle, '—', data.matchedArtist);
+    return { plainLyrics: data.plainLyrics };
+  } catch (err) {
+    console.debug('[lyrics] UtaTen: error', err.message);
+    return null;
+  }
+}
+
 // ── KKBOX, browser-direct (deprecated) ──
 //
 // DEPRECATED (2026-10-31) — see the note above fetchLyricsFromKKBOX.
@@ -433,7 +459,9 @@ const NO_RESULT = Object.freeze({ lyrics: null, syncType: null, source: null });
  *     returns the best by priority as soon as it is known, without waiting
  *     for lower-ranked sources:
  *       LRCLIB synced > Kugou synced > QQ synced > NetEase synced >
- *       LRCLIB plain
+ *       LRCLIB plain > UtaTen plain
+ *     UtaTen is asked only once everything above has missed, and serves
+ *     lyrics only on a Worker that has opted in (UTATEN_ENABLED).
  *     Synced beats plain throughout.  Kugou leads the Chinese services: like
  *     QQ it is Tencent Music, it found every song QQ did in testing, and it
  *     answers about three times faster.  KKBOX, which only ever yielded plain
@@ -481,8 +509,10 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
     const lines = parseLRC((await pending)?.syncedLyrics || '');
     return lines.length > 0 ? { lyrics: lines, syncType: 'LINE_SYNCED', source } : null;
   };
+  // `pending` is a request already in flight, or a function that starts one
+  // only if this source is ever reached.
   const plain = (source, pending) => async () => {
-    const data = await pending;
+    const data = await (typeof pending === 'function' ? pending() : pending);
     if (!data?.plainLyrics) return null;
     // KKBOX reported where it matched (deprecated):
     // if (data.territory) console.debug(`[lyrics] ${source}:`, data.territory, data.exact ? 'exact' : 'title only');
@@ -500,6 +530,8 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
     synced('QQ Music', qq),
     synced('NetEase Cloud Music', netease),
     plain('LRCLIB', lrclib),
+    // Last resort, so it is only asked once everything above has missed.
+    plain('UtaTen', () => fetchLyricsFromUtaTen(workerUrl, trackName, artistName)),
     // Deprecated — see the KKBOX note above fetchLyricsFromKKBOX.
     // plain('KKBOX', kkboxWorker),
     // plain('KKBOX', kkboxDirect),

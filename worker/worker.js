@@ -475,6 +475,83 @@ async function fetchNetEaseLyrics(id) {
   }
 }
 
+// ── UtaTen (plain lyrics, opt-in) ──
+//
+// A Japanese lyrics site with deep J-pop coverage, as plain text.  Its terms
+// allow lyrics to be viewed for non-commercial, personal purposes and require
+// the rights holders' written permission for any reproduction or reposting,
+// so the route stays off unless the Worker is deployed with UTATEN_ENABLED
+// set to "true".  A personal deployment opts in; a fork of this repository
+// does not start serving UtaTen's lyrics without deciding to.
+
+const UTATEN_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  Accept: 'text/html',
+  // The search answers with an empty page unless the request comes from the
+  // site, as a search typed into it does.
+  Referer: 'https://utaten.com/',
+};
+
+const stripTags = (html) => decodeHtmlEntities(html.replace(/<[^>]*>/g, '')).trim();
+
+function utatenSearchResults(html) {
+  return html.split('<tr>').slice(1).map((row) => {
+    const song = row.match(/class="searchResult__title">\s*<a href="(\/lyric\/[a-z]{2}\d+\/)">([\s\S]*?)<\/a>/);
+    const artist = row.match(/class="searchResult__artist">\s*<p>\s*<a href="\/artist\/\d+\/">([\s\S]*?)<\/a>/);
+    return song ? { path: song[1], title: stripTags(song[2]), artist: artist ? stripTags(artist[1]) : '' } : null;
+  }).filter(Boolean);
+}
+
+async function searchUtaTen(title, artist) {
+  const search = async (name, artistName) => {
+    const params = new URLSearchParams({ title: name, artist_name: artistName, sort: 'popular_sort_asc', page: '1' });
+    const resp = await fetch(`https://utaten.com/search?${params}`, { headers: UTATEN_HEADERS });
+    return resp.ok ? utatenSearchResults(await resp.text()) : [];
+  };
+
+  for (const name of titleQueryVariants(title)) {
+    try {
+      // Title and artist first.  Spotify may give a romanized artist that
+      // UtaTen lists in Japanese, so fall back to the title alone, keeping out
+      // anything by a recognisably different artist.
+      let candidates = await search(name, artist);
+      if (candidates.length === 0) {
+        candidates = (await search(name, '')).filter((c) => artistMayMatch(c.artist, artist));
+      }
+      const index = selectBestMatch(candidates, title, artist);
+      if (index >= 0) return candidates[index];
+    } catch { continue; }
+  }
+  return null;
+}
+
+// The lyrics sit in <div class="hiragana">, a line per <br />, with each
+// kanji's reading in a <span class="rt"> beside it.  The readings are dropped
+// so the lines read as written.
+function utatenLyricsText(html) {
+  const start = html.search(/<div class="hiragana"\s*>/);
+  if (start < 0) return null;
+  const body = html.slice(start, html.indexOf('</div>', start));
+  const lines = body
+    .replace(/<span class="rt">[\s\S]*?<\/span>/g, '')
+    // Newlines in the page source are formatting; only <br /> breaks a line.
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/<br\s*\/?>/g, '\n')
+    .split('\n')
+    .map((line) => stripTags(line).replace(/\s+/g, ' '));
+  const text = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return text || null;
+}
+
+async function fetchUtaTenLyrics(path) {
+  try {
+    const resp = await fetch(`https://utaten.com${path}`, { headers: UTATEN_HEADERS });
+    return resp.ok ? utatenLyricsText(await resp.text()) : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Google Cloud Translation v2 ──
 
 const GOOGLE_TRANSLATE_ENDPOINT = 'https://translation.googleapis.com/language/translate/v2';
@@ -748,6 +825,33 @@ async function handleNetEaseLyrics(url) {
   });
 }
 
+async function handleUtaTenLyrics(url, env) {
+  if (env?.UTATEN_ENABLED !== 'true') {
+    return jsonResponse({ error: 'UtaTen is disabled; set UTATEN_ENABLED to "true" to opt in' }, 404);
+  }
+  const title = url.searchParams.get('title');
+  const artist = url.searchParams.get('artist');
+  if (!title) {
+    return jsonResponse({ error: 'Missing title parameter' }, 400);
+  }
+
+  const match = await searchUtaTen(title, artist || '');
+  if (!match) {
+    return jsonResponse({ error: 'No matching UtaTen song found' }, 404);
+  }
+
+  const plainLyrics = await fetchUtaTenLyrics(match.path);
+  if (!plainLyrics) {
+    return jsonResponse({ error: 'Lyrics not found on the UtaTen page' }, 404);
+  }
+
+  return jsonResponse({
+    plainLyrics,
+    matchedTitle: match.title,
+    matchedArtist: match.artist,
+  });
+}
+
 async function handleTranslate(request, env) {
   const apiKey = env.GOOGLE_TRANSLATE_API_KEY;
   if (!apiKey) {
@@ -859,6 +963,9 @@ export default {
       }
       if (url.pathname === '/netease-lyrics') {
         return await handleNetEaseLyrics(url);
+      }
+      if (url.pathname === '/utaten-lyrics') {
+        return await handleUtaTenLyrics(url, env);
       }
       // Deprecated — see the KKBOX note above.
       // if (url.pathname === '/kkbox-lyrics') {

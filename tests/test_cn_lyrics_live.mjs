@@ -1,8 +1,8 @@
 /**
  * Live API tests for the Worker's /kugou-lyrics, /netease-lyrics and
- * /qq-lyrics routes.  Runs the routes in-process against the real services,
- * so it checks the code in this checkout rather than whatever Worker is
- * deployed.
+ * /qq-lyrics routes, plus the opt-in /utaten-lyrics.  Runs the routes
+ * in-process against the real services, so it checks the code in this
+ * checkout rather than whatever Worker is deployed.
  *
  * QQ refuses search requests from datacenter IPs for stretches at a time
  * (HTTP 500 from its search endpoint, while its lyric endpoint still
@@ -195,6 +195,36 @@ for (const song of QQ_SONGS) {
     continue;
   }
   await runCase(() => checkSong('qq', song, HAS));
+}
+
+console.log('\n── utaten (plain, opt-in) ──');
+
+// [Spotify title, Spotify artist, native artist].  Checked by shape only —
+// match, length, kana, no leftover markup — so no lyrics are stored here.
+const UTATEN_SONGS = [
+  ['LOVE PHANTOM', "B'z", "B'z"],
+  ['負けないで', 'ZARD', 'ZARD'],
+  // Romanized artist: found through the title-only fallback.
+  ['Lemon', 'Kenshi Yonezu', '米津玄師'],
+];
+
+for (const [title, artist, nativeArtist] of UTATEN_SONGS) {
+  await runCase(async () => {
+    const resp = await worker.fetch(
+      new Request(`https://worker.test/utaten-lyrics?${new URLSearchParams({ title, artist })}`),
+      { UTATEN_ENABLED: 'true' },
+    );
+    const body = await resp.json();
+    const lines = (body.plainLyrics || '').split('\n').filter(Boolean);
+    return {
+      ok: resp.status === 200
+        && body.matchedArtist === nativeArtist
+        && lines.length >= 20
+        && /[぀-ヿ]/.test(body.plainLyrics)
+        && !/[<>]/.test(body.plainLyrics),
+      label: `${title} — ${artist} → ${resp.status === 200 ? `${body.matchedArtist} / ${body.matchedTitle} (${lines.length} lines)` : `HTTP ${resp.status} ${body.error}`}`,
+    };
+  });
 }
 
 // ── Summary ──

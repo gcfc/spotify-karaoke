@@ -3,7 +3,9 @@
  * stubbed so the ordering is checked deterministically and offline:
  *
  *   LRCLIB synced > Kugou synced > QQ synced > NetEase synced >
- *   LRCLIB plain
+ *   LRCLIB plain > UtaTen plain
+ *
+ * UtaTen is fetched lazily, only once everything above it has missed.
  *
  * Synced always beats plain.  KKBOX, which only ever yielded plain text and
  * sat last, is deprecated and must not be queried.  The chain returns as soon as the winner is known,
@@ -189,6 +191,44 @@ assert(result.source === 'NetEase Cloud Music',
 result = await run({ '/api/get': LRCLIB_PLAIN, '/netease-lyrics': () => json({ error: 'No matching NetEase song found' }, 404) });
 assert(result.source === 'LRCLIB' && result.syncType === 'PLAIN',
   'a NetEase 404 falls through to plain lyrics');
+
+console.log('\n── UtaTen, the last resort ──');
+
+const UTATEN_PLAIN = () => json({ plainLyrics: PLAIN, matchedTitle: 'Song', matchedArtist: 'Artist' });
+
+result = await run({ '/utaten-lyrics': UTATEN_PLAIN });
+assert(result.source === 'UtaTen' && result.syncType === 'PLAIN',
+  'UtaTen plain is used when nothing else has lyrics');
+
+result = await run({ '/api/get': LRCLIB_PLAIN, '/utaten-lyrics': UTATEN_PLAIN });
+assert(result.source === 'LRCLIB',
+  'LRCLIB plain outranks UtaTen');
+
+// UtaTen is fetched lazily, so it must not even be asked while a source
+// above it has lyrics.
+async function runNotingUtaTen(routes) {
+  let asked = false;
+  stubFetch(routes);
+  const stubbedRoutes = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes('/utaten-lyrics')) asked = true;
+    return stubbedRoutes(url);
+  };
+  const r = await fetchLyrics(WORKER, `track-${trackCounter++}`, 'Song', 'Artist', 180000, null);
+  return { source: r.source, asked };
+}
+
+let noted = await runNotingUtaTen({ '/kugou-lyrics': KUGOU_SYNCED, '/utaten-lyrics': UTATEN_PLAIN });
+assert(noted.source === 'Kugou Music' && !noted.asked,
+  'with synced lyrics found, UtaTen is never asked');
+
+noted = await runNotingUtaTen({ '/api/get': LRCLIB_PLAIN, '/utaten-lyrics': UTATEN_PLAIN });
+assert(noted.source === 'LRCLIB' && !noted.asked,
+  'with LRCLIB plain found, UtaTen is never asked');
+
+noted = await runNotingUtaTen({ '/utaten-lyrics': UTATEN_PLAIN });
+assert(noted.source === 'UtaTen' && noted.asked,
+  'UtaTen is asked once everything above it has missed');
 
 // The Worker needs the track length to tell a song from its remixes.
 const durationSent = {};

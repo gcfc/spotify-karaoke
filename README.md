@@ -85,6 +85,10 @@ wrangler secret put GOOGLE_TRANSLATE_API_KEY
 wrangler secret put GEMINI_API_KEY
 wrangler secret put OPENROUTER_API_KEY
 
+# Optional, personal deployments only: UtaTen as a last-resort source of
+# plain Japanese lyrics. Enter `true` when prompted. See "UtaTen" below.
+wrangler secret put UTATEN_ENABLED
+
 # Deploy
 wrangler deploy
 ```
@@ -271,7 +275,7 @@ moving between reads.
    ```
    Spotify word-synced > Spotify line-synced > LRCLIB synced >
    Kugou Music synced > QQ Music synced > NetEase synced >
-   LRCLIB plain
+   LRCLIB plain > UtaTen plain (opt-in)
    ```
 
    It returns as soon as the winner is known — the moment a source has lyrics
@@ -296,6 +300,8 @@ moving between reads.
 - **Matching for QQ, Kugou and NetEase**: all three list remixes, live cuts and covers under the same title (QQ has 起风了 at six lengths), so the Worker also checks length and artist. A recording more than 5 seconds off the Spotify length is rejected rather than shown with the wrong timing. A cover is rejected when its artist is recognisably someone else, when its title says so (原唱, 翻唱, Cover…), or when another cut of the song on the same page is credited to the artist under Spotify's name. A romanized artist ("Hebe Tien") can't be compared with a native name (田馥甄), so a cover by a Chinese-named singer with no such marker can still get through.
 - **kugeci.com is not used directly**: it serves the same kind of LRC, but every page sits behind a Cloudflare managed challenge ("Just a moment…") that needs JavaScript and a cookie, so neither the Worker nor the page can fetch it. Kugou's API is the direct route to equivalent data.
 - **Kuwo and Migu are not used**: on a 20-song benchmark Kuwo's search found synced lyrics for 1 song. Migu's search reports no track lengths, so it can't tell a song from its remixes, and it showed it — its Blinding Lights was timed about 14 seconds away from the three other sources that had the song.
+- **UtaTen is opt-in, for personal use**: utaten.com has deep J-pop coverage as plain text, and is the last resort after LRCLIB's plain lyrics. Its terms allow lyrics to be viewed for non-commercial, personal purposes and require the rights holders' written permission for any other use, such as reproducing or reposting them. So the Worker serves `/utaten-lyrics` only when `UTATEN_ENABLED` is `true` (see the Worker setup above), and the page asks only once every other source has missed, so UtaTen isn't sent a request for every track. Don't enable it on a deployment that other people use.
+- **Other lyrics sites considered and not used** (checked 2026-11-01): Genius and uta-net.com answer automated requests with a Cloudflare challenge, as kugeci.com does. LyricFind's lyric pages sit behind an AWS WAF challenge, as KKBOX's do, and its lyrics API is for licensees. Musixmatch's `robots.txt` admits only major search engines, and its API's free tier is described as returning only part of each song's lyrics; Spotify's own lyrics, at the top of the chain, are already Musixmatch-powered.
 - **Polling latency**: Lyrics sync is approximate — the animation loop interpolates between polls, so accuracy tracks the active source's cadence rather than matching playback exactly.
 - **Tesla source auth is not wired**: the adapter is complete and tested, but it needs a server-side Fleet API route before it returns anything. See *Tesla source status* above.
 
@@ -319,6 +325,7 @@ spotify-karaoke/
 │                       # `node tests/test_kugou.mjs`,
 │                       # `node tests/test_netease.mjs`,
 │                       # `node tests/test_qq.mjs`,
+│                       # `node tests/test_utaten.mjs`,
 │                       # `node tests/test_translate.mjs`;
 │                       # live: `node tests/test_cn_lyrics_live.mjs`
 ├── worker/
