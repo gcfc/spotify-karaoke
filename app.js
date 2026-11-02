@@ -7,6 +7,7 @@ import {
 } from './sources.js';
 import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
 import { detectLyricsLanguage, normalizeProvider, shouldOfferTranslation, translateLines } from './translate.js';
+import { fetchFurigana, furiganaSegments, hasKanji, layoutWordFurigana } from './furigana.js';
 
 // ============================================================
 //  Configuration — fill these in before deploying
@@ -51,6 +52,7 @@ const cjkFontPicker = $('#cjk-font-picker');
 const translateControl = $('#translate-control');
 const translateToggle = $('#translate-toggle');
 const translateMenuToggle = $('#translate-menu-toggle');
+const furiganaToggle = $('#furigana-toggle');
 
 // ============================================================
 //  State
@@ -282,6 +284,9 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   lyricsLanguage = null;
   lyricsTranslations = null;
   translationRequestId++;   // abandon any translation still in flight
+  lyricsFurigana = null;
+  furiganaRequestId++;      // abandon any furigana still in flight…
+  furiganaToggle.classList.remove('loading');   // …so the button is not left waiting on it
   lyricsOffsetMs = 0;
   updateOffsetLabel();
   hideLyricsOffset();
@@ -294,6 +299,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   if (!result.lyrics) {
     showStatus('No lyrics available for this track');
     hideTranslateControl();
+    hideFuriganaControl();
     return;
   }
 
@@ -318,6 +324,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   }
 
   refreshTranslateControl();
+  refreshFuriganaControl();
 }
 
 // ============================================================
@@ -350,26 +357,113 @@ function renderSyncedLyrics() {
     // as a sibling without disturbing them.
     const textEl = document.createElement('span');
     textEl.className = 'line-text';
-
-    if (syncType === 'WORD_SYNCED' && line.syllables && line.syllables.length > 0) {
-      // Word-synced: render each word/syllable as a span
-      line.syllables.forEach((syl) => {
-        const span = document.createElement('span');
-        span.className = 'word';
-        span.textContent = syl.word + ' ';
-        span.dataset.startMs = syl.startTimeMs;
-        span.dataset.endMs = syl.endTimeMs || syl.startTimeMs;
-        textEl.appendChild(span);
-      });
-    } else {
-      textEl.textContent = line.words || '';
-    }
+    fillLineText(textEl, i);
 
     el.appendChild(textEl);
     lyricsLines.appendChild(el);
   });
 
   applyTranslations();
+}
+
+/**
+ * Draw line `index` into its text element — as timed word spans for
+ * word-synced lyrics, plain text otherwise — with furigana over its kanji
+ * when furigana is on and has arrived for the line.
+ */
+function fillLineText(textEl, index) {
+  const annotations = lyricsFurigana ? lyricsFurigana[index] : null;
+  textEl.replaceChildren();
+
+  if (Array.isArray(lyrics)) {
+    const line = lyrics[index];
+    if (syncType === 'WORD_SYNCED' && line.syllables && line.syllables.length > 0) {
+      fillWordSyncedText(textEl, line, annotations);
+      return;
+    }
+    appendSegments(textEl, line.words || '', annotations);
+    return;
+  }
+  appendSegments(textEl, plainLyricsLines(lyrics)[index] || '', annotations);
+}
+
+function rubyElement(base, reading) {
+  const ruby = document.createElement('ruby');
+  ruby.append(base);
+  const rt = document.createElement('rt');
+  rt.textContent = reading;
+  ruby.appendChild(rt);
+  return ruby;
+}
+
+/** Text with ruby over its annotated runs, built as nodes, never as HTML. */
+function appendSegments(parent, text, annotations) {
+  if (!annotations || annotations.length === 0) {
+    parent.append(text);
+    return;
+  }
+  for (const seg of furiganaSegments(text, annotations)) {
+    parent.append(seg.reading ? rubyElement(seg.text, seg.reading) : seg.text);
+  }
+}
+
+function wordSpan(syl, text) {
+  const span = document.createElement('span');
+  span.className = 'word';
+  span.textContent = text;
+  span.dataset.startMs = syl.startTimeMs;
+  span.dataset.endMs = syl.endTimeMs || syl.startTimeMs;
+  return span;
+}
+
+/**
+ * Word-synced: each syllable is a timed `.word` span the highlight walks.
+ * With furigana, a syllable is cut where a kanji run starts or ends inside
+ * it — the pieces keep its timing, so they light up together — and a run
+ * spread over several syllables gets one ruby around all of them.  That ruby
+ * is itself a `.word` timed from its first syllable, so its reading lights
+ * up when the run starts being sung.
+ */
+function fillWordSyncedText(textEl, line, annotations) {
+  const syllables = line.syllables;
+  const groups = annotations && annotations.length > 0
+    ? layoutWordFurigana(line.words || '', syllables.map((s) => s.word), annotations)
+    : null;
+
+  if (!groups) {
+    syllables.forEach((syl) => textEl.appendChild(wordSpan(syl, syl.word + ' ')));
+    return;
+  }
+
+  for (const group of groups) {
+    const { fragments, reading } = group;
+    if (!reading) {
+      for (const f of fragments) {
+        textEl.appendChild(wordSpan(syllables[f.pieceIndex], f.text + (f.lastOfPiece ? ' ' : '')));
+      }
+      continue;
+    }
+
+    const first = syllables[fragments[0].pieceIndex];
+    const single = fragments.every((f) => f.pieceIndex === fragments[0].pieceIndex);
+    // Inside one syllable the ruby's text is plain; across several, each
+    // part stays a span so it keeps its own syllable's timing.
+    const base = single
+      ? fragments.map((f) => f.text).join('')
+      : (() => {
+        const frag = document.createDocumentFragment();
+        fragments.forEach((f) => frag.appendChild(wordSpan(syllables[f.pieceIndex], f.text)));
+        return frag;
+      })();
+    const ruby = rubyElement(base, reading);
+    ruby.classList.add('word');
+    ruby.dataset.startMs = first.startTimeMs;
+    ruby.dataset.endMs = first.endTimeMs || first.startTimeMs;
+    textEl.appendChild(ruby);
+    // The syllable's trailing space goes after the ruby, not inside it,
+    // where it would push the reading off centre.
+    if (fragments[fragments.length - 1].lastOfPiece) textEl.append(' ');
+  }
 }
 
 function renderPlainLyrics(text) {
@@ -385,7 +479,7 @@ function renderPlainLyrics(text) {
 
     const textEl = document.createElement('span');
     textEl.className = 'line-text';
-    textEl.textContent = line;
+    fillLineText(textEl, i);
     el.appendChild(textEl);
 
     container.appendChild(el);
@@ -1016,6 +1110,118 @@ function initTranslateControl() {
 }
 
 initTranslateControl();
+
+// ============================================================
+//  Furigana
+// ============================================================
+
+const FURIGANA_ON_KEY = 'furigana-on';
+
+let furiganaEnabled = localStorage.getItem(FURIGANA_ON_KEY) === '1';
+let lyricsFurigana = null;     // per rendered line: annotations, [] or null
+let furiganaRequestId = 0;     // guards against a slow reply for an old track
+
+// Readings depend only on the lyrics, so one entry per track.
+const FURIGANA_CACHE_MAX = 30;
+const furiganaCache = new Map();
+
+function furiganaCacheGet(key) {
+  if (!furiganaCache.has(key)) return undefined;
+  const value = furiganaCache.get(key);
+  furiganaCache.delete(key);
+  furiganaCache.set(key, value);
+  return value;
+}
+
+function furiganaCacheSet(key, value) {
+  if (furiganaCache.has(key)) furiganaCache.delete(key);
+  furiganaCache.set(key, value);
+  if (furiganaCache.size > FURIGANA_CACHE_MAX) {
+    furiganaCache.delete(furiganaCache.keys().next().value);
+  }
+}
+
+/** Redraw every line's text, with or without furigana. */
+function applyFurigana() {
+  lyricsLines.classList.toggle('with-furigana', Boolean(lyricsFurigana));
+  lineElements().forEach((el, i) => {
+    const textEl = el.querySelector('.line-text');
+    if (textEl) fillLineText(textEl, i);
+  });
+}
+
+function hideFuriganaControl() {
+  furiganaToggle.classList.add('hidden');
+}
+
+/**
+ * Fetch and show furigana for the current track.  Like translation, nothing
+ * is sent until the button is switched on.
+ */
+async function loadFurigana() {
+  const texts = currentLineTexts();
+  if (texts.length === 0) return;
+
+  const key = currentTrackId;
+  const cached = furiganaCacheGet(key);
+  if (cached) {
+    lyricsFurigana = cached;
+    applyFurigana();
+    return;
+  }
+
+  const requestId = ++furiganaRequestId;
+  furiganaToggle.classList.add('loading');
+
+  const result = await fetchFurigana(texts, { workerUrl: CONFIG.WORKER_URL });
+
+  if (requestId !== furiganaRequestId) return;
+  furiganaToggle.classList.remove('loading');
+
+  if (!result) {
+    console.debug('[furigana] none returned; showing lyrics as they are');
+    return;
+  }
+
+  furiganaCacheSet(key, result);
+  lyricsFurigana = result;
+  applyFurigana();
+}
+
+function setFuriganaEnabled(enabled) {
+  furiganaEnabled = enabled;
+  localStorage.setItem(FURIGANA_ON_KEY, enabled ? '1' : '0');
+  furiganaToggle.classList.toggle('active', enabled);
+  furiganaToggle.setAttribute('aria-pressed', String(enabled));
+  furiganaToggle.title = enabled ? 'Hide furigana' : 'Show furigana';
+
+  if (enabled) {
+    loadFurigana();
+  } else {
+    furiganaRequestId++;   // abandon anything in flight
+    furiganaToggle.classList.remove('loading');
+    lyricsFurigana = null;
+    applyFurigana();
+  }
+}
+
+/** Show the button only for Japanese lyrics that have kanji to read. */
+function refreshFuriganaControl() {
+  const texts = currentLineTexts();
+  const language = detectLyricsLanguage(texts.slice(0, 40).join('\n'), lyricsLanguage);
+
+  if (!lyrics || language !== 'ja' || !texts.some(hasKanji)) {
+    hideFuriganaControl();
+    return;
+  }
+
+  furiganaToggle.classList.remove('hidden');
+  furiganaToggle.classList.toggle('active', furiganaEnabled);
+  furiganaToggle.setAttribute('aria-pressed', String(furiganaEnabled));
+  if (furiganaEnabled) loadFurigana();
+}
+
+furiganaToggle.addEventListener('click', () => setFuriganaEnabled(!furiganaEnabled));
 
 // ============================================================
 //  Theme — follows the local sunrise / sunset

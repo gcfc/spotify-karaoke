@@ -10,6 +10,7 @@ A static website that connects to your Spotify account and displays real-time sy
 - **Graceful degradation** — word-synced → line-synced → plain scrollable lyrics → "no lyrics" message
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
 - **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Pick the target language from the dropdown; the app falls back across an LLM, a keyless endpoint and Google Cloud on its own
+- **Furigana** — for Japanese lyrics, a 字 toggle puts each kanji word's reading above it, read in context by Gemini and scored against an answer key of eight songs (see [Furigana](#furigana))
 - **Responsive** — works on desktop and mobile
 
 ## Quick Start
@@ -82,7 +83,7 @@ wrangler secret put SP_DC
 
 # Optional: keys for the translation providers (see below)
 wrangler secret put GOOGLE_TRANSLATE_API_KEY
-wrangler secret put GEMINI_API_KEY
+wrangler secret put GEMINI_API_KEY        # also enables furigana
 wrangler secret put OPENROUTER_API_KEY
 
 # Deploy
@@ -192,6 +193,132 @@ quota override is the control that actually stops requests.
 OpenRouter's free tier allows 50 requests per day per account, so
 `nemotron-3-super-120b:free` stops working once that is spent and returns the
 next day. The Gemini free tier is more generous but still finite.
+
+## Furigana
+
+For Japanese lyrics with kanji, a 字 button appears beside the translate button.
+Switched on, every kanji word gets its reading above it in small kana — on synced
+and plain lyrics alike, and in word-synced lyrics the readings light up with the
+words. As with translation, nothing is sent until the button is switched on, and
+readings are cached per track. It needs `GEMINI_API_KEY` on the Worker.
+
+### How a line is read
+
+1. **Kanji runs are found locally** (`kanjiRuns` in `furigana.js`): kanji, plus any
+   digits written against them, so 2人 is one run read ふたり. A reading covers a
+   whole run, because many cannot be split per character — 今日 is きょう, 大人 is
+   おとな.
+2. **The model reads natural pieces.** The Worker's `/furigana` route sends each
+   line for context and, for every run, the run plus up to four kana written after
+   it: 全てが rather than 全. The model reads the piece in full (すべてが) and the
+   Worker cuts the known kana back off (すべ). Asked for runs alone, models
+   misjudged where a reading stops — すべて for the 全 of 全て — on 1 run in 23
+   (`gemini-3.5-flash-lite`) or 1 in 93 (`gemini-3.1-flash-lite`).
+3. **Every reading is checked.** It must be kana and end with the kana it was
+   given; one that fails (一人で read as ひとりでに) costs that run its furigana,
+   not the line. Replies carry each line's number, so a line the model leaves
+   out costs only that line and nothing shifts onto the wrong line. The model
+   never writes lyric text back, so it cannot alter the lyrics.
+4. **Readings printed in the lyrics win.** Lyric databases sometimes keep the
+   lyricist's ruby in brackets — 溢(こぼ)れた, 終幕(さいご)は. Those override the
+   model, and with furigana on the bracket is hidden and shown as ruby instead.
+
+The models are tried in order per chunk of 25 lines, with a song's chunks sent
+together: `gemini-3.1-flash-lite`, then `gemini-3.5-flash-lite` if it is busy or
+fails. A request gives up after 20 seconds. Versions are pinned rather than
+`-latest` aliases: `gemini-flash-lite-latest` moved to 3.5, which reads less
+accurately.
+
+### Evaluation
+
+`tests/furigana_gold.json` is an answer key of 746 kanji runs from 322 lines of
+eight songs — 夜に駆ける, Lemon, マリーゴールド, 紅蓮華, 残酷な天使のテーゼ,
+春よ、来い, 白日 and 千本桜. It holds only runs and readings, keyed by NetEase
+song id and line timestamp; the evaluation fetches the lyrics live.
+
+It was built from two independent sources: kuromoji, a dictionary-based analyzer
+that ignores context, and NetEase's romanized lyrics, which follow context and
+often the singer. Where they agree (267 lines) kuromoji's readings were taken;
+the other 55 lines were settled by hand in `tools/furigana-eval/adjudications.json`.
+Gemini played no part, so it is not graded against its own answers. Each run has
+a category; `gold[0]` is the reading sung and any others are also correct (明日 sung
+あす also accepts あした).
+
+Three passes over the key, through the same page and Worker code that ships:
+
+| | correct (any accepted) | correct (as sung) | no reading | same across passes | median per song |
+|---|---|---|---|---|---|
+| `gemini-3.1-flash-lite` | **99.7%** | **98.5%** | 0 | 100% | 5.0 s |
+| `gemini-3.5-flash-lite` | 96.3% | 95.7% | 2.1% | 94.6% | 1.6 s |
+| kuromoji (dictionary baseline) | 96.2% | 95.4% | 1.3% | — | — |
+
+By category (correct, any accepted reading):
+
+| | dictionary (703) | context (8) | numbers (7) | rare (13) | sung (7) | printed (8) |
+|---|---|---|---|---|---|---|
+| `gemini-3.1-flash-lite` | 99.9% | 100% | 100% | 92.3% | 100% | 100% |
+| `gemini-3.5-flash-lite` | 96.5% | 100% | 100% | 76.9% | 100% | 100% |
+| kuromoji | 100%* | 0% | 0% | 0% | 100% | 100% |
+
+\* By construction: dictionary runs are mostly where kuromoji agreed with the
+romanization, and the hard categories mostly where it did not. The baseline is a
+floor for the hard cases, not an estimate of kuromoji's real accuracy.
+
+`gemini-3.1-flash-lite` made the same two mistakes on every pass: 鳴き声 read
+こえ for ごえ (the sound change spans two runs) and 真っ新 read しん for さら.
+Context cases a dictionary gets wrong — 降り止む as ふり, 側 as そば, 二人 and 2人 as
+ふたり, 如何しようも as どう — it got right every time.
+
+What the evaluation changed along the way:
+
+- **Pieces instead of bare runs** took `gemini-3.1-flash-lite` from 97.9% to 99.2%.
+- **Numbered replies.** With a plain list, `gemini-3.5-flash-lite` dropped a line
+  from some 25-line chunks and lost the whole chunk. `{line, readings}` objects
+  fixed that but doubled the output, pushing `gemini-3.1-flash-lite` past the
+  timeout (95.9%). Putting the number first in the same list fixed both: 3.1 to
+  99.7%, 3.5 from 89% to 96%.
+- **The key's own errors**, found while checking misses: 預ける had kuromoji's old
+  spelling あづ; 誘う as いざなう and 皆 as みんな are real readings the singer did not
+  use, so they now count as correct but not as sung.
+
+Caveats:
+
+- The hard categories are small — one run moves a column by 8–14 points.
+- NetEase does not say who writes its romanizations, so agreement is strong
+  evidence rather than proof. Seven adjudicated lines are noted "confirm by ear",
+  and `build_gold.mjs` lists agreed runs that lyrics often read specially (紅蓮華's
+  理由 as りゆう, for one) for a listen.
+- A reading the lyricist assigned but the lyrics do not print — 運命 sung さだめ
+  with no bracket — cannot be known from the text. None occurs in the key, so the
+  score says nothing about them.
+- `gemini-flash-latest` was not measured: during the evaluation it did not answer
+  even a one-line request within 60 seconds, so it is not allowed.
+
+### Running the evaluation
+
+```bash
+GEMINI_API_KEY=… node tests/eval_furigana_live.mjs                 # the models in the chain
+GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --models gemini-3.1-flash-lite --runs 3 --verbose
+node tests/eval_furigana_live.mjs --worker https://….workers.dev    # a deployed Worker instead
+```
+
+`--songs Lemon,白日` limits the songs, `--json out.json` saves the full report,
+and `--min-accuracy 0.98` exits non-zero below that share. `--verbose` and
+`--json` include the lines a model got wrong, so keep their output local.
+`node tests/test_furigana.mjs` covers the same code offline.
+
+### Adding songs to the key
+
+```bash
+cd tools/furigana-eval && npm install
+# add { title, artist, netease } to SONGS in build_gold.mjs, then:
+node build_gold.mjs --pending      # prints the lines where the sources disagree
+```
+
+Settle each printed line in `adjudications.json` as one entry per run —
+`"reading"`, `"reading|alternative"`, with `:category` when it differs from
+kuromoji (`"ふたり:number"`, `"あす|あした:sung"`), or `{ "skip": "why" }` — and
+run `node build_gold.mjs` again to write the key.
 
 ## Now-Playing Sources
 
@@ -310,17 +437,21 @@ spotify-karaoke/
 ├── lyrics.js           # Lyrics fetch chain (no DOM dependencies)
 ├── matching.js         # Script-insensitive search matching (see below)
 ├── translate.js        # Language detection + translation providers
+├── furigana.js         # Kanji runs, the furigana prompt, reply checks, layout
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── tools/
-│   └── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
+│   ├── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
+│   └── furigana-eval/  # Builds tests/furigana_gold.json (has its own npm deps)
 ├── tests/              # Node and Python tests — `node tests/test_matching.mjs`,
 │                       # `node tests/test_source_priority.mjs`,
 │                       # `node tests/test_sources.mjs`,
 │                       # `node tests/test_kugou.mjs`,
 │                       # `node tests/test_netease.mjs`,
 │                       # `node tests/test_qq.mjs`,
-│                       # `node tests/test_translate.mjs`;
-│                       # live: `node tests/test_cn_lyrics_live.mjs`
+│                       # `node tests/test_translate.mjs`,
+│                       # `node tests/test_furigana.mjs`;
+│                       # live: `node tests/test_cn_lyrics_live.mjs`,
+│                       # `GEMINI_API_KEY=… node tests/eval_furigana_live.mjs`
 ├── worker/
 │   ├── worker.js       # Cloudflare Worker (lyrics proxy)
 │   └── wrangler.toml   # Worker config

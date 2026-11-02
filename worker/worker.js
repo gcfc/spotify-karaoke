@@ -13,6 +13,17 @@ import {
   findProvider,
   googleTargetCode,
 } from '../translate.js';
+import {
+  FURIGANA_ALLOWED_MODELS,
+  FURIGANA_MAX_LINE_CHARS,
+  FURIGANA_MAX_LINES,
+  FURIGANA_MODELS,
+  furiganaEntry,
+  geminiFuriganaRequest,
+  geminiReplyJson,
+  hasKanji,
+  parseFuriganaReply,
+} from '../furigana.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -573,6 +584,28 @@ async function translateWithOpenRouter(lines, target, model, apiKey) {
   return JSON.parse(content).lines;
 }
 
+/**
+ * Readings for each kanji run of each line.  The runs are worked out here
+ * from the shared furigana.js, so the model is only ever asked for readings
+ * and never writes the lyrics back; the kana it is given along with each
+ * run is cut from its answer before the answer leaves the Worker.
+ */
+async function furiganaWithGemini(lines, model, apiKey) {
+  const entries = lines.map(furiganaEntry);
+  const resp = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify(geminiFuriganaRequest(entries)),
+  });
+
+  if (!resp.ok) {
+    const err = new Error(`Gemini HTTP ${resp.status}: ${(await resp.text()).slice(0, 200)}`);
+    err.status = resp.status;
+    throw err;
+  }
+  return parseFuriganaReply(entries, geminiReplyJson(await resp.json()));
+}
+
 // ── Route handlers ──
 
 function jsonResponse(body, status = 200) {
@@ -827,6 +860,44 @@ async function handleLlmTranslate(request, env) {
   return jsonResponse({ translations: translations.map(decodeHtmlEntities), model });
 }
 
+async function handleFurigana(request, env) {
+  const apiKey = env.GEMINI_API_KEY;
+  if (!apiKey) {
+    // 501 tells the client furigana is unconfigured, not broken.
+    return jsonResponse({ error: 'GEMINI_API_KEY secret not configured' }, 501);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Body must be JSON' }, 400);
+  }
+
+  const lines = body?.lines;
+  if (!Array.isArray(lines) || lines.length === 0 || lines.length > FURIGANA_MAX_LINES) {
+    return jsonResponse({ error: `lines must be an array of 1–${FURIGANA_MAX_LINES} strings` }, 400);
+  }
+  if (!lines.every((l) => typeof l === 'string' && l.length <= FURIGANA_MAX_LINE_CHARS && hasKanji(l))) {
+    return jsonResponse({ error: `every line must be a string of at most ${FURIGANA_MAX_LINE_CHARS} characters containing kanji` }, 400);
+  }
+
+  const model = body?.model || FURIGANA_MODELS[0];
+  if (!FURIGANA_ALLOWED_MODELS.includes(model)) {
+    return jsonResponse({ error: `Unknown furigana model: ${model}` }, 400);
+  }
+
+  try {
+    const readings = await furiganaWithGemini(lines, model, apiKey);
+    return jsonResponse({ readings, model });
+  } catch (err) {
+    // Busy (429) and overloaded (503) pass through so the client can tell
+    // them from a model that answered wrongly.
+    const status = err.status === 429 || err.status === 503 ? err.status : 502;
+    return jsonResponse({ error: err.message }, status);
+  }
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
@@ -844,6 +915,12 @@ export default {
           return jsonResponse({ error: 'Use POST' }, 405);
         }
         return await handleLlmTranslate(request, env);
+      }
+      if (url.pathname === '/furigana') {
+        if (request.method !== 'POST') {
+          return jsonResponse({ error: 'Use POST' }, 405);
+        }
+        return await handleFurigana(request, env);
       }
       if (url.pathname === '/translate') {
         if (request.method !== 'POST') {

@@ -650,6 +650,61 @@ html, body {
   color: var(--text-secondary);
 }
 
+/* ─── Furigana ─── */
+
+#furigana-toggle.active {
+  color: var(--accent);
+}
+
+#furigana-toggle.loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* A ruby glyph sized to sit with the 20px icons beside it. */
+.furigana-glyph {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.furigana-glyph rt {
+  font-size: 7px;
+  font-weight: 500;
+}
+
+.line-text rt {
+  /* About 17px over desktop's 40px lyrics; floored so phones stay legible. */
+  font-size: max(0.42em, 10px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  opacity: 0.9;
+  user-select: none;
+}
+
+/* A ruby that is also a timed word must stay a ruby; .word is inline. */
+.lyrics-line ruby.word {
+  display: ruby;
+}
+
+/* text-shadow inherits: a word inside a ruby that is already being sung
+   must not glow before its own turn. */
+.lyrics-line.active .word:not(.sung) {
+  text-shadow: none;
+}
+
+/* Room for the readings, so wrapped lines do not run into them. */
+#lyrics-lines.with-furigana .lyrics-line,
+#lyrics-lines.with-furigana .lyrics-plain {
+  line-height: 1.9;
+}
+
 /* ─── Lyrics Offset Controls ─── */
 
 .lyrics-offset {
