@@ -252,6 +252,13 @@ Three passes over the key, through the same page and Worker code that ships:
 | `gemini-3.5-flash-lite` | 96.3% | 95.7% | 2.1% | 94.6% | 1.6 s |
 | kuromoji (dictionary baseline) | 96.2% | 95.4% | 1.3% | — | — |
 
+That table scores each model on its own. What a listener gets depends on whether
+`gemini-3.1-flash-lite` is answering. Scored the way the app runs the chain
+(`--models chain`, the default), on 2026-11-03, 3.1 answered every request with
+503 "high demand" for over half an hour. Every chunk fell through to 3.5, and the
+chain read **95.0%** of runs correctly (94.4% as sung), with 3.4% unread. That is
+3.5's level, and below kuromoji's score on this key.
+
 By category (correct, any accepted reading):
 
 | | dictionary (703) | context (8) | numbers (7) | rare (13) | sung (7) | printed (8) |
@@ -297,8 +304,8 @@ Caveats:
 ### Running the evaluation
 
 ```bash
-GEMINI_API_KEY=… node tests/eval_furigana_live.mjs                 # the models in the chain
-GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --models gemini-3.1-flash-lite --runs 3 --verbose
+GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --runs 3       # the chain, as the app runs it
+GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --models gemini-3.1-flash-lite --runs 3 --verbose   # one model alone
 node tests/eval_furigana_live.mjs --worker https://….workers.dev    # a deployed Worker instead
 ```
 

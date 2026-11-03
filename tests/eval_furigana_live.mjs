@@ -19,9 +19,14 @@
  * flattered on "dictionary" runs, which are by construction where it agreed
  * with the romanization.
  *
+ * By default it scores `chain`: what the app does, each chunk trying the
+ * models in FURIGANA_MODELS in turn, with no retries beyond that.  Naming
+ * models scores each on its own instead, retrying a song whose requests
+ * failed only because the model was busy.
+ *
  * Usage:
- *   GEMINI_API_KEY=… node tests/eval_furigana_live.mjs
- *   GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --models gemini-3.5-flash-lite,gemini-flash-latest --runs 3
+ *   GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --runs 3
+ *   GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --models gemini-3.1-flash-lite,gemini-3.5-flash-lite --runs 3
  *   node tests/eval_furigana_live.mjs --worker https://…workers.dev
  *   … --songs Lemon,白日   --verbose (list every wrong run)   --json out.json
  *   … --min-accuracy 0.95  (exit 1 if any model's accepted accuracy is lower)
@@ -36,7 +41,7 @@ import worker from '../worker/worker.js';
 
 const { values } = parseArgs({
   options: {
-    models: { type: 'string', default: FURIGANA_MODELS.join(',') },
+    models: { type: 'string', default: 'chain' },
     runs: { type: 'string', default: '1' },
     songs: { type: 'string', default: '' },
     worker: { type: 'string', default: '' },
@@ -173,6 +178,10 @@ const report = { date: new Date().toISOString(), runs: RUNS, models: {} };
 }
 
 for (const model of MODELS) {
+  const isChain = model === 'chain';
+  const models = isChain ? FURIGANA_MODELS : [model];
+  const label = isChain ? `chain (${FURIGANA_MODELS.join(' → ')})` : model;
+  const answeredBy = new Map();    // model -> chunks it answered
   const tally = emptyTally();
   const byCat = {};
   const answers = new Map();       // run key -> readings across runs
@@ -191,18 +200,21 @@ for (const model of MODELS) {
       let attempts = 0;
       const t0 = Date.now();
       let log = [];
-      // A song whose chunks failed only because the model was busy is tried
-      // again after a pause: overload says nothing about the model's answers.
+      // Scoring one model, a song whose chunks failed only because the model
+      // was busy is tried again after a pause: overload says nothing about
+      // its answers.  The chain is scored as the app runs it, with no retry
+      // beyond falling through to the next model.
       for (;;) {
         log = [];
-        result = await fetchFurigana(song.lyricTexts, { workerUrl, models: [model], onChunk: (c) => log.push(c) });
+        result = await fetchFurigana(song.lyricTexts, { workerUrl, models, onChunk: (c) => log.push(c) });
         const busy = log.some((c) => !c.ok && c.transient);
-        if (!busy || ++attempts >= 4) break;
+        if (isChain || !busy || ++attempts >= 4) break;
         await sleep(10_000 * attempts);
       }
       songMs.push(Date.now() - t0);
-      process.stderr.write(`  ${model} run ${r + 1} ${song.title}: ${((Date.now() - t0) / 1000).toFixed(1)}s, `
+      process.stderr.write(`  ${label} run ${r + 1} ${song.title}: ${((Date.now() - t0) / 1000).toFixed(1)}s, `
         + `${log.filter((c) => c.ok).length}/${log.length} requests ok${attempts ? `, ${attempts} busy retr${attempts > 1 ? 'ies' : 'y'}` : ''}\n`);
+      for (const c of log.filter((x) => x.ok)) answeredBy.set(c.model, (answeredBy.get(c.model) || 0) + 1);
       chunks += log.length;
       chunkFailures += log.filter((c) => !c.ok).length;
       transientFailures += log.filter((c) => !c.ok && c.transient).length;
@@ -236,8 +248,9 @@ for (const model of MODELS) {
   }
 
   const consistent = [...answers.values()].filter((a) => a.every((x) => x !== null && x === a[0])).length;
-  report.models[model] = {
+  report.models[label] = {
     tally, byCat, linesSent, linesValid, chunks, chunkFailures, transientFailures,
+    answeredBy: Object.fromEntries(answeredBy),
     failureReasons: Object.fromEntries(failureReasons),
     consistency: RUNS > 1 ? consistent / answers.size : null,
     medianSongMs: songMs.sort((a, b) => a - b)[Math.floor(songMs.length / 2)],
@@ -272,6 +285,9 @@ for (const r of rows) console.log(r.map((cell, i) => (i === 0 ? cell.padEnd(widt
 console.log('\naccepted/sung/categories: share of the key\'s runs read correctly. Categories show "accepted".');
 
 for (const [name, m] of Object.entries(report.models)) {
+  if (Object.keys(m.answeredBy).length > 1 || name.startsWith('chain')) {
+    console.log(`\n${name}: chunks answered by ${Object.entries(m.answeredBy).map(([k, n]) => `${k} ${n}`).join(', ') || 'none'}`);
+  }
   if (m.chunkFailures) {
     console.log(`\n${name}: ${m.chunkFailures}/${m.chunks} requests failed (${m.transientFailures} busy/overloaded, retried)`);
     for (const [reason, n] of Object.entries(m.failureReasons)) console.log(`  ${n}× ${reason}`);

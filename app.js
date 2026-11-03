@@ -283,7 +283,8 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   syncType = null;
   lyricsLanguage = null;
   lyricsTranslations = null;
-  translationRequestId++;   // abandon any translation still in flight
+  translationRequestId++;   // abandon any translation still in flight…
+  translateToggle.classList.remove('loading');  // …so the button is not left waiting on it
   lyricsFurigana = null;
   furiganaRequestId++;      // abandon any furigana still in flight…
   furiganaToggle.classList.remove('loading');   // …so the button is not left waiting on it
@@ -992,15 +993,20 @@ async function loadTranslations() {
   const texts = currentLineTexts();
   if (texts.length === 0) return;
 
+  // Whatever is still in flight was for another track or target, even when
+  // this load is served from the cache: left running, a late reply would
+  // replace what is shown with the wrong language.
+  const requestId = ++translationRequestId;
+
   const key = translationCacheKey();
   const cached = translationCacheGet(key);
   if (cached) {
+    translateToggle.classList.remove('loading');
     lyricsTranslations = cached;
     applyTranslations();
     return;
   }
 
-  const requestId = ++translationRequestId;
   translateToggle.classList.add('loading');
 
   const result = await translateLines(texts, {
@@ -1162,15 +1168,18 @@ async function loadFurigana() {
   const texts = currentLineTexts();
   if (texts.length === 0) return;
 
+  // As with translation: a cached load still abandons anything in flight.
+  const requestId = ++furiganaRequestId;
+
   const key = currentTrackId;
   const cached = furiganaCacheGet(key);
   if (cached) {
+    furiganaToggle.classList.remove('loading');
     lyricsFurigana = cached;
     applyFurigana();
     return;
   }
 
-  const requestId = ++furiganaRequestId;
   furiganaToggle.classList.add('loading');
 
   const result = await fetchFurigana(texts, { workerUrl: CONFIG.WORKER_URL });
