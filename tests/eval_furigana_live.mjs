@@ -1,42 +1,56 @@
 /**
- * Live evaluation of furigana models against the answer key in
+ * Live evaluation of furigana against the answer key in
  * tests/furigana_gold.json (built by tools/furigana-eval/build_gold.mjs).
  *
- * It runs the code that ships: the page's fetchFurigana() calls the Worker's
- * /furigana handler, which calls Gemini.  By default the Worker runs here,
- * in-process, with the key from GEMINI_API_KEY; with --worker it calls a
- * deployed Worker instead.  Lyrics are fetched live from NetEase, since the
- * key holds only readings.
+ * It runs the code that ships: the page's fetchFurigana() walks the chain,
+ * calling the Worker's /furigana handler for model steps (which calls
+ * Gemini) and kuromoji for the dictionary step.  By default the Worker runs
+ * here, in-process, with the key from GEMINI_API_KEY; with --worker it calls
+ * a deployed Worker instead.  kuromoji comes from tools/furigana-eval's own
+ * npm install.  Lyrics are fetched live from NetEase, since the key holds
+ * only readings.
  *
  * Scored per kanji run:
  *   accepted — the reading is one of the key's correct readings
  *   sung     — the reading is the one actually sung (gold[0])
- *   missing  — no reading came back for the line
+ *   missing  — no reading came back for the run
  * broken down by category (dictionary, context, number, rare, sung,
- * printed), plus how often a reply was usable, how often repeated runs give
- * the same answer (--runs), and time per song.  kuromoji's readings from
- * the key are scored alongside as a dictionary baseline — but note it is
- * flattered on "dictionary" runs, which are by construction where it agreed
- * with the romanization.
+ * printed) and by the chain step that supplied the reading, plus how often
+ * a line got any reading, how often repeated passes give the same answer
+ * (--runs), and time per song.  kuromoji's readings from the key are scored
+ * alongside as a dictionary baseline — but note it is flattered on
+ * "dictionary" runs, which are by construction where it agreed with the
+ * romanization, so the same goes for whatever the dictionary step fills.
  *
- * By default it scores `chain`: what the app does, each chunk trying the
- * models in FURIGANA_MODELS in turn, with no retries beyond that.  Naming
- * models scores each on its own instead, retrying a song whose requests
- * failed only because the model was busy.
+ * By default it scores `chain`: FURIGANA_CHAIN exactly as the app runs it,
+ * with no retries.  Naming models scores each alone instead, retrying a
+ * song whose requests failed only because the model was busy; `a>b` scores
+ * a chain of your own — `gemini-3.5-flash-lite>dictionary` is what the app
+ * falls back to while 3.1 is down.
  *
  * Usage:
  *   GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --runs 3
  *   GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --models gemini-3.1-flash-lite,gemini-3.5-flash-lite --runs 3
  *   node tests/eval_furigana_live.mjs --worker https://…workers.dev
+ *   … --cache        give the in-process Worker an in-memory store, so later
+ *                    passes are served from stored readings
  *   … --songs Lemon,白日   --verbose (list every wrong run)   --json out.json
- *   … --min-accuracy 0.95  (exit 1 if any model's accepted accuracy is lower)
+ *   … --min-accuracy 0.95  (exit 1 if any configuration's accepted accuracy is lower)
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { fetchFurigana, kanjiRuns, mergeInlineReadings, FURIGANA_MODELS } from '../furigana.js';
+import {
+  DICTIONARY_STEP,
+  dictionaryReadings,
+  fetchFurigana,
+  FURIGANA_CHAIN,
+  kanjiRuns,
+  mergeInlineReadings,
+} from '../furigana.js';
 import worker from '../worker/worker.js';
 
 const { values } = parseArgs({
@@ -45,6 +59,7 @@ const { values } = parseArgs({
     runs: { type: 'string', default: '1' },
     songs: { type: 'string', default: '' },
     worker: { type: 'string', default: '' },
+    cache: { type: 'boolean', default: false },
     verbose: { type: 'boolean', short: 'v', default: false },
     json: { type: 'string', default: '' },
     'min-accuracy': { type: 'string', default: '' },
@@ -54,7 +69,7 @@ const { values } = parseArgs({
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const GOLD = JSON.parse(fs.readFileSync(path.join(DIR, 'furigana_gold.json'), 'utf8'));
-const MODELS = values.models.split(',').map((m) => m.trim()).filter(Boolean);
+const CONFIGS = values.models.split(',').map((m) => m.trim()).filter(Boolean);
 const RUNS = Math.max(1, Number(values.runs) || 1);
 const PACE_MS = Number(values.pace) || 0;
 const SONG_FILTER = values.songs ? values.songs.split(',') : null;
@@ -67,11 +82,20 @@ if (!values.worker && !process.env.GEMINI_API_KEY) {
   process.exit(2);
 }
 
+// An in-memory stand-in for the Worker's KV namespace.
+function memoryKV() {
+  const store = new Map();
+  return {
+    async get(key, type) { const v = store.get(key); return v == null ? null : type === 'json' ? JSON.parse(v) : v; },
+    async put(key, value) { store.set(key, value); },
+  };
+}
+
 // Route the page's requests to the in-process Worker; everything else
 // (NetEase, Gemini) goes out as normal.
 const realFetch = globalThis.fetch;
 if (!values.worker) {
-  const env = { GEMINI_API_KEY: process.env.GEMINI_API_KEY };
+  const env = { GEMINI_API_KEY: process.env.GEMINI_API_KEY, ...(values.cache ? { FURIGANA_CACHE: memoryKV() } : {}) };
   globalThis.fetch = (url, init) => {
     if (!String(url).startsWith(LOCAL_WORKER)) return realFetch(url, init);
     const call = worker.fetch(new Request(url, init), env);
@@ -83,11 +107,29 @@ if (!values.worker) {
     })]);
   };
 }
-// fetchFurigana logs each failed chunk; the evaluation reports them itself.
+// fetchFurigana logs each failed step; the evaluation reports them itself.
 console.debug = () => {};
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const kataToHira = (s) => String(s || '').replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+
+// ── kuromoji, for the dictionary step ──
+
+let readWithDictionary = null;
+if (CONFIGS.some((c) => c === 'chain' || c.split('>').includes(DICTIONARY_STEP))) {
+  try {
+    const toolDir = path.join(DIR, '../tools/furigana-eval');
+    const kuromoji = createRequire(path.join(toolDir, 'package.json'))('kuromoji');
+    const tokenizer = await new Promise((resolve, reject) => {
+      kuromoji.builder({ dicPath: path.join(toolDir, 'node_modules/kuromoji/dict') })
+        .build((err, t) => (err ? reject(err) : resolve(t)));
+    });
+    readWithDictionary = async (lines) => lines.map((line) => dictionaryReadings(tokenizer.tokenize(line), line));
+  } catch (err) {
+    console.error(`kuromoji unavailable (${err.message}); run \`npm install\` in tools/furigana-eval.`
+      + ' The dictionary step will be skipped.\n');
+  }
+}
 
 // ── Lyrics ──
 
@@ -119,9 +161,8 @@ function emptyTally() {
   return { runs: 0, accepted: 0, sung: 0, missing: 0 };
 }
 
-function score(tally, byCat, run, reading) {
-  const t = [tally, byCat[run.cat] ||= emptyTally()];
-  for (const x of t) {
+function score(tallies, run, reading) {
+  for (const x of tallies) {
     x.runs++;
     if (reading == null) { x.missing++; continue; }
     const r = kataToHira(reading);
@@ -155,7 +196,8 @@ for (const song of GOLD.songs) {
 const keyRuns = songs.reduce((n, s) => n + s.keyed.reduce((m, l) => m + l.runs.length, 0), 0);
 console.log(`Answer key: ${songs.length} songs, ${songs.reduce((n, s) => n + s.keyed.length, 0)} lines, ${keyRuns} runs`
   + `${songs.some((s) => s.stale) ? ` (${songs.reduce((n, s) => n + s.stale, 0)} stale lines skipped)` : ''}`);
-console.log(`Models: ${MODELS.join(', ')} · ${RUNS} run(s) each · via ${values.worker ? values.worker : 'in-process Worker'}\n`);
+console.log(`Scoring: ${CONFIGS.join(', ')} · ${RUNS} pass(es) · via ${values.worker ? values.worker : 'in-process Worker'}`
+  + `${values.cache ? ' with an in-memory store' : ''}\n`);
 
 const report = { date: new Date().toISOString(), runs: RUNS, models: {} };
 
@@ -170,28 +212,26 @@ const report = { date: new Date().toISOString(), runs: RUNS, models: {} };
       const runs = kanjiRuns(line.text);
       line.runs.forEach((run, i) => {
         const printed = inline.find((a) => a.start === runs[i].start);
-        score(tally, byCat, run, printed ? printed.reading : run.kuromoji);
+        score([tally, byCat[run.cat] ||= emptyTally()], run, printed ? printed.reading : run.kuromoji);
       });
     }
   }
   report.baseline = { tally, byCat };
 }
 
-for (const model of MODELS) {
-  const isChain = model === 'chain';
-  const models = isChain ? FURIGANA_MODELS : [model];
-  const label = isChain ? `chain (${FURIGANA_MODELS.join(' → ')})` : model;
-  const answeredBy = new Map();    // model -> chunks it answered
+for (const config of CONFIGS) {
+  const isChain = config === 'chain';
+  const chain = isChain ? FURIGANA_CHAIN : config.split('>');
+  const label = isChain ? `chain (${FURIGANA_CHAIN.join(' → ')})` : chain.join(' → ');
   const tally = emptyTally();
   const byCat = {};
-  const answers = new Map();       // run key -> readings across runs
+  const bySource = {};             // chain step (or "printed") -> tally of the runs it supplied
+  const answers = new Map();       // run key -> readings across passes
   const mistakes = [];
+  const steps = {};                // chain step -> {ran, ok, failed, transient, cached, filled}
+  const failureReasons = new Map();
   let linesSent = 0;
   let linesValid = 0;
-  let chunks = 0;
-  let chunkFailures = 0;
-  let transientFailures = 0;
-  const failureReasons = new Map();
   const songMs = [];
 
   for (let r = 0; r < RUNS; r++) {
@@ -200,28 +240,32 @@ for (const model of MODELS) {
       let attempts = 0;
       const t0 = Date.now();
       let log = [];
-      // Scoring one model, a song whose chunks failed only because the model
-      // was busy is tried again after a pause: overload says nothing about
-      // its answers.  The chain is scored as the app runs it, with no retry
-      // beyond falling through to the next model.
+      // Scoring one model, a song that failed only because the model was busy
+      // is tried again after a pause: overload says nothing about its
+      // answers.  The chain is scored as the app runs it, with no retry.
       for (;;) {
         log = [];
-        result = await fetchFurigana(song.lyricTexts, { workerUrl, models, onChunk: (c) => log.push(c) });
-        const busy = log.some((c) => !c.ok && c.transient);
+        result = await fetchFurigana(song.lyricTexts, { workerUrl, chain, readWithDictionary, onStep: (s) => log.push(s) });
+        const busy = log.some((s) => !s.ok && s.transient);
         if (isChain || !busy || ++attempts >= 4) break;
         await sleep(10_000 * attempts);
       }
       songMs.push(Date.now() - t0);
-      process.stderr.write(`  ${label} run ${r + 1} ${song.title}: ${((Date.now() - t0) / 1000).toFixed(1)}s, `
-        + `${log.filter((c) => c.ok).length}/${log.length} requests ok${attempts ? `, ${attempts} busy retr${attempts > 1 ? 'ies' : 'y'}` : ''}\n`);
-      for (const c of log.filter((x) => x.ok)) answeredBy.set(c.model, (answeredBy.get(c.model) || 0) + 1);
-      chunks += log.length;
-      chunkFailures += log.filter((c) => !c.ok).length;
-      transientFailures += log.filter((c) => !c.ok && c.transient).length;
-      for (const c of log.filter((x) => !x.ok)) {
-        const reason = String(c.error).slice(0, 160);
-        failureReasons.set(reason, (failureReasons.get(reason) || 0) + 1);
+
+      const source = new Map();    // "line\u0000run" -> step that filled it
+      for (const s of log) {
+        const st = steps[s.step] ||= { ran: 0, ok: 0, failed: 0, transient: 0, cached: 0, filled: 0 };
+        st.ran++;
+        if (s.ok) { st.ok++; st.filled += s.filled; if (s.cached) st.cached++; } else { st.failed++; if (s.transient) st.transient++; }
+        if (!s.ok) {
+          const reason = `${s.step}: ${String(s.error).slice(0, 150)}`;
+          failureReasons.set(reason, (failureReasons.get(reason) || 0) + 1);
+        }
+        for (const f of s.filledRuns || []) source.set(`${f.line}\u0000${f.run}`, s.step);
       }
+      process.stderr.write(`  ${label} pass ${r + 1} ${song.title}: ${((Date.now() - t0) / 1000).toFixed(1)}s — `
+        + log.map((s) => `${s.step} ${s.ok ? `${s.filled} filled${s.cached ? ' (stored)' : ''}` : 'failed'}`).join(', ')
+        + `${attempts ? `, ${attempts} busy retr${attempts > 1 ? 'ies' : 'y'}` : ''}\n`);
 
       const indexOf = new Map(song.lyricTexts.map((text, i) => [text, i]).reverse());
       for (const text of new Set(song.lyricTexts.filter((t) => kanjiRuns(t).length > 0))) {
@@ -232,14 +276,18 @@ for (const model of MODELS) {
       for (const line of song.keyed) {
         const ann = result?.[indexOf.get(line.text)] || null;
         const runs = kanjiRuns(line.text);
+        const printed = new Set((mergeInlineReadings(line.text, []) || []).map((a) => a.start));
         line.runs.forEach((run, i) => {
           const reading = ann ? ann.find((a) => a.start === runs[i].start)?.reading ?? null : null;
-          score(tally, byCat, run, reading);
+          const from = printed.has(runs[i].start) ? 'printed in the lyrics'
+            : reading == null ? 'none' : source.get(`${line.text}\u0000${i}`) || 'none';
+          score([tally, byCat[run.cat] ||= emptyTally(), bySource[from] ||= emptyTally()], run, reading);
           const key = `${song.netease}@${line.t}#${i}`;
           if (!answers.has(key)) answers.set(key, []);
           answers.get(key).push(reading == null ? null : kataToHira(reading));
           if (r === 0 && !(reading != null && run.gold.includes(kataToHira(reading)))) {
-            mistakes.push({ song: song.title, t: line.t, line: line.text, run: run.text, got: reading, gold: run.gold, cat: run.cat, kuromoji: run.kuromoji });
+            mistakes.push({ song: song.title, t: line.t, line: line.text, run: run.text, got: reading, from,
+              gold: run.gold, cat: run.cat, kuromoji: run.kuromoji });
           }
         });
       }
@@ -249,8 +297,7 @@ for (const model of MODELS) {
 
   const consistent = [...answers.values()].filter((a) => a.every((x) => x !== null && x === a[0])).length;
   report.models[label] = {
-    tally, byCat, linesSent, linesValid, chunks, chunkFailures, transientFailures,
-    answeredBy: Object.fromEntries(answeredBy),
+    tally, byCat, bySource, steps, linesSent, linesValid,
     failureReasons: Object.fromEntries(failureReasons),
     consistency: RUNS > 1 ? consistent / answers.size : null,
     medianSongMs: songMs.sort((a, b) => a - b)[Math.floor(songMs.length / 2)],
@@ -261,7 +308,7 @@ for (const model of MODELS) {
 // ── Report ──
 
 const CATS = Object.keys(GOLD.categories);
-const rows = [['', 'usable lines', 'accepted', 'sung', 'missing', ...CATS.map((c) => `${c}`), 'same across runs', 'median s/song']];
+const rows = [['', 'lines read', 'accepted', 'sung', 'missing', ...CATS, 'same across passes', 'median s/song']];
 const catCounts = CATS.map((c) => report.baseline.byCat[c]?.runs || 0);
 for (const [name, m] of Object.entries(report.models)) {
   rows.push([
@@ -280,22 +327,24 @@ rows.push(['kuromoji (baseline)', '—', pct(b.tally.accepted, b.tally.runs), pc
   ...CATS.map((c) => pct(b.byCat[c]?.accepted || 0, b.byCat[c]?.runs || 0)), '—', '—']);
 rows.push(['(runs in key)', '', String(b.tally.runs), '', '', ...catCounts.map(String), '', '']);
 
-const widths = rows[0].map((_, i) => Math.max(...rows.map((r) => [...r[i]].length)));
-for (const r of rows) console.log(r.map((cell, i) => (i === 0 ? cell.padEnd(widths[i]) : cell.padStart(widths[i]))).join('  '));
+const table = (rs) => {
+  const widths = rs[0].map((_, i) => Math.max(...rs.map((r) => [...r[i]].length)));
+  for (const r of rs) console.log(r.map((cell, i) => (i === 0 ? cell.padEnd(widths[i]) : cell.padStart(widths[i]))).join('  '));
+};
+table(rows);
 console.log('\naccepted/sung/categories: share of the key\'s runs read correctly. Categories show "accepted".');
 
 for (const [name, m] of Object.entries(report.models)) {
-  if (Object.keys(m.answeredBy).length > 1 || name.startsWith('chain')) {
-    console.log(`\n${name}: chunks answered by ${Object.entries(m.answeredBy).map(([k, n]) => `${k} ${n}`).join(', ') || 'none'}`);
-  }
-  if (m.chunkFailures) {
-    console.log(`\n${name}: ${m.chunkFailures}/${m.chunks} requests failed (${m.transientFailures} busy/overloaded, retried)`);
-    for (const [reason, n] of Object.entries(m.failureReasons)) console.log(`  ${n}× ${reason}`);
-  }
+  console.log(`\n${name} — where each run's reading came from:`);
+  table([['source', 'runs', 'accepted', 'sung'],
+    ...Object.entries(m.bySource).map(([src, t]) => [src, String(t.runs), pct(t.accepted, t.runs), pct(t.sung, t.runs)])]);
+  console.log('  steps: ' + Object.entries(m.steps).map(([s, st]) => `${s} ran ${st.ran}× (${st.ok} ok`
+    + `${st.cached ? `, ${st.cached} from stored readings` : ''}${st.failed ? `, ${st.failed} failed` : ''}), filled ${st.filled}`).join('; '));
+  for (const [reason, n] of Object.entries(m.failureReasons)) console.log(`  ${n}× ${reason.replace(/\s+/g, ' ')}`);
   if (values.verbose && m.mistakes.length) {
-    console.log(`\n${name} — wrong or missing runs (first run):`);
+    console.log(`\n${name} — wrong or missing runs (first pass):`);
     for (const x of m.mistakes) {
-      console.log(`  ${x.song} ${x.t} [${x.cat}] ${x.run}: got ${x.got ?? '(none)'}, want ${x.gold.join('|')}   ${x.line}`);
+      console.log(`  ${x.song} ${x.t} [${x.cat}] ${x.run}: got ${x.got ?? '(none)'} from ${x.from}, want ${x.gold.join('|')}   ${x.line}`);
     }
   }
 }

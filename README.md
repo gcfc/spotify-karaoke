@@ -199,8 +199,9 @@ next day. The Gemini free tier is more generous but still finite.
 For Japanese lyrics with kanji, a 字 button appears beside the translate button.
 Switched on, every kanji word gets its reading above it in small kana — on synced
 and plain lyrics alike, and in word-synced lyrics the readings light up with the
-words. As with translation, nothing is sent until the button is switched on, and
-readings are cached per track. It needs `GEMINI_API_KEY` on the Worker.
+words. As with translation, nothing is sent until the button is switched on.
+It needs `GEMINI_API_KEY` on the Worker, and stores each song's readings once
+read if the Worker has a KV namespace (see [Stored readings](#stored-readings)).
 
 ### How a line is read
 
@@ -223,11 +224,54 @@ readings are cached per track. It needs `GEMINI_API_KEY` on the Worker.
    lyricist's ruby in brackets — 溢(こぼ)れた, 終幕(さいご)は. Those override the
    model, and with furigana on the bracket is hidden and shown as ruby instead.
 
-The models are tried in order per chunk of 25 lines, with a song's chunks sent
-together: `gemini-3.1-flash-lite`, then `gemini-3.5-flash-lite` if it is busy or
-fails. A request gives up after 20 seconds. Versions are pinned rather than
-`-latest` aliases: `gemini-flash-lite-latest` moved to 3.5, which reads less
-accurately.
+### Where readings come from
+
+`FURIGANA_CHAIN` in `furigana.js` is tried in order, and each step fills only
+the words the steps before it left unread — it never overrides them:
+
+1. **Stored readings**, if the Worker has them for this exact text.
+2. **`gemini-3.1-flash-lite`**, through the Worker. A song is one request: the
+   Worker splits it into chunks of 25 lines and sends them to Gemini together.
+3. **`gemini-3.5-flash-lite`**, through the Worker, for words 3.1 left unread. Less
+   accurate than 3.1, but like it, it reads from context.
+4. **The dictionary — kuromoji, in the browser**, for words both models left
+   unread. Free and needing no quota, but it reads each word the way its
+   dictionary does, ignoring context (二人 as ににん, not ふたり). Its dictionary is
+   about 18 MB, fetched from jsDelivr only the first time a song reaches this
+   step and then cached by the browser; the script is pinned with a
+   subresource-integrity hash, since it runs inside the page.
+
+So the browser downloads the dictionary only when both models leave a word
+unread; while 3.1 answers, it never does. Each request gives up after 20 seconds.
+Model versions are pinned rather than `-latest` aliases:
+`gemini-flash-lite-latest` moved to 3.5, which reads less accurately.
+
+### Stored readings
+
+The Worker keeps each song's readings in a KV namespace, keyed by a SHA-256 of the
+song's distinct kanji lines, and looks there before calling any model. So a song
+read once is answered at once, with no Gemini request, by everyone after. It is
+keyed by text rather than track id because the same track can arrive with
+different lyrics from different sources.
+
+Only readings the Worker itself got from `gemini-3.1-flash-lite`, for every chunk
+of the song, are stored. A client cannot write readings of its own, and a song
+read while 3.1 was down is read again by 3.1 later, rather than kept at the
+fallback's quality. Entries expire after 180 days; bump `FURIGANA_CACHE_VERSION`
+to drop them all at once.
+
+To enable it, create the namespace and bind it in `worker/wrangler.toml`. The
+block is there, commented out:
+
+```bash
+cd worker
+wrangler kv namespace create FURIGANA_CACHE   # prints an id
+# paste the id into wrangler.toml's [[kv_namespaces]] block, uncomment it, then
+wrangler deploy
+```
+
+Without the binding, `/furigana` works the same, uncached. The free KV tier
+allows 1,000 writes a day — one per newly read song.
 
 ### Evaluation
 
@@ -252,12 +296,29 @@ Three passes over the key, through the same page and Worker code that ships:
 | `gemini-3.5-flash-lite` | 96.3% | 95.7% | 2.1% | 94.6% | 1.6 s |
 | kuromoji (dictionary baseline) | 96.2% | 95.4% | 1.3% | — | — |
 
-That table scores each model on its own. What a listener gets depends on whether
-`gemini-3.1-flash-lite` is answering. Scored the way the app runs the chain
-(`--models chain`, the default), on 2026-11-03, 3.1 answered every request with
-503 "high demand" for over half an hour. Every chunk fell through to 3.5, and the
-chain read **95.0%** of runs correctly (94.4% as sung), with 3.4% unread. That is
-3.5's level, and below kuromoji's score on this key.
+That table scores each model on its own. What a listener gets is the chain, and
+that depends on whether `gemini-3.1-flash-lite` is answering. Measured on
+2026-11-03:
+
+| | correct (any accepted) | correct (as sung) | no reading | context (8) | numbers (7) | rare (13) |
+|---|---|---|---|---|---|---|
+| **The chain while 3.1 answers** (3 passes) | **99.7%** | **98.5%** | 0 | 100% | 100% | 92.3% |
+| **The chain while 3.1 is down** — 3.5, then the dictionary | 97.7% | 97.2% | 1 | 100% | 100% | 69.2% |
+| For comparison: dictionary, then 3.5 | 97.3% | 96.5% | 1 | 0% | 42.9% | 38.5% |
+| For comparison: 3.5 alone | 95.7% | 95.0% | 18 | 100% | 85.7% | 69.2% |
+
+While 3.1 answers it reads every word itself, so the chain is 3.1's accuracy
+(2,232 of 2,238 runs over three passes); the median song took 1.7 s. Earlier
+that day 3.1 had answered every request with 503 "high demand" for over half an
+hour.
+
+While 3.1 is down, 3.5 goes first because it reads from context. With the
+dictionary first instead, 二人 came out ににん four times in one song, 側 がわ and
+降り止む おり: the context, number and rare columns above. 3.5's own weakness is
+whole lines left unread, and that is what the dictionary covers — here it filled
+the 11 words 3.5 left, which took 3.5 alone from 95.7% to 97.7%. The dictionary
+row's 100% on ordinary words is flattered by how the key was built, so the
+comparison that matters is the hard columns.
 
 By category (correct, any accepted reading):
 
@@ -306,9 +367,14 @@ Caveats:
 ```bash
 GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --runs 3       # the chain, as the app runs it
 GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --models gemini-3.1-flash-lite --runs 3 --verbose   # one model alone
+GEMINI_API_KEY=… node tests/eval_furigana_live.mjs --models 'gemini-3.5-flash-lite>dictionary'        # the chain while 3.1 is down
 node tests/eval_furigana_live.mjs --worker https://….workers.dev    # a deployed Worker instead
 ```
 
+The dictionary step needs `npm install` in `tools/furigana-eval` (it runs kuromoji
+in Node). The report breaks results down by the step each reading came from.
+`--cache` gives the in-process Worker an in-memory store, so later passes are
+answered from stored readings, as a deployed Worker with KV would.
 `--songs Lemon,白日` limits the songs, `--json out.json` saves the full report,
 and `--min-accuracy 0.98` exits non-zero below that share. `--verbose` and
 `--json` include the lines a model got wrong, so keep their output local.
@@ -444,7 +510,7 @@ spotify-karaoke/
 ├── lyrics.js           # Lyrics fetch chain (no DOM dependencies)
 ├── matching.js         # Script-insensitive search matching (see below)
 ├── translate.js        # Language detection + translation providers
-├── furigana.js         # Kanji runs, the furigana prompt, reply checks, layout
+├── furigana.js         # Kanji runs, the reading chain, prompt, reply checks, layout
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── tools/
 │   ├── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table

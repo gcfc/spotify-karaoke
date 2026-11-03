@@ -15,9 +15,13 @@ import {
 } from '../translate.js';
 import {
   FURIGANA_ALLOWED_MODELS,
+  FURIGANA_CACHE_TTL_S,
+  FURIGANA_CHUNK_LINES,
+  FURIGANA_GEMINI_TIMEOUT_MS,
   FURIGANA_MAX_LINE_CHARS,
   FURIGANA_MAX_LINES,
   FURIGANA_MODELS,
+  furiganaCacheKey,
   furiganaEntry,
   geminiFuriganaRequest,
   geminiReplyJson,
@@ -596,6 +600,7 @@ async function furiganaWithGemini(lines, model, apiKey) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify(geminiFuriganaRequest(entries)),
+    signal: AbortSignal.timeout(FURIGANA_GEMINI_TIMEOUT_MS),
   });
 
   if (!resp.ok) {
@@ -604,6 +609,28 @@ async function furiganaWithGemini(lines, model, apiKey) {
     throw err;
   }
   return parseFuriganaReply(entries, geminiReplyJson(await resp.json()));
+}
+
+/**
+ * A song's readings, read in chunks of FURIGANA_CHUNK_LINES sent together.
+ * A chunk that fails leaves its lines null; `failures` holds why.
+ */
+async function furiganaForSong(lines, model, apiKey) {
+  const chunks = [];
+  for (let i = 0; i < lines.length; i += FURIGANA_CHUNK_LINES) chunks.push(lines.slice(i, i + FURIGANA_CHUNK_LINES));
+  const settled = await Promise.allSettled(chunks.map((chunk) => furiganaWithGemini(chunk, model, apiKey)));
+
+  const readings = [];
+  const failures = [];
+  settled.forEach((s, k) => {
+    if (s.status === 'fulfilled') {
+      readings.push(...s.value);
+    } else {
+      failures.push(s.reason);
+      readings.push(...chunks[k].map(() => null));
+    }
+  });
+  return { readings, failures, chunks: chunks.length };
 }
 
 // ── Route handlers ──
@@ -860,7 +887,16 @@ async function handleLlmTranslate(request, env) {
   return jsonResponse({ translations: translations.map(decodeHtmlEntities), model });
 }
 
-async function handleFurigana(request, env) {
+/**
+ * Readings for a song's distinct kanji lines.  Stored readings are looked up
+ * first (the FURIGANA_CACHE KV namespace, keyed by a hash of the lines), so
+ * a song read once is never sent to a model again.  Only what this Worker
+ * got from the first model in FURIGANA_MODELS, for every chunk, is stored:
+ * a client cannot write readings of its own, and a song read while that
+ * model was down is read again by it later rather than kept at a lower
+ * quality.  Without the binding the route works, uncached.
+ */
+async function handleFurigana(request, env, ctx) {
   const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
     // 501 tells the client furigana is unconfigured, not broken.
@@ -887,19 +923,38 @@ async function handleFurigana(request, env) {
     return jsonResponse({ error: `Unknown furigana model: ${model}` }, 400);
   }
 
-  try {
-    const readings = await furiganaWithGemini(lines, model, apiKey);
-    return jsonResponse({ readings, model });
-  } catch (err) {
+  const cache = env.FURIGANA_CACHE;
+  const key = cache ? await furiganaCacheKey(lines) : null;
+  if (cache) {
+    const stored = await cache.get(key, 'json').catch(() => null);
+    if (Array.isArray(stored?.readings) && stored.readings.length === lines.length) {
+      return jsonResponse({ readings: stored.readings, model: stored.model, cached: true, complete: true });
+    }
+  }
+
+  const { readings, failures, chunks } = await furiganaForSong(lines, model, apiKey);
+
+  if (failures.length === chunks) {
     // Busy (429) and overloaded (503) pass through so the client can tell
     // them from a model that answered wrongly.
-    const status = err.status === 429 || err.status === 503 ? err.status : 502;
-    return jsonResponse({ error: err.message }, status);
+    const status = failures.every((f) => f.status === 429 || f.status === 503) ? failures[0].status : 502;
+    return jsonResponse({ error: failures[0].message }, status);
   }
+
+  const complete = failures.length === 0;
+  if (cache && complete && model === FURIGANA_MODELS[0]) {
+    const put = cache.put(key, JSON.stringify({ readings, model, storedAt: new Date().toISOString() }), {
+      expirationTtl: FURIGANA_CACHE_TTL_S,
+    }).catch(() => {});
+    // Store after answering, not before.
+    if (ctx?.waitUntil) ctx.waitUntil(put); else await put;
+  }
+
+  return jsonResponse({ readings, model, cached: false, complete });
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS });
     }
@@ -920,7 +975,7 @@ export default {
         if (request.method !== 'POST') {
           return jsonResponse({ error: 'Use POST' }, 405);
         }
-        return await handleFurigana(request, env);
+        return await handleFurigana(request, env, ctx);
       }
       if (url.pathname === '/translate') {
         if (request.method !== 'POST') {

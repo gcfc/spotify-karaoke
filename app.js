@@ -7,7 +7,7 @@ import {
 } from './sources.js';
 import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
 import { detectLyricsLanguage, normalizeProvider, shouldOfferTranslation, translateLines } from './translate.js';
-import { fetchFurigana, furiganaSegments, hasKanji, layoutWordFurigana } from './furigana.js';
+import { dictionaryReadings, fetchFurigana, furiganaSegments, hasKanji, layoutWordFurigana } from './furigana.js';
 
 // ============================================================
 //  Configuration — fill these in before deploying
@@ -1160,6 +1160,41 @@ function hideFuriganaControl() {
   furiganaToggle.classList.add('hidden');
 }
 
+// kuromoji, the dictionary step of the furigana chain (see FURIGANA_CHAIN in
+// furigana.js).  Its dictionary is ~18 MB, so it is fetched only the first
+// time the chain reaches it — when both Gemini models have left a word
+// unread — and then kept for the session; the browser caches the files.
+// The script is pinned to its exact bytes: it runs inside this page.
+const KUROMOJI_SCRIPT = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js';
+const KUROMOJI_INTEGRITY = 'sha384-LCHxvFGxgpk9Bl+0+OaV6Rf24HQamJPrNHIo6VGkXkVgGWRvl68eqUwCW5PWqfwh';
+const KUROMOJI_DICT = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/';
+
+let kuromojiTokenizer = null;   // a promise, once loading has started
+
+function loadKuromoji() {
+  kuromojiTokenizer ||= new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = KUROMOJI_SCRIPT;
+    script.integrity = KUROMOJI_INTEGRITY;
+    script.crossOrigin = 'anonymous';
+    script.onerror = () => reject(new Error('kuromoji script failed to load'));
+    script.onload = () => {
+      window.kuromoji.builder({ dicPath: KUROMOJI_DICT })
+        .build((err, tokenizer) => (err ? reject(err) : resolve(tokenizer)));
+    };
+    document.head.appendChild(script);
+  }).catch((err) => {
+    kuromojiTokenizer = null;   // let a later song try again
+    throw err;
+  });
+  return kuromojiTokenizer;
+}
+
+async function readWithKuromoji(lines) {
+  const tokenizer = await loadKuromoji();
+  return lines.map((line) => dictionaryReadings(tokenizer.tokenize(line), line));
+}
+
 /**
  * Fetch and show furigana for the current track.  Like translation, nothing
  * is sent until the button is switched on.
@@ -1182,7 +1217,7 @@ async function loadFurigana() {
 
   furiganaToggle.classList.add('loading');
 
-  const result = await fetchFurigana(texts, { workerUrl: CONFIG.WORKER_URL });
+  const result = await fetchFurigana(texts, { workerUrl: CONFIG.WORKER_URL, readWithDictionary: readWithKuromoji });
 
   if (requestId !== furiganaRequestId) return;
   furiganaToggle.classList.remove('loading');

@@ -263,25 +263,133 @@ export function checkFuriganaReadings(lines, readings) {
  */
 export const FURIGANA_ALLOWED_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite'];
 
-/**
- * Tried in order for each chunk, chosen by tests/eval_furigana_live.mjs
- * against the answer key in tests/furigana_gold.json (see the README):
- * 3.1 read 99.7% of the key's runs correctly, 3.5 96.3%, so 3.5 is only
- * the fallback for when 3.1 is busy or fails.
- */
-export const FURIGANA_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite'];
+/** The chain step that reads with kuromoji, in the browser, instead of a model. */
+export const DICTIONARY_STEP = 'dictionary';
 
-// Kept to the size the translation models were verified at.
+/**
+ * Where readings come from, in order.  Each step fills only what the steps
+ * before it left unread, word by word: 3.5 fills the words 3.1 could not
+ * answer, and the dictionary fills whatever both models left.
+ *
+ * gemini-3.1-flash-lite read 99.7% of the answer key's runs correctly when
+ * it was answering (tests/eval_furigana_live.mjs, see the README).  3.5
+ * comes next: it reads less accurately but, like 3.1, from context, which
+ * matters most for the words lyrics use — 二人 as ふたり, 側 as そば.  The
+ * dictionary — kuromoji, which knows each word's usual reading but not its
+ * context — is last: free, needing no quota, and once loaded never failing,
+ * it covers lines both models left unread, and its ~18 MB download happens
+ * only then.
+ */
+export const FURIGANA_CHAIN = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', DICTIONARY_STEP];
+
+/** The models in the chain, in order; the first is the only one whose
+ *  readings the Worker stores. */
+export const FURIGANA_MODELS = FURIGANA_CHAIN.filter((step) => step !== DICTIONARY_STEP);
+
+// One Gemini request reads at most this many lines; the Worker splits a song
+// into chunks of this size and sends them together.  Kept to the size the
+// translation models were verified at.
 export const FURIGANA_CHUNK_LINES = 25;
 
-// A request that has not answered by now is abandoned for the next model,
-// so a stalled call cannot leave the button spinning.
+// A request that has not answered by now is abandoned for the next step, so
+// a stalled call cannot leave the button spinning.  The Worker gives each
+// Gemini call a little less, so it can still answer with the chunks that
+// did come back.
 export const FURIGANA_TIMEOUT_MS = 20_000;
+export const FURIGANA_GEMINI_TIMEOUT_MS = 17_000;
 
 // The Worker refuses anything larger, so it cannot be used to run arbitrary
-// long prompts against the key.
-export const FURIGANA_MAX_LINES = 40;
+// long prompts against the key.  A song is one request; few songs have more
+// than a hundred distinct lines with kanji.
+export const FURIGANA_MAX_LINES = 200;
 export const FURIGANA_MAX_LINE_CHARS = 300;
+
+// ── Stored readings ──
+
+// Bump to orphan every stored song, e.g. after a change to kanjiRuns that
+// would pair stored readings with different runs.
+export const FURIGANA_CACHE_VERSION = 1;
+
+// Readings do not go stale, but a better model should eventually reach
+// songs that were read before it.
+export const FURIGANA_CACHE_TTL_S = 180 * 24 * 60 * 60;
+
+/**
+ * The key a song's readings are stored under: a hash of its distinct kanji
+ * lines, in order.  It follows the text rather than a track id, because the
+ * same track can arrive with different lyrics from different sources, and
+ * readings stored for one text would not fit another.
+ */
+export async function furiganaCacheKey(lines) {
+  const bytes = new TextEncoder().encode(JSON.stringify(lines));
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  const hex = [...digest].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return `furigana:v${FURIGANA_CACHE_VERSION}:${hex}`;
+}
+
+// ── Dictionary readings (kuromoji) ──
+
+const KANA_RUN_RE = /[ぁ-ゖァ-ヺー]+|[^ぁ-ゖァ-ヺー]+/g;
+const KANA_START_RE = /^[ぁ-ゖァ-ヺー]/;
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Split a token's reading over its surface: 取り扱い read とりあつかい gives
+ * 取=と and 扱=あつか.  Null when the kana in the surface cannot be found in
+ * the reading.
+ */
+function alignToken(surface, reading) {
+  const parts = surface.match(KANA_RUN_RE) || [];
+  const pattern = parts.map((p) => (KANA_START_RE.test(p) ? escapeRe(toHiragana(p)) : '(.+?)')).join('');
+  const m = reading.match(new RegExp(`^${pattern}$`));
+  if (!m) return null;
+  const blocks = [];
+  let offset = 0;
+  let group = 1;
+  for (const p of parts) {
+    if (!KANA_START_RE.test(p)) blocks.push({ offset, length: p.length, reading: m[group++] });
+    offset += p.length;
+  }
+  return blocks;
+}
+
+/**
+ * A dictionary's reading of each kanji run in a line, from kuromoji's tokens
+ * for it (`{surface_form, reading}`), with null for a run it cannot read —
+ * a word it does not know, or a run whose tokens do not line up with it.
+ * A run can span tokens (二人今 is three), and a token can hold several runs
+ * (取り扱い holds two).
+ *
+ * @param {{surface_form: string, reading?: string}[]} tokens
+ * @param {string} line
+ * @returns {(string|null)[]}
+ */
+export function dictionaryReadings(tokens, line) {
+  const blocks = [];
+  let pos = 0;
+  for (const t of tokens) {
+    const surface = t.surface_form;
+    const start = pos;
+    pos += surface.length;
+    if (!hasKanji(surface) && !/[0-9０-９]/.test(surface)) continue;
+    const reading = t.reading && t.reading !== '*' ? toHiragana(t.reading) : null;
+    const aligned = reading ? alignToken(surface, reading) : null;
+    if (!aligned) continue;
+    for (const b of aligned) blocks.push({ start: start + b.offset, end: start + b.offset + b.length, reading: b.reading });
+  }
+
+  return kanjiRuns(line).map((run) => {
+    let cursor = run.start;
+    let reading = '';
+    for (const b of blocks) {
+      if (b.end <= run.start || b.start >= run.end) continue;
+      if (b.start !== cursor || b.end > run.end) return null;
+      reading += b.reading;
+      cursor = b.end;
+    }
+    return cursor === run.end && reading && isKana(reading) ? reading : null;
+  });
+}
 
 // ── Client: fetching through the Worker ──
 
@@ -313,11 +421,12 @@ export function annotate(line, readings) {
     .filter((a) => a.reading);
 }
 
-async function requestChunk(chunk, model, workerUrl) {
+/** One Worker request: readings for up to FURIGANA_MAX_LINES lines. */
+async function requestLines(lines, model, workerUrl) {
   const resp = await fetch(`${workerUrl}/furigana`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ lines: chunk, model }),
+    body: JSON.stringify({ lines, model }),
     signal: AbortSignal.timeout(FURIGANA_TIMEOUT_MS),
   });
   if (resp.status === 501) {
@@ -333,7 +442,16 @@ async function requestChunk(chunk, model, workerUrl) {
     throw err;
   }
   const data = await resp.json();
-  return checkFuriganaReadings(chunk, data?.readings);
+  return { readings: checkFuriganaReadings(lines, data?.readings), cached: Boolean(data?.cached) };
+}
+
+/** A model's readings for these lines, in as many requests as the Worker's
+ *  line limit needs (one, for any ordinary song). */
+async function requestReadings(lines, model, workerUrl) {
+  const parts = [];
+  for (let i = 0; i < lines.length; i += FURIGANA_MAX_LINES) parts.push(lines.slice(i, i + FURIGANA_MAX_LINES));
+  const replies = await Promise.all(parts.map((part) => requestLines(part, model, workerUrl)));
+  return { readings: replies.flatMap((r) => r.readings), cached: replies.every((r) => r.cached) };
 }
 
 /**
@@ -342,57 +460,78 @@ async function requestChunk(chunk, model, workerUrl) {
  * could be had for it.  Returns null when nothing came back at all, leaving
  * the lyrics as they are.
  *
- * A song's chunks — two or three — go out together rather than in turn, so
- * the wait is one request, not three; each tries the models in order, so one
- * overloaded model costs a retry rather than the song.  A line the model got
- * wrong in shape stays null rather than being retried: the other lines of
- * its chunk are fine, and a partly annotated song is more use than a second
- * wait.  Readings the lyrics carry in brackets are laid over the model's,
- * and kept even for a line the model failed.
+ * The song's distinct kanji lines go through FURIGANA_CHAIN in order, and
+ * each step is asked only about lines that still have an unread word, and
+ * may only fill those words: 3.5 never overrides 3.1, and the dictionary
+ * never overrides either.  A model step is one request for the whole
+ * song — the Worker looks up the stored readings first, and otherwise reads
+ * the song's chunks together.  The dictionary step calls
+ * `readWithDictionary(lines)`, which resolves to each line's readings in
+ * kanjiRuns order (see dictionaryReadings); without it the step is skipped.
+ * Readings the lyrics carry in brackets are laid over the result.
  *
- * `onChunk` reports each attempt — `{model, lines, ok, ms, error, transient}`
- * — for the evaluation; the app does not use it.
+ * `onStep` reports each step that ran — `{step, lines, ok, filled,
+ * filledRuns: [{line, run}], cached, ms, error, transient}` — for the
+ * evaluation; the app does not use it.
  *
  * @param {string[]} lines
- * @param {{workerUrl: string, models?: string[], onChunk?: Function}} options
+ * @param {{workerUrl?: string, chain?: string[],
+ *          readWithDictionary?: (lines: string[]) => Promise<(string|null)[][]>,
+ *          onStep?: Function}} options
  */
 export async function fetchFurigana(lines, options) {
-  const { workerUrl, models = FURIGANA_MODELS, onChunk } = options || {};
-  if (!workerUrl || !Array.isArray(lines) || lines.length === 0) return null;
+  const { workerUrl, chain = FURIGANA_CHAIN, readWithDictionary, onStep } = options || {};
+  if (!Array.isArray(lines) || lines.length === 0) return null;
 
   const { unique, slots } = planFurigana(lines);
   if (unique.length === 0) return lines.map(() => []);
 
-  const readings = new Array(unique.length).fill(null);
-  let unconfigured = false;
+  // Per distinct line, per kanji run: a reading, or null while unread.
+  const readings = unique.map((line) => kanjiRuns(line).map(() => null));
+  const unread = () => unique.map((_, i) => i).filter((i) => readings[i].includes(null));
+  let workerUsable = Boolean(workerUrl);
 
-  const runChunk = async (start) => {
-    const chunk = unique.slice(start, start + FURIGANA_CHUNK_LINES);
-    for (const model of models) {
-      if (unconfigured) return;
-      const t0 = Date.now();
-      try {
-        const got = await requestChunk(chunk, model, workerUrl);
-        got.forEach((r, i) => { readings[start + i] = r; });
-        onChunk?.({ model, lines: chunk.length, ok: true, ms: Date.now() - t0 });
-        return;
-      } catch (err) {
-        console.debug(`[furigana] ${model} failed:`, err.message);
-        onChunk?.({ model, lines: chunk.length, ok: false, ms: Date.now() - t0, error: err.message, transient: Boolean(err.transient) });
-        if (err.unconfigured) { unconfigured = true; return; }
+  for (const step of chain) {
+    const todo = unread();
+    if (todo.length === 0) break;
+    const isDictionary = step === DICTIONARY_STEP;
+    if (isDictionary ? !readWithDictionary : !workerUsable) continue;
+
+    const t0 = Date.now();
+    const asked = todo.map((i) => unique[i]);
+    try {
+      let got;
+      let cached = false;
+      if (isDictionary) {
+        got = await readWithDictionary(asked);
+      } else {
+        ({ readings: got, cached } = await requestReadings(asked, step, workerUrl));
       }
+      const filledRuns = [];
+      todo.forEach((i, k) => {
+        const line = got?.[k];
+        if (!Array.isArray(line) || line.length !== readings[i].length) return;
+        line.forEach((r, j) => {
+          if (readings[i][j] === null && typeof r === 'string' && isKana(r)) {
+            readings[i][j] = r;
+            filledRuns.push({ line: unique[i], run: j });
+          }
+        });
+      });
+      onStep?.({ step, lines: todo.length, ok: true, filled: filledRuns.length, filledRuns, cached, ms: Date.now() - t0 });
+    } catch (err) {
+      console.debug(`[furigana] ${step} failed:`, err.message);
+      onStep?.({ step, lines: todo.length, ok: false, filled: 0, ms: Date.now() - t0,
+        error: err.message, transient: Boolean(err.transient) });
+      // No key on the Worker: no model step can work, but the dictionary can.
+      if (err.unconfigured) workerUsable = false;
     }
-  };
-
-  const starts = [];
-  for (let start = 0; start < unique.length; start += FURIGANA_CHUNK_LINES) starts.push(start);
-  await Promise.all(starts.map(runChunk));
-  if (unconfigured) return null;
+  }
 
   const result = lines.map((line, i) => {
     const slot = slots[i];
     if (slot < 0) return [];
-    const merged = mergeInlineReadings(line, readings[slot] ? annotate(line, readings[slot]) : null);
+    const merged = mergeInlineReadings(line, annotate(line, readings[slot]));
     return merged && merged.length > 0 ? merged : null;
   });
   return result.some((r) => r && r.length > 0) ? result : null;

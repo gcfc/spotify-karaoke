@@ -37,7 +37,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import kuromoji from 'kuromoji';
 import { toRomaji } from 'wanakana';
-import { kanjiRuns, hasKanji } from '../../furigana.js';
+import { dictionaryReadings, kanjiRuns, hasKanji } from '../../furigana.js';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const GOLD_PATH = path.join(DIR, '../../tests/furigana_gold.json');
@@ -97,66 +97,24 @@ export function parseTimedLines(lrc) {
 // ── kuromoji readings, per kanji run ──
 
 const kataToHira = (s) => s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
-const KANA_CHAR = /[ぁ-ゖァ-ヺー]/;
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/** Split a token's reading over its surface: 取り扱い/とりあつかい gives
- *  取=と and 扱=あつか.  Null when the kana in the surface cannot be found
- *  in the reading. */
-function alignToken(surface, reading) {
-  const parts = surface.match(/[ぁ-ゖァ-ヺー]+|[^ぁ-ゖァ-ヺー]+/g) || [];
-  const pattern = parts.map((p) => (KANA_CHAR.test(p[0]) ? escapeRe(kataToHira(p)) : '(.+?)')).join('');
-  const m = reading.match(new RegExp(`^${pattern}$`));
-  if (!m) return null;
-  const blocks = [];
-  let offset = 0;
-  let group = 1;
-  for (const p of parts) {
-    if (!KANA_CHAR.test(p[0])) blocks.push({ offset, length: p.length, reading: m[group++] });
-    offset += p.length;
-  }
-  return blocks;
-}
 
 /**
- * kuromoji's reading of each kanji run in a line (null where it has none),
+ * kuromoji's reading of each kanji run in a line (null where it has none) —
+ * read by the same dictionaryReadings() the app falls back on, so the
+ * baseline in the key is exactly what the app's dictionary step would show —
  * and the whole line as kana for comparing with the romanization.  Particles
  * are written as sung: は as わ, へ as え, を as お.
  */
 function kuromojiLine(tokenizer, line) {
-  const blocks = [];
-  const kana = [];
-  let pos = 0;
-  for (const t of tokenizer.tokenize(line)) {
-    const surface = t.surface_form;
-    const start = pos;
-    pos += surface.length;
-    const reading = t.reading && t.reading !== '*' ? kataToHira(t.reading) : null;
-
-    if (t.pos === '助詞' && surface === 'は') { kana.push('わ'); continue; }
-    if (t.pos === '助詞' && surface === 'へ') { kana.push('え'); continue; }
-    if (t.pos === '助詞' && surface === 'を') { kana.push('お'); continue; }
-    kana.push(reading || surface);
-
-    if (!hasKanji(surface) && !/[0-9０-９]/.test(surface)) continue;
-    const aligned = reading ? alignToken(surface, reading) : null;
-    if (!aligned) continue;
-    for (const b of aligned) blocks.push({ start: start + b.offset, end: start + b.offset + b.length, reading: b.reading });
-  }
-
-  const runs = kanjiRuns(line).map((run) => {
-    // The blocks inside a run must tile it exactly: 二人今 is three tokens.
-    let cursor = run.start;
-    let reading = '';
-    for (const b of blocks) {
-      if (b.end <= run.start || b.start >= run.end) continue;
-      if (b.start !== cursor || b.end > run.end) return { text: run.text, kuromoji: null };
-      reading += b.reading;
-      cursor = b.end;
-    }
-    return { text: run.text, kuromoji: cursor === run.end && reading ? reading : null };
+  const tokens = tokenizer.tokenize(line);
+  const kana = tokens.map((t) => {
+    if (t.pos === '助詞' && t.surface_form === 'は') return 'わ';
+    if (t.pos === '助詞' && t.surface_form === 'へ') return 'え';
+    if (t.pos === '助詞' && t.surface_form === 'を') return 'お';
+    return t.reading && t.reading !== '*' ? kataToHira(t.reading) : t.surface_form;
   });
-
+  const readings = dictionaryReadings(tokens, line);
+  const runs = kanjiRuns(line).map((run, i) => ({ text: run.text, kuromoji: readings[i] }));
   return { runs, romaji: toRomaji(kana.join('')) };
 }
 
