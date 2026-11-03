@@ -354,6 +354,11 @@ dict = dictionary((l) => kanjiRuns(l).map(() => 'じ'));
 calls = stubWorker(fail(501));
 result = await fetchFurigana(['夜'], { workerUrl: W, readWithDictionary: dict });
 assert(eq(readingsOf(result), [['じ']]) && calls.length === 1, 'a Worker without a key: the dictionary still reads, and 3.5 is not tried');
+dict = dictionary((l) => kanjiRuns(l).map(() => 'じ'));
+calls = stubWorker(fail(404));
+result = await fetchFurigana(['夜'], { workerUrl: W, readWithDictionary: dict });
+assert(eq(readingsOf(result), [['じ']]) && calls.length === 1,
+  'a Worker deployed before /furigana existed (404): straight to the dictionary, 3.5 not tried');
 calls = stubWorker(fail(501));
 result = await fetchFurigana(['夜'], { workerUrl: W });
 assert(result === null && calls.length === 1, 'a Worker without a key and no dictionary: nothing, after one request');

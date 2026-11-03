@@ -429,8 +429,11 @@ async function requestLines(lines, model, workerUrl) {
     body: JSON.stringify({ lines, model }),
     signal: AbortSignal.timeout(FURIGANA_TIMEOUT_MS),
   });
-  if (resp.status === 501) {
-    const err = new Error('furigana: Worker has no Gemini key');
+  // 501: the Worker has no Gemini key.  404: it is an older deployment
+  // without this route.  Either way no model step can work, so the chain
+  // goes straight to the dictionary rather than asking the next model.
+  if (resp.status === 501 || resp.status === 404) {
+    const err = new Error(resp.status === 501 ? 'furigana: Worker has no Gemini key' : 'furigana: Worker has no /furigana route');
     err.unconfigured = true;
     throw err;
   }
