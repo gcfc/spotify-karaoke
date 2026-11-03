@@ -238,11 +238,17 @@ the words the steps before it left unread — it never overrides them:
    unread. Free and needing no quota, but it reads each word the way its
    dictionary does, ignoring context (二人 as ににん, not ふたり). Its dictionary is
    about 18 MB, fetched from jsDelivr only the first time a song reaches this
-   step and then cached by the browser; the script is pinned with a
-   subresource-integrity hash, since it runs inside the page.
+   step and then cached by the browser. It runs in a Web Worker
+   (`kuromoji-worker.js`). On the page's own thread, decompressing and indexing
+   the dictionary blocked it for 2.7 s in all, over a second at a time, and the
+   lyrics stopped scrolling; in the worker the page is not blocked at all. The
+   worker fetches the script with a subresource-integrity hash and will not run
+   it if a byte differs.
 
 So the browser downloads the dictionary only when both models leave a word
-unread; while 3.1 answers, it never does. Each request gives up after 20 seconds.
+unread; while 3.1 answers, it never does. A Worker deployed before `/furigana`
+existed answers 404, and the chain then goes straight to the dictionary. Each
+request gives up after 20 seconds.
 Model versions are pinned rather than `-latest` aliases:
 `gemini-flash-lite-latest` moved to 3.5, which reads less accurately.
 
@@ -511,6 +517,7 @@ spotify-karaoke/
 ├── matching.js         # Script-insensitive search matching (see below)
 ├── translate.js        # Language detection + translation providers
 ├── furigana.js         # Kanji runs, the reading chain, prompt, reply checks, layout
+├── kuromoji-worker.js  # Web Worker running kuromoji, the furigana dictionary step
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── tools/
 │   ├── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table

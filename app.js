@@ -1164,35 +1164,41 @@ function hideFuriganaControl() {
 // furigana.js).  Its dictionary is ~18 MB, so it is fetched only the first
 // time the chain reaches it — when both Gemini models have left a word
 // unread — and then kept for the session; the browser caches the files.
-// The script is pinned to its exact bytes: it runs inside this page.
-const KUROMOJI_SCRIPT = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js';
-const KUROMOJI_INTEGRITY = 'sha384-LCHxvFGxgpk9Bl+0+OaV6Rf24HQamJPrNHIo6VGkXkVgGWRvl68eqUwCW5PWqfwh';
-const KUROMOJI_DICT = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/';
+// It runs in a Web Worker (kuromoji-worker.js): decompressing and indexing
+// the dictionary on this page's thread froze it for over a second at a
+// time, stopping the lyrics mid-scroll.  The worker sends back each line's
+// tokens, and the readings are worked out here.
+let kuromojiWorker = null;
+let kuromojiRequestId = 0;
+const kuromojiPending = new Map();   // request id -> {resolve, reject}
 
-let kuromojiTokenizer = null;   // a promise, once loading has started
-
-function loadKuromoji() {
-  kuromojiTokenizer ||= new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = KUROMOJI_SCRIPT;
-    script.integrity = KUROMOJI_INTEGRITY;
-    script.crossOrigin = 'anonymous';
-    script.onerror = () => reject(new Error('kuromoji script failed to load'));
-    script.onload = () => {
-      window.kuromoji.builder({ dicPath: KUROMOJI_DICT })
-        .build((err, tokenizer) => (err ? reject(err) : resolve(tokenizer)));
-    };
-    document.head.appendChild(script);
-  }).catch((err) => {
-    kuromojiTokenizer = null;   // let a later song try again
-    throw err;
-  });
-  return kuromojiTokenizer;
+function kuromojiWorkerInstance() {
+  if (kuromojiWorker) return kuromojiWorker;
+  kuromojiWorker = new Worker(new URL('./kuromoji-worker.js', import.meta.url));
+  kuromojiWorker.onmessage = ({ data }) => {
+    const pending = kuromojiPending.get(data?.id);
+    if (!pending) return;
+    kuromojiPending.delete(data.id);
+    if (data.error) pending.reject(new Error(data.error)); else pending.resolve(data.tokens);
+  };
+  // A worker that fails outright is dropped, so a later song starts afresh.
+  kuromojiWorker.onerror = (event) => {
+    for (const pending of kuromojiPending.values()) pending.reject(new Error(event.message || 'kuromoji worker failed'));
+    kuromojiPending.clear();
+    kuromojiWorker.terminate();
+    kuromojiWorker = null;
+  };
+  return kuromojiWorker;
 }
 
 async function readWithKuromoji(lines) {
-  const tokenizer = await loadKuromoji();
-  return lines.map((line) => dictionaryReadings(tokenizer.tokenize(line), line));
+  const worker = kuromojiWorkerInstance();
+  const id = ++kuromojiRequestId;
+  const tokens = await new Promise((resolve, reject) => {
+    kuromojiPending.set(id, { resolve, reject });
+    worker.postMessage({ id, lines });
+  });
+  return lines.map((line, i) => dictionaryReadings(tokens[i], line));
 }
 
 /**
