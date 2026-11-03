@@ -4,3 +4,12 @@ compatibility_date = "2024-01-01"
 
 [observability]
 enabled = false
+
+# Stored furigana readings (optional; see "Furigana" in the README).  Create
+# the namespace once with
+#   wrangler kv namespace create FURIGANA_CACHE
+# paste the id it prints below, and uncomment.  Without it /furigana still
+# works — every song is simply read by the model each time.
+# [[kv_namespaces]]
+# binding = "FURIGANA_CACHE"
+# id = "<the id from the command above>"

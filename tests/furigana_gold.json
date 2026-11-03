@@ -1,0 +1,8002 @@
+{
+ "about": "Answer key for tests/eval_furigana_live.mjs. Built by tools/furigana-eval/build_gold.mjs; edit adjudications.json there, not this file. Holds kanji runs and readings only — the lyrics are fetched live from NetEase by song id and line timestamp. gold[0] is the reading sung; any other entries are also correct. kuromoji is the dictionary baseline's reading (null: none).",
+ "categories": {
+  "dictionary": "the reading a dictionary gives the word out of context",
+  "context": "a word whose reading depends on the words around it",
+  "number": "numbers and counters (2人, 一日)",
+  "rare": "uncommon kanji or words a dictionary analyzer does not know",
+  "sung": "more than one reading is correct; the singer chose one",
+  "gikun": "a reading the lyricist assigned, not one any dictionary gives",
+  "printed": "a reading written into the lyrics themselves, as in 溢(こぼ)れた"
+ },
+ "songs": [
+  {
+   "title": "夜に駆ける",
+   "artist": "YOASOBI",
+   "netease": 1409311773,
+   "lines": [
+    {
+     "t": "00:01.43",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "沈",
+       "gold": [
+        "しず"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しず"
+      },
+      {
+       "text": "溶",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      }
+     ]
+    },
+    {
+     "t": "00:08.83",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "二人",
+       "gold": [
+        "ふたり"
+       ],
+       "cat": "number",
+       "kuromoji": "ににん"
+      },
+      {
+       "text": "空",
+       "gold": [
+        "そら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "そら"
+      },
+      {
+       "text": "広",
+       "gold": [
+        "ひろ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひろ"
+      },
+      {
+       "text": "夜",
+       "gold": [
+        "よる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よる"
+      }
+     ]
+    },
+    {
+     "t": "00:34.04",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "一言",
+       "gold": [
+        "ひとこと"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひとこと"
+      },
+      {
+       "text": "全",
+       "gold": [
+        "すべ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すべ"
+      },
+      {
+       "text": "分",
+       "gold": [
+        "わ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わ"
+      }
+     ]
+    },
+    {
+     "t": "00:37.75",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "日",
+       "gold": [
+        "ひ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひ"
+      },
+      {
+       "text": "沈",
+       "gold": [
+        "しず"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しず"
+      },
+      {
+       "text": "出",
+       "gold": [
+        "だ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だ"
+      },
+      {
+       "text": "空",
+       "gold": [
+        "そら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "そら"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "姿",
+       "gold": [
+        "すがた"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すがた"
+      }
+     ]
+    },
+    {
+     "t": "00:42.12",
+     "src": "adjudicated",
+     "note": "romaji has こし, the dictionary ごし; confirm by ear",
+     "runs": [
+      {
+       "text": "越",
+       "gold": [
+        "ご",
+        "こ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ご"
+      },
+      {
+       "text": "重",
+       "gold": [
+        "かさ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かさ"
+      }
+     ]
+    },
+    {
+     "t": "00:46.11",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "初",
+       "gold": [
+        "はじ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はじ"
+      },
+      {
+       "text": "会",
+       "gold": [
+        "あ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あ"
+      },
+      {
+       "text": "日",
+       "gold": [
+        "ひ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひ"
+      }
+     ]
+    },
+    {
+     "t": "00:48.79",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      },
+      {
+       "text": "心",
+       "gold": [
+        "こころ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こころ"
+      },
+      {
+       "text": "全",
+       "gold": [
+        "すべ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すべ"
+      },
+      {
+       "text": "奪",
+       "gold": [
+        "うば"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うば"
+      }
+     ]
+    },
+    {
+     "t": "00:52.40",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "儚",
+       "gold": [
+        "はかな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はかな"
+      },
+      {
+       "text": "空気",
+       "gold": [
+        "くうき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "くうき"
+      },
+      {
+       "text": "纏",
+       "gold": [
+        "まと"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まと"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      }
+     ]
+    },
+    {
+     "t": "00:56.84",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "寂",
+       "gold": [
+        "さび"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さび"
+      },
+      {
+       "text": "目",
+       "gold": [
+        "め"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "め"
+      }
+     ]
+    },
+    {
+     "t": "01:02.11",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "鳴",
+       "gold": [
+        "な"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "な"
+      },
+      {
+       "text": "世界",
+       "gold": [
+        "せかい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "せかい"
+      },
+      {
+       "text": "何度",
+       "gold": [
+        "なんど"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なんど"
+      }
+     ]
+    },
+    {
+     "t": "01:03.94",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "触",
+       "gold": [
+        "ふ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ふ"
+      },
+      {
+       "text": "心無",
+       "gold": [
+        "こころな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こころな"
+      },
+      {
+       "text": "言葉",
+       "gold": [
+        "ことば"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ことば"
+      },
+      {
+       "text": "声",
+       "gold": [
+        "こえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こえ"
+      }
+     ]
+    },
+    {
+     "t": "01:05.90",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "涙",
+       "gold": [
+        "なみだ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なみだ"
+      },
+      {
+       "text": "零",
+       "gold": [
+        "こぼ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こぼ"
+      }
+     ]
+    },
+    {
+     "t": "01:08.58",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "喜",
+       "gold": [
+        "よろこ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よろこ"
+      },
+      {
+       "text": "二人",
+       "gold": [
+        "ふたり"
+       ],
+       "cat": "number",
+       "kuromoji": "ににん"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      }
+     ]
+    },
+    {
+     "t": "01:14.93",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "騒",
+       "gold": [
+        "さわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さわ"
+      },
+      {
+       "text": "日々",
+       "gold": [
+        "ひび"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひび"
+      },
+      {
+       "text": "笑",
+       "gold": [
+        "わら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わら"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      }
+     ]
+    },
+    {
+     "t": "01:18.95",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "思",
+       "gold": [
+        "おも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おも"
+      },
+      {
+       "text": "付",
+       "gold": [
+        "つ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つ"
+      },
+      {
+       "text": "限",
+       "gold": [
+        "かぎ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かぎ"
+      },
+      {
+       "text": "眩",
+       "gold": [
+        "まぶ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まぶ"
+      },
+      {
+       "text": "明日",
+       "gold": [
+        "あす",
+        "あした"
+       ],
+       "cat": "sung",
+       "kuromoji": "あした"
+      }
+     ]
+    },
+    {
+     "t": "01:22.64",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "明",
+       "gold": [
+        "あ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あ"
+      },
+      {
+       "text": "夜",
+       "gold": [
+        "よる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よる"
+      },
+      {
+       "text": "落",
+       "gold": [
+        "お"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "お"
+      },
+      {
+       "text": "前",
+       "gold": [
+        "まえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まえ"
+      }
+     ]
+    },
+    {
+     "t": "01:26.35",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      },
+      {
+       "text": "手",
+       "gold": [
+        "て"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "て"
+      },
+      {
+       "text": "掴",
+       "gold": [
+        "つか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つか"
+      }
+     ]
+    },
+    {
+     "t": "01:29.24",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "忘",
+       "gold": [
+        "わす"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わす"
+      },
+      {
+       "text": "閉",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      },
+      {
+       "text": "込",
+       "gold": [
+        "こ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こ"
+      },
+      {
+       "text": "日々",
+       "gold": [
+        "ひび"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひび"
+      }
+     ]
+    },
+    {
+     "t": "01:33.78",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "抱",
+       "gold": [
+        "だ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だ"
+      },
+      {
+       "text": "温",
+       "gold": [
+        "ぬく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぬく"
+      },
+      {
+       "text": "溶",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      }
+     ]
+    },
+    {
+     "t": "01:37.49",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "怖",
+       "gold": [
+        "こわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こわ"
+      },
+      {
+       "text": "日",
+       "gold": [
+        "ひ"
+       ],
+       "cat": "context",
+       "kuromoji": "び"
+      },
+      {
+       "text": "昇",
+       "gold": [
+        "のぼ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "のぼ"
+      }
+     ]
+    },
+    {
+     "t": "01:41.76",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "二人",
+       "gold": [
+        "ふたり"
+       ],
+       "cat": "number",
+       "kuromoji": "ににん"
+      }
+     ]
+    },
+    {
+     "t": "01:58.30",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      }
+     ]
+    },
+    {
+     "t": "02:00.75",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "何",
+       "gold": [
+        "なに"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なに"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "嫌",
+       "gold": [
+        "きら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きら"
+      }
+     ]
+    },
+    {
+     "t": "02:04.51",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "見惚",
+       "gold": [
+        "みと"
+       ],
+       "cat": "rare",
+       "kuromoji": "みほ"
+      },
+      {
+       "text": "恋",
+       "gold": [
+        "こい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こい"
+      }
+     ]
+    },
+    {
+     "t": "02:08.83",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "顔",
+       "gold": [
+        "かお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かお"
+      },
+      {
+       "text": "嫌",
+       "gold": [
+        "きら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きら"
+      }
+     ]
+    },
+    {
+     "t": "02:12.57",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "信",
+       "gold": [
+        "しん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しん"
+      },
+      {
+       "text": "信",
+       "gold": [
+        "しん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しん"
+      }
+     ]
+    },
+    {
+     "t": "02:17.90",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "怒",
+       "gold": [
+        "おこ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おこ"
+      },
+      {
+       "text": "泣",
+       "gold": [
+        "な"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "な"
+      }
+     ]
+    },
+    {
+     "t": "02:19.79",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      }
+     ]
+    },
+    {
+     "t": "02:22.66",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "分",
+       "gold": [
+        "わ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わ"
+      },
+      {
+       "text": "合",
+       "gold": [
+        "あ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あ"
+      },
+      {
+       "text": "信",
+       "gold": [
+        "しん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しん"
+      }
+     ]
+    },
+    {
+     "t": "02:40.66",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "嫌",
+       "gold": [
+        "いや"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いや"
+      },
+      {
+       "text": "疲",
+       "gold": [
+        "つか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つか"
+      }
+     ]
+    },
+    {
+     "t": "02:43.04",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "差",
+       "gold": [
+        "さ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さ"
+      },
+      {
+       "text": "伸",
+       "gold": [
+        "の"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "の"
+      },
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      },
+      {
+       "text": "手",
+       "gold": [
+        "て"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "て"
+      },
+      {
+       "text": "振",
+       "gold": [
+        "ふ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ふ"
+      },
+      {
+       "text": "払",
+       "gold": [
+        "はら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はら"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      }
+     ]
+    },
+    {
+     "t": "02:48.09",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "嫌",
+       "gold": [
+        "いや"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いや"
+      },
+      {
+       "text": "疲",
+       "gold": [
+        "つか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つか"
+      }
+     ]
+    },
+    {
+     "t": "02:50.41",
+     "src": "adjudicated",
+     "note": "differed only in how は was romanized",
+     "runs": [
+      {
+       "text": "本当",
+       "gold": [
+        "ほんとう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ほんとう"
+      },
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      },
+      {
+       "text": "言",
+       "gold": [
+        "い"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "い"
+      }
+     ]
+    },
+    {
+     "t": "02:58.28",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "為",
+       "gold": [
+        "ため"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ため"
+      },
+      {
+       "text": "用意",
+       "gold": [
+        "ようい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ようい"
+      },
+      {
+       "text": "言葉",
+       "gold": [
+        "ことば"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ことば"
+      },
+      {
+       "text": "届",
+       "gold": [
+        "とど"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とど"
+      }
+     ]
+    },
+    {
+     "t": "03:01.56",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "終",
+       "gold": [
+        "お"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "お"
+      }
+     ]
+    },
+    {
+     "t": "03:03.90",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "釣",
+       "gold": [
+        "つ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つ"
+      },
+      {
+       "text": "言葉",
+       "gold": [
+        "ことば"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ことば"
+      },
+      {
+       "text": "時",
+       "gold": [
+        "とき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とき"
+      }
+     ]
+    },
+    {
+     "t": "03:05.91",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "初",
+       "gold": [
+        "はじ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はじ"
+      },
+      {
+       "text": "笑",
+       "gold": [
+        "わら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わら"
+      }
+     ]
+    },
+    {
+     "t": "03:11.46",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "騒",
+       "gold": [
+        "さわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さわ"
+      },
+      {
+       "text": "日々",
+       "gold": [
+        "ひび"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひび"
+      },
+      {
+       "text": "笑",
+       "gold": [
+        "わら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わら"
+      }
+     ]
+    },
+    {
+     "t": "03:15.36",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      },
+      {
+       "text": "目",
+       "gold": [
+        "め"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "め"
+      },
+      {
+       "text": "映",
+       "gold": [
+        "うつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うつ"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "綺麗",
+       "gold": [
+        "きれい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きれい"
+      }
+     ]
+    },
+    {
+     "t": "03:19.08",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "明",
+       "gold": [
+        "あ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あ"
+      },
+      {
+       "text": "夜",
+       "gold": [
+        "よる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よる"
+      },
+      {
+       "text": "溢",
+       "gold": [
+        "こぼ"
+       ],
+       "cat": "printed",
+       "kuromoji": null
+      },
+      {
+       "text": "涙",
+       "gold": [
+        "なみだ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なみだ"
+      }
+     ]
+    },
+    {
+     "t": "03:22.77",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "笑顔",
+       "gold": [
+        "えがお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "えがお"
+      },
+      {
+       "text": "溶",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      }
+     ]
+    },
+    {
+     "t": "03:27.91",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "変",
+       "gold": [
+        "か"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "か"
+      },
+      {
+       "text": "日々",
+       "gold": [
+        "ひび"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひび"
+      },
+      {
+       "text": "泣",
+       "gold": [
+        "な"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "な"
+      },
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      }
+     ]
+    },
+    {
+     "t": "03:31.93",
+     "src": "adjudicated",
+     "note": "誘う is also read いざなう; sung さそう",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "優",
+       "gold": [
+        "やさ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "やさ"
+      },
+      {
+       "text": "終",
+       "gold": [
+        "お"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "お"
+      },
+      {
+       "text": "誘",
+       "gold": [
+        "さそ",
+        "いざな"
+       ],
+       "cat": "sung",
+       "kuromoji": "さそ"
+      }
+     ]
+    },
+    {
+     "t": "03:39.34",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "染",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      },
+      {
+       "text": "付",
+       "gold": [
+        "つ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つ"
+      },
+      {
+       "text": "霧",
+       "gold": [
+        "きり"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きり"
+      },
+      {
+       "text": "晴",
+       "gold": [
+        "は"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "は"
+      }
+     ]
+    },
+    {
+     "t": "03:42.42",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "忘",
+       "gold": [
+        "わす"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わす"
+      },
+      {
+       "text": "閉",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      },
+      {
+       "text": "込",
+       "gold": [
+        "こ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こ"
+      },
+      {
+       "text": "日々",
+       "gold": [
+        "ひび"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひび"
+      }
+     ]
+    },
+    {
+     "t": "03:46.69",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "差",
+       "gold": [
+        "さ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さ"
+      },
+      {
+       "text": "伸",
+       "gold": [
+        "の"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "の"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "手",
+       "gold": [
+        "て"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "て"
+      },
+      {
+       "text": "取",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      }
+     ]
+    },
+    {
+     "t": "03:50.40",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "涼",
+       "gold": [
+        "すず"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すず"
+      },
+      {
+       "text": "風",
+       "gold": [
+        "かぜ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かぜ"
+      },
+      {
+       "text": "空",
+       "gold": [
+        "そら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "そら"
+      },
+      {
+       "text": "泳",
+       "gold": [
+        "およ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "およ"
+      },
+      {
+       "text": "今吹",
+       "gold": [
+        "いまふ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いまふ"
+      },
+      {
+       "text": "抜",
+       "gold": [
+        "ぬ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぬ"
+      }
+     ]
+    },
+    {
+     "t": "03:57.09",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "繋",
+       "gold": [
+        "つな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つな"
+      },
+      {
+       "text": "手",
+       "gold": [
+        "て"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "て"
+      },
+      {
+       "text": "離",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    },
+    {
+     "t": "04:00.50",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "二人今",
+       "gold": [
+        "ふたりいま"
+       ],
+       "cat": "number",
+       "kuromoji": "ににんいま"
+      },
+      {
+       "text": "夜",
+       "gold": [
+        "よる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よる"
+      },
+      {
+       "text": "駆",
+       "gold": [
+        "か"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "か"
+      },
+      {
+       "text": "出",
+       "gold": [
+        "だ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だ"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Lemon",
+   "artist": "米津玄師",
+   "netease": 536622304,
+   "lines": [
+    {
+     "t": "00:00.85",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "夢",
+       "gold": [
+        "ゆめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆめ"
+      }
+     ]
+    },
+    {
+     "t": "00:06.65",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "未",
+       "gold": [
+        "いま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いま"
+      },
+      {
+       "text": "夢",
+       "gold": [
+        "ゆめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆめ"
+      }
+     ]
+    },
+    {
+     "t": "00:12.34",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "忘",
+       "gold": [
+        "わす"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わす"
+      },
+      {
+       "text": "物",
+       "gold": [
+        "もの"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "もの"
+      },
+      {
+       "text": "取",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      },
+      {
+       "text": "帰",
+       "gold": [
+        "かえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かえ"
+      }
+     ]
+    },
+    {
+     "t": "00:17.66",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "古",
+       "gold": [
+        "ふる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ふる"
+      },
+      {
+       "text": "思",
+       "gold": [
+        "おも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おも"
+      },
+      {
+       "text": "出",
+       "gold": [
+        "で"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "で"
+      },
+      {
+       "text": "埃",
+       "gold": [
+        "ほこり"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ほこり"
+      },
+      {
+       "text": "払",
+       "gold": [
+        "はら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はら"
+      }
+     ]
+    },
+    {
+     "t": "00:25.82",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "戻",
+       "gold": [
+        "もど"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "もど"
+      },
+      {
+       "text": "幸",
+       "gold": [
+        "しあわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しあわ"
+      }
+     ]
+    },
+    {
+     "t": "00:31.58",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "最後",
+       "gold": [
+        "さいご"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さいご"
+      },
+      {
+       "text": "教",
+       "gold": [
+        "おし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おし"
+      }
+     ]
+    },
+    {
+     "t": "00:36.98",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "言",
+       "gold": [
+        "い"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "い"
+      },
+      {
+       "text": "隠",
+       "gold": [
+        "かく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かく"
+      },
+      {
+       "text": "昏",
+       "gold": [
+        "くら"
+       ],
+       "cat": "rare",
+       "kuromoji": null
+      },
+      {
+       "text": "過去",
+       "gold": [
+        "かこ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かこ"
+      }
+     ]
+    },
+    {
+     "t": "00:42.55",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "永遠",
+       "gold": [
+        "えいえん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "えいえん"
+      },
+      {
+       "text": "昏",
+       "gold": [
+        "くら"
+       ],
+       "cat": "rare",
+       "kuromoji": null
+      }
+     ]
+    },
+    {
+     "t": "00:48.23",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "以上",
+       "gold": [
+        "いじょう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いじょう"
+      },
+      {
+       "text": "傷",
+       "gold": [
+        "きず"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きず"
+      }
+     ]
+    },
+    {
+     "t": "00:58.66",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "日",
+       "gold": [
+        "ひ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひ"
+      },
+      {
+       "text": "悲",
+       "gold": [
+        "かな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かな"
+      }
+     ]
+    },
+    {
+     "t": "01:01.41",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "日",
+       "gold": [
+        "ひ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひ"
+      },
+      {
+       "text": "苦",
+       "gold": [
+        "くる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "くる"
+      }
+     ]
+    },
+    {
+     "t": "01:04.15",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "愛",
+       "gold": [
+        "あい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あい"
+      }
+     ]
+    },
+    {
+     "t": "01:09.80",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "胸",
+       "gold": [
+        "むね"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "むね"
+      },
+      {
+       "text": "残",
+       "gold": [
+        "のこ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "のこ"
+      },
+      {
+       "text": "離",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    },
+    {
+     "t": "01:12.73",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "苦",
+       "gold": [
+        "にが"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "にが"
+      },
+      {
+       "text": "匂",
+       "gold": [
+        "にお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "にお"
+      }
+     ]
+    },
+    {
+     "t": "01:15.73",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "雨",
+       "gold": [
+        "あめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あめ"
+      },
+      {
+       "text": "降",
+       "gold": [
+        "ふ"
+       ],
+       "cat": "context",
+       "kuromoji": "お"
+      },
+      {
+       "text": "止",
+       "gold": [
+        "や"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "や"
+      },
+      {
+       "text": "帰",
+       "gold": [
+        "かえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かえ"
+      }
+     ]
+    },
+    {
+     "t": "01:21.24",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "今",
+       "gold": [
+        "いま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いま"
+      },
+      {
+       "text": "光",
+       "gold": [
+        "ひかり"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひかり"
+      }
+     ]
+    },
+    {
+     "t": "01:37.60",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "暗闇",
+       "gold": [
+        "くらやみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "くらやみ"
+      },
+      {
+       "text": "背",
+       "gold": [
+        "せ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "せ"
+      }
+     ]
+    },
+    {
+     "t": "01:42.98",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "輪郭",
+       "gold": [
+        "りんかく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "りんかく"
+      },
+      {
+       "text": "鮮明",
+       "gold": [
+        "せんめい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "せんめい"
+      },
+      {
+       "text": "覚",
+       "gold": [
+        "おぼ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おぼ"
+      }
+     ]
+    },
+    {
+     "t": "01:48.80",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "受",
+       "gold": [
+        "う"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "う"
+      },
+      {
+       "text": "止",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      },
+      {
+       "text": "出会",
+       "gold": [
+        "であ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "であ"
+      }
+     ]
+    },
+    {
+     "t": "01:54.40",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "溢",
+       "gold": [
+        "あふ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あふ"
+      },
+      {
+       "text": "涙",
+       "gold": [
+        "なみだ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なみだ"
+      }
+     ]
+    },
+    {
+     "t": "01:59.99",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "何",
+       "gold": [
+        "なに"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なに"
+      }
+     ]
+    },
+    {
+     "t": "02:02.76",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "何",
+       "gold": [
+        "なに"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なに"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      }
+     ]
+    },
+    {
+     "t": "02:05.58",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "知",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      },
+      {
+       "text": "横顔",
+       "gold": [
+        "よこがお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よこがお"
+      }
+     ]
+    },
+    {
+     "t": "02:10.39",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "今",
+       "gold": [
+        "いま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いま"
+      }
+     ]
+    },
+    {
+     "t": "02:13.38",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "同",
+       "gold": [
+        "おな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おな"
+      },
+      {
+       "text": "様",
+       "gold": [
+        "よう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よう"
+      }
+     ]
+    },
+    {
+     "t": "02:15.95",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "涙",
+       "gold": [
+        "なみだ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なみだ"
+      },
+      {
+       "text": "淋",
+       "gold": [
+        "さび"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さび"
+      },
+      {
+       "text": "中",
+       "gold": [
+        "なか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なか"
+      }
+     ]
+    },
+    {
+     "t": "02:21.47",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "忘",
+       "gold": [
+        "わす"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わす"
+      }
+     ]
+    },
+    {
+     "t": "02:27.49",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "心",
+       "gold": [
+        "こころ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こころ"
+      },
+      {
+       "text": "願",
+       "gold": [
+        "ねが"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ねが"
+      }
+     ]
+    },
+    {
+     "t": "02:41.60",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "自分",
+       "gold": [
+        "じぶん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "じぶん"
+      },
+      {
+       "text": "思",
+       "gold": [
+        "おも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おも"
+      },
+      {
+       "text": "恋",
+       "gold": [
+        "こい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こい"
+      }
+     ]
+    },
+    {
+     "t": "02:52.41",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "思",
+       "gold": [
+        "おも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おも"
+      },
+      {
+       "text": "息",
+       "gold": [
+        "いき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いき"
+      }
+     ]
+    },
+    {
+     "t": "03:03.36",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "側",
+       "gold": [
+        "そば"
+       ],
+       "cat": "context",
+       "kuromoji": "がわ"
+      },
+      {
+       "text": "嘘",
+       "gold": [
+        "うそ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うそ"
+      }
+     ]
+    },
+    {
+     "t": "03:14.14",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "忘",
+       "gold": [
+        "わす"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わす"
+      },
+      {
+       "text": "確",
+       "gold": [
+        "たし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "たし"
+      }
+     ]
+    },
+    {
+     "t": "03:35.91",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "全",
+       "gold": [
+        "すべ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すべ"
+      },
+      {
+       "text": "愛",
+       "gold": [
+        "あい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あい"
+      },
+      {
+       "text": "共",
+       "gold": [
+        "とも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とも"
+      }
+     ]
+    },
+    {
+     "t": "03:52.84",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "切",
+       "gold": [
+        "き"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "き"
+      },
+      {
+       "text": "分",
+       "gold": [
+        "わ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わ"
+      },
+      {
+       "text": "果実",
+       "gold": [
+        "かじつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かじつ"
+      },
+      {
+       "text": "片方",
+       "gold": [
+        "かたほう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かたほう"
+      },
+      {
+       "text": "様",
+       "gold": [
+        "よう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よう"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "マリーゴールド",
+   "artist": "あいみょん",
+   "netease": 1293904824,
+   "lines": [
+    {
+     "t": "00:21.09",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "風",
+       "gold": [
+        "かぜ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かぜ"
+      },
+      {
+       "text": "強",
+       "gold": [
+        "つよ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つよ"
+      }
+     ]
+    },
+    {
+     "t": "00:25.19",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "心",
+       "gold": [
+        "こころ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こころ"
+      },
+      {
+       "text": "揺",
+       "gold": [
+        "ゆ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆ"
+      }
+     ]
+    },
+    {
+     "t": "00:29.86",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "真面目",
+       "gold": [
+        "まじめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まじめ"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      }
+     ]
+    },
+    {
+     "t": "00:34.50",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "恋",
+       "gold": [
+        "こい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こい"
+      }
+     ]
+    },
+    {
+     "t": "00:39.19",
+     "src": "adjudicated",
+     "note": "romaji has かえし, the dictionary がえし; confirm by ear",
+     "runs": [
+      {
+       "text": "返",
+       "gold": [
+        "がえ",
+        "かえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "がえ"
+      },
+      {
+       "text": "日々",
+       "gold": [
+        "ひび"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひび"
+      }
+     ]
+    },
+    {
+     "t": "00:42.71",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "可哀想",
+       "gold": [
+        "かわいそう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かわいそう"
+      }
+     ]
+    },
+    {
+     "t": "00:52.65",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "希望",
+       "gold": [
+        "きぼう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きぼう"
+      },
+      {
+       "text": "光",
+       "gold": [
+        "ひかり"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひかり"
+      }
+     ]
+    },
+    {
+     "t": "00:56.93",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "目",
+       "gold": [
+        "め"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "め"
+      },
+      {
+       "text": "前",
+       "gold": [
+        "まえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まえ"
+      },
+      {
+       "text": "輝",
+       "gold": [
+        "かがや"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かがや"
+      }
+     ]
+    },
+    {
+     "t": "01:01.27",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "幸",
+       "gold": [
+        "しあわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しあわ"
+      }
+     ]
+    },
+    {
+     "t": "01:04.97",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "麦",
+       "gold": [
+        "むぎ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "むぎ"
+      },
+      {
+       "text": "帽子",
+       "gold": [
+        "ぼうし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼうし"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      }
+     ]
+    },
+    {
+     "t": "01:09.90",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "揺",
+       "gold": [
+        "ゆ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆ"
+      },
+      {
+       "text": "似",
+       "gold": [
+        "に"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "に"
+      }
+     ]
+    },
+    {
+     "t": "01:14.70",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "空",
+       "gold": [
+        "そら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "そら"
+      },
+      {
+       "text": "青",
+       "gold": [
+        "あお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あお"
+      },
+      {
+       "text": "夏",
+       "gold": [
+        "なつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なつ"
+      }
+     ]
+    },
+    {
+     "t": "01:19.76",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "懐",
+       "gold": [
+        "なつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なつ"
+      },
+      {
+       "text": "笑",
+       "gold": [
+        "わら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わら"
+      },
+      {
+       "text": "日",
+       "gold": [
+        "ひ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひ"
+      },
+      {
+       "text": "恋",
+       "gold": [
+        "こい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こい"
+      }
+     ]
+    },
+    {
+     "t": "01:24.23",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "離",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    },
+    {
+     "t": "01:28.01",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "泣",
+       "gold": [
+        "な"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "な"
+      },
+      {
+       "text": "目",
+       "gold": [
+        "め"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "め"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      }
+     ]
+    },
+    {
+     "t": "01:33.22",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "雲",
+       "gold": [
+        "くも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "くも"
+      },
+      {
+       "text": "優",
+       "gold": [
+        "やさ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "やさ"
+      }
+     ]
+    },
+    {
+     "t": "01:37.54",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "抱",
+       "gold": [
+        "だ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だ"
+      },
+      {
+       "text": "抱",
+       "gold": [
+        "だ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だ"
+      },
+      {
+       "text": "離",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    },
+    {
+     "t": "01:47.51",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "本当",
+       "gold": [
+        "ほんとう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ほんとう"
+      },
+      {
+       "text": "気持",
+       "gold": [
+        "きも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きも"
+      },
+      {
+       "text": "全部",
+       "gold": [
+        "ぜんぶ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぜんぶ"
+      }
+     ]
+    },
+    {
+     "t": "01:50.43",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "吐",
+       "gold": [
+        "は"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "は"
+      },
+      {
+       "text": "出",
+       "gold": [
+        "だ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だ"
+      },
+      {
+       "text": "強",
+       "gold": [
+        "つよ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つよ"
+      }
+     ]
+    },
+    {
+     "t": "01:55.47",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "不思議",
+       "gold": [
+        "ふしぎ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ふしぎ"
+      }
+     ]
+    },
+    {
+     "t": "02:00.82",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "絶望",
+       "gold": [
+        "ぜつぼう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぜつぼう"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      }
+     ]
+    },
+    {
+     "t": "02:04.98",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "目",
+       "gold": [
+        "め"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "め"
+      },
+      {
+       "text": "奥",
+       "gold": [
+        "おく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おく"
+      },
+      {
+       "text": "写",
+       "gold": [
+        "うつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うつ"
+      }
+     ]
+    },
+    {
+     "t": "02:09.49",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "大好",
+       "gold": [
+        "だいす"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だいす"
+      }
+     ]
+    },
+    {
+     "t": "02:13.04",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "柔",
+       "gold": [
+        "やわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "やわ"
+      },
+      {
+       "text": "肌",
+       "gold": [
+        "はだ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はだ"
+      },
+      {
+       "text": "寄",
+       "gold": [
+        "よ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よ"
+      }
+     ]
+    },
+    {
+     "t": "02:17.81",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "少",
+       "gold": [
+        "すこ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すこ"
+      },
+      {
+       "text": "冷",
+       "gold": [
+        "つめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つめ"
+      },
+      {
+       "text": "空気",
+       "gold": [
+        "くうき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "くうき"
+      },
+      {
+       "text": "2人",
+       "gold": [
+        "ふたり"
+       ],
+       "cat": "number",
+       "kuromoji": null
+      }
+     ]
+    },
+    {
+     "t": "02:22.90",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "歩",
+       "gold": [
+        "ある"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ある"
+      },
+      {
+       "text": "今日",
+       "gold": [
+        "きょう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きょう"
+      },
+      {
+       "text": "日",
+       "gold": [
+        "ひ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひ"
+      }
+     ]
+    },
+    {
+     "t": "02:26.57",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "何",
+       "gold": [
+        "なん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なん"
+      },
+      {
+       "text": "名前",
+       "gold": [
+        "なまえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なまえ"
+      },
+      {
+       "text": "話",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    },
+    {
+     "t": "02:32.48",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "言葉",
+       "gold": [
+        "ことば"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ことば"
+      }
+     ]
+    },
+    {
+     "t": "02:37.27",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "足",
+       "gold": [
+        "た"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "た"
+      }
+     ]
+    },
+    {
+     "t": "02:40.88",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "雲",
+       "gold": [
+        "くも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "くも"
+      },
+      {
+       "text": "2人",
+       "gold": [
+        "ふたり"
+       ],
+       "cat": "number",
+       "kuromoji": null
+      },
+      {
+       "text": "影",
+       "gold": [
+        "かげ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かげ"
+      },
+      {
+       "text": "残",
+       "gold": [
+        "のこ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "のこ"
+      }
+     ]
+    },
+    {
+     "t": "02:51.66",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "遥",
+       "gold": [
+        "はる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はる"
+      },
+      {
+       "text": "遠",
+       "gold": [
+        "とお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とお"
+      },
+      {
+       "text": "場所",
+       "gold": [
+        "ばしょ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ばしょ"
+      }
+     ]
+    },
+    {
+     "t": "02:56.54",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "繋",
+       "gold": [
+        "つな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つな"
+      }
+     ]
+    },
+    {
+     "t": "03:00.28",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "2人",
+       "gold": [
+        "ふたり"
+       ],
+       "cat": "number",
+       "kuromoji": null
+      },
+      {
+       "text": "想",
+       "gold": [
+        "おも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おも"
+      }
+     ]
+    },
+    {
+     "t": "03:04.64",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "同",
+       "gold": [
+        "おな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おな"
+      }
+     ]
+    },
+    {
+     "t": "03:55.50",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "抱",
+       "gold": [
+        "だ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だ"
+      },
+      {
+       "text": "離",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    },
+    {
+     "t": "04:22.25",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "離",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    },
+    {
+     "t": "04:26.47",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "離",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "紅蓮華",
+   "artist": "LiSA",
+   "netease": 1360592706,
+   "lines": [
+    {
+     "t": "00:00.78",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "強",
+       "gold": [
+        "つよ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つよ"
+      },
+      {
+       "text": "理由",
+       "gold": [
+        "りゆう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "りゆう"
+      },
+      {
+       "text": "知",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      }
+     ]
+    },
+    {
+     "t": "00:07.29",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      },
+      {
+       "text": "連",
+       "gold": [
+        "つ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つ"
+      },
+      {
+       "text": "進",
+       "gold": [
+        "すす"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すす"
+      }
+     ]
+    },
+    {
+     "t": "00:18.53",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "泥",
+       "gold": [
+        "どろ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "どろ"
+      },
+      {
+       "text": "走馬灯",
+       "gold": [
+        "そうまとう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "そうまとう"
+      },
+      {
+       "text": "酔",
+       "gold": [
+        "よ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よ"
+      }
+     ]
+    },
+    {
+     "t": "00:24.20",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "強張",
+       "gold": [
+        "こわば"
+       ],
+       "cat": "rare",
+       "kuromoji": "つよは"
+      },
+      {
+       "text": "心",
+       "gold": [
+        "こころ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こころ"
+      },
+      {
+       "text": "震",
+       "gold": [
+        "ふる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ふる"
+      },
+      {
+       "text": "手",
+       "gold": [
+        "て"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "て"
+      }
+     ]
+    },
+    {
+     "t": "00:28.23",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "掴",
+       "gold": [
+        "つか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つか"
+      }
+     ]
+    },
+    {
+     "t": "00:32.72",
+     "src": "adjudicated",
+     "note": "romaji leaves out the English",
+     "runs": [
+      {
+       "text": "夜",
+       "gold": [
+        "よる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よる"
+      },
+      {
+       "text": "匂",
+       "gold": [
+        "にお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "にお"
+      }
+     ]
+    },
+    {
+     "t": "00:36.26",
+     "src": "adjudicated",
+     "note": "romaji leaves out the English",
+     "runs": [
+      {
+       "text": "空睨",
+       "gold": [
+        "そらにら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "そらにら"
+      }
+     ]
+    },
+    {
+     "t": "00:39.76",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "変",
+       "gold": [
+        "か"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "か"
+      },
+      {
+       "text": "自分自身",
+       "gold": [
+        "じぶんじしん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "じぶんじしん"
+      }
+     ]
+    },
+    {
+     "t": "00:59.86",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "消",
+       "gold": [
+        "け"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "け"
+      },
+      {
+       "text": "夢",
+       "gold": [
+        "ゆめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆめ"
+      },
+      {
+       "text": "止",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      },
+      {
+       "text": "今",
+       "gold": [
+        "いま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いま"
+      }
+     ]
+    },
+    {
+     "t": "01:04.68",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "誰",
+       "gold": [
+        "だれ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だれ"
+      },
+      {
+       "text": "強",
+       "gold": [
+        "つよ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つよ"
+      }
+     ]
+    },
+    {
+     "t": "01:09.07",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "悲",
+       "gold": [
+        "かな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かな"
+      }
+     ]
+    },
+    {
+     "t": "01:14.15",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "世界",
+       "gold": [
+        "せかい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "せかい"
+      },
+      {
+       "text": "打",
+       "gold": [
+        "う"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "う"
+      },
+      {
+       "text": "負",
+       "gold": [
+        "ま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ま"
+      },
+      {
+       "text": "意味",
+       "gold": [
+        "いみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いみ"
+      },
+      {
+       "text": "知",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      }
+     ]
+    },
+    {
+     "t": "01:18.86",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "紅蓮",
+       "gold": [
+        "ぐれん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぐれん"
+      },
+      {
+       "text": "華",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      },
+      {
+       "text": "咲",
+       "gold": [
+        "さ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さ"
+      },
+      {
+       "text": "誇",
+       "gold": [
+        "ほこ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ほこ"
+      }
+     ]
+    },
+    {
+     "t": "01:23.28",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "運命",
+       "gold": [
+        "うんめい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うんめい"
+      },
+      {
+       "text": "照",
+       "gold": [
+        "て"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "て"
+      }
+     ]
+    },
+    {
+     "t": "01:33.33",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "稲光",
+       "gold": [
+        "いなびかり"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いなびかり"
+      },
+      {
+       "text": "雑音",
+       "gold": [
+        "ざつおん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ざつおん"
+      },
+      {
+       "text": "耳",
+       "gold": [
+        "みみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "みみ"
+      },
+      {
+       "text": "刺",
+       "gold": [
+        "さ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さ"
+      }
+     ]
+    },
+    {
+     "t": "01:38.78",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "戸惑",
+       "gold": [
+        "とまど"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とまど"
+      },
+      {
+       "text": "心",
+       "gold": [
+        "こころ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こころ"
+      },
+      {
+       "text": "優",
+       "gold": [
+        "やさ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "やさ"
+      }
+     ]
+    },
+    {
+     "t": "01:42.91",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "守",
+       "gold": [
+        "まも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まも"
+      }
+     ]
+    },
+    {
+     "t": "01:45.57",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "分",
+       "gold": [
+        "わ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わ"
+      }
+     ]
+    },
+    {
+     "t": "01:47.83",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "水面下",
+       "gold": [
+        "すいめんか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すいめんか"
+      },
+      {
+       "text": "絡",
+       "gold": [
+        "から"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "から"
+      },
+      {
+       "text": "善悪",
+       "gold": [
+        "ぜんあく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぜんあく"
+      }
+     ]
+    },
+    {
+     "t": "01:49.46",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "透",
+       "gold": [
+        "す"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "す"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      },
+      {
+       "text": "偽善",
+       "gold": [
+        "ぎぜん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぎぜん"
+      },
+      {
+       "text": "天罰",
+       "gold": [
+        "てんばつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "てんばつ"
+      }
+     ]
+    },
+    {
+     "t": "01:54.91",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "逸材",
+       "gold": [
+        "いつざい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いつざい"
+      },
+      {
+       "text": "華",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    },
+    {
+     "t": "01:56.62",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "挑",
+       "gold": [
+        "いど"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いど"
+      },
+      {
+       "text": "続",
+       "gold": [
+        "つづ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つづ"
+      },
+      {
+       "text": "咲",
+       "gold": [
+        "さ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さ"
+      },
+      {
+       "text": "一輪",
+       "gold": [
+        "いちりん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いちりん"
+      },
+      {
+       "text": "美",
+       "gold": [
+        "うつく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うつく"
+      }
+     ]
+    },
+    {
+     "t": "02:00.43",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "乱暴",
+       "gold": [
+        "らんぼう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "らんぼう"
+      },
+      {
+       "text": "敷",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      },
+      {
+       "text": "詰",
+       "gold": [
+        "つ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つ"
+      },
+      {
+       "text": "棘",
+       "gold": [
+        "とげ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とげ"
+      },
+      {
+       "text": "道",
+       "gold": [
+        "みち"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "みち"
+      }
+     ]
+    },
+    {
+     "t": "02:05.12",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "本気",
+       "gold": [
+        "ほんき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ほんき"
+      },
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      },
+      {
+       "text": "現",
+       "gold": [
+        "あらわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あらわ"
+      }
+     ]
+    },
+    {
+     "t": "02:09.53",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "乗",
+       "gold": [
+        "の"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "の"
+      },
+      {
+       "text": "越",
+       "gold": [
+        "こ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こ"
+      }
+     ]
+    },
+    {
+     "t": "02:14.53",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "簡単",
+       "gold": [
+        "かんたん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かんたん"
+      },
+      {
+       "text": "片付",
+       "gold": [
+        "かたづ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かたづ"
+      },
+      {
+       "text": "守",
+       "gold": [
+        "まも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まも"
+      },
+      {
+       "text": "夢",
+       "gold": [
+        "ゆめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆめ"
+      }
+     ]
+    },
+    {
+     "t": "02:19.31",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "紅蓮",
+       "gold": [
+        "ぐれん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぐれん"
+      },
+      {
+       "text": "心臓",
+       "gold": [
+        "しんぞう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しんぞう"
+      },
+      {
+       "text": "根",
+       "gold": [
+        "ね"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ね"
+      },
+      {
+       "text": "生",
+       "gold": [
+        "は"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "は"
+      }
+     ]
+    },
+    {
+     "t": "02:23.82",
+     "src": "adjudicated",
+     "note": "romaji drops the final る",
+     "runs": [
+      {
+       "text": "血",
+       "gold": [
+        "ち"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ち"
+      },
+      {
+       "text": "宿",
+       "gold": [
+        "やど"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "やど"
+      }
+     ]
+    },
+    {
+     "t": "02:41.58",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "人知",
+       "gold": [
+        "ひとし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひとし"
+      },
+      {
+       "text": "儚",
+       "gold": [
+        "はかな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はかな"
+      },
+      {
+       "text": "散",
+       "gold": [
+        "ち"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ち"
+      },
+      {
+       "text": "結末",
+       "gold": [
+        "けつまつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "けつまつ"
+      }
+     ]
+    },
+    {
+     "t": "02:48.69",
+     "src": "adjudicated",
+     "note": "romaji has かぜぶく, the dictionary かぜふく; confirm by ear",
+     "runs": [
+      {
+       "text": "無情",
+       "gold": [
+        "むじょう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "むじょう"
+      },
+      {
+       "text": "破",
+       "gold": [
+        "やぶ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "やぶ"
+      },
+      {
+       "text": "悲鳴",
+       "gold": [
+        "ひめい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひめい"
+      },
+      {
+       "text": "風吹",
+       "gold": [
+        "かぜふ",
+        "かぜぶ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かぜふ"
+      }
+     ]
+    },
+    {
+     "t": "02:55.74",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "誰",
+       "gold": [
+        "だれ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だれ"
+      },
+      {
+       "text": "笑",
+       "gold": [
+        "わら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わら"
+      },
+      {
+       "text": "影",
+       "gold": [
+        "かげ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かげ"
+      },
+      {
+       "text": "誰",
+       "gold": [
+        "だれ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だれ"
+      },
+      {
+       "text": "鳴",
+       "gold": [
+        "な"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "な"
+      },
+      {
+       "text": "声",
+       "gold": [
+        "ごえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ごえ"
+      }
+     ]
+    },
+    {
+     "t": "03:02.23",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "誰",
+       "gold": [
+        "だれ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だれ"
+      },
+      {
+       "text": "幸",
+       "gold": [
+        "しあわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しあわ"
+      },
+      {
+       "text": "願",
+       "gold": [
+        "ねが"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ねが"
+      }
+     ]
+    },
+    {
+     "t": "03:26.86",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "紅蓮",
+       "gold": [
+        "ぐれん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぐれん"
+      },
+      {
+       "text": "華",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      },
+      {
+       "text": "咲",
+       "gold": [
+        "さ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さ"
+      },
+      {
+       "text": "誇",
+       "gold": [
+        "ほこ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ほこ"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "残酷な天使のテーゼ",
+   "artist": "高橋洋子",
+   "netease": 657666,
+   "lines": [
+    {
+     "t": "00:02.46",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "残酷",
+       "gold": [
+        "ざんこく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ざんこく"
+      },
+      {
+       "text": "天使",
+       "gold": [
+        "てんし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "てんし"
+      }
+     ]
+    },
+    {
+     "t": "00:08.89",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "少年",
+       "gold": [
+        "しょうねん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しょうねん"
+      },
+      {
+       "text": "神話",
+       "gold": [
+        "しんわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しんわ"
+      }
+     ]
+    },
+    {
+     "t": "00:23.49",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "蒼",
+       "gold": [
+        "あお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あお"
+      },
+      {
+       "text": "風",
+       "gold": [
+        "かぜ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かぜ"
+      }
+     ]
+    },
+    {
+     "t": "00:26.19",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "胸",
+       "gold": [
+        "むね"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "むね"
+      },
+      {
+       "text": "叩",
+       "gold": [
+        "たた"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "たた"
+      }
+     ]
+    },
+    {
+     "t": "00:29.69",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "私",
+       "gold": [
+        "わたし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わたし"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      }
+     ]
+    },
+    {
+     "t": "00:33.21",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "微笑",
+       "gold": [
+        "ほほえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ほほえ"
+      }
+     ]
+    },
+    {
+     "t": "00:41.19",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "夢中",
+       "gold": [
+        "むちゅう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "むちゅう"
+      }
+     ]
+    },
+    {
+     "t": "00:44.48",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "運命",
+       "gold": [
+        "うんめい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うんめい"
+      },
+      {
+       "text": "知",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      }
+     ]
+    },
+    {
+     "t": "00:48.26",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "瞳",
+       "gold": [
+        "ひとみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひとみ"
+      }
+     ]
+    },
+    {
+     "t": "00:52.28",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "気付",
+       "gold": [
+        "きづ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きづ"
+      }
+     ]
+    },
+    {
+     "t": "00:56.06",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "背中",
+       "gold": [
+        "せなか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "せなか"
+      }
+     ]
+    },
+    {
+     "t": "01:00.19",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "遥",
+       "gold": [
+        "はる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はる"
+      },
+      {
+       "text": "未来",
+       "gold": [
+        "みらい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "みらい"
+      }
+     ]
+    },
+    {
+     "t": "01:05.29",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "羽根",
+       "gold": [
+        "はね"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はね"
+      }
+     ]
+    },
+    {
+     "t": "01:07.26",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "残酷",
+       "gold": [
+        "ざんこく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ざんこく"
+      },
+      {
+       "text": "天使",
+       "gold": [
+        "てんし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "てんし"
+      }
+     ]
+    },
+    {
+     "t": "01:11.03",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "窓辺",
+       "gold": [
+        "まどべ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まどべ"
+      },
+      {
+       "text": "飛",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      },
+      {
+       "text": "立",
+       "gold": [
+        "た"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "た"
+      }
+     ]
+    },
+    {
+     "t": "01:15.49",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "熱",
+       "gold": [
+        "あつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あつ"
+      }
+     ]
+    },
+    {
+     "t": "01:19.89",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "思",
+       "gold": [
+        "おも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おも"
+      },
+      {
+       "text": "出",
+       "gold": [
+        "で"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "で"
+      },
+      {
+       "text": "裏切",
+       "gold": [
+        "うらぎ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うらぎ"
+      }
+     ]
+    },
+    {
+     "t": "01:23.89",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "空",
+       "gold": [
+        "そら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "そら"
+      },
+      {
+       "text": "抱",
+       "gold": [
+        "だ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だ"
+      },
+      {
+       "text": "輝",
+       "gold": [
+        "かがや"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かがや"
+      }
+     ]
+    },
+    {
+     "t": "02:15.18",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "眠",
+       "gold": [
+        "ねむ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ねむ"
+      }
+     ]
+    },
+    {
+     "t": "02:18.77",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "私",
+       "gold": [
+        "わたし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わたし"
+      },
+      {
+       "text": "愛",
+       "gold": [
+        "あい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あい"
+      },
+      {
+       "text": "揺",
+       "gold": [
+        "ゆ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆ"
+      }
+     ]
+    },
+    {
+     "t": "02:22.04",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "夢",
+       "gold": [
+        "ゆめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆめ"
+      },
+      {
+       "text": "使者",
+       "gold": [
+        "ししゃ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ししゃ"
+      }
+     ]
+    },
+    {
+     "t": "02:26.87",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "呼",
+       "gold": [
+        "よ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よ"
+      },
+      {
+       "text": "朝",
+       "gold": [
+        "あさ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あさ"
+      }
+     ]
+    },
+    {
+     "t": "02:30.10",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "細",
+       "gold": [
+        "ほそ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ほそ"
+      },
+      {
+       "text": "首筋",
+       "gold": [
+        "くびすじ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "くびすじ"
+      }
+     ]
+    },
+    {
+     "t": "02:33.23",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "月",
+       "gold": [
+        "つき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つき"
+      },
+      {
+       "text": "映",
+       "gold": [
+        "うつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うつ"
+      }
+     ]
+    },
+    {
+     "t": "02:37.07",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "世界中",
+       "gold": [
+        "せかいじゅう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "せかいじゅう"
+      },
+      {
+       "text": "時",
+       "gold": [
+        "とき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とき"
+      },
+      {
+       "text": "止",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      }
+     ]
+    },
+    {
+     "t": "02:43.19",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "閉",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      }
+     ]
+    },
+    {
+     "t": "02:45.09",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "逢",
+       "gold": [
+        "あ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あ"
+      }
+     ]
+    },
+    {
+     "t": "02:48.66",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "意味",
+       "gold": [
+        "いみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いみ"
+      }
+     ]
+    },
+    {
+     "t": "02:52.20",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "私",
+       "gold": [
+        "わたし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わたし"
+      },
+      {
+       "text": "自由",
+       "gold": [
+        "じゆう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "じゆう"
+      },
+      {
+       "text": "知",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      }
+     ]
+    },
+    {
+     "t": "03:03.77",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "悲",
+       "gold": [
+        "かな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かな"
+      }
+     ]
+    },
+    {
+     "t": "03:07.15",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "抱",
+       "gold": [
+        "だ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だ"
+      },
+      {
+       "text": "命",
+       "gold": [
+        "いのち"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いのち"
+      }
+     ]
+    },
+    {
+     "t": "03:10.84",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "夢",
+       "gold": [
+        "ゆめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆめ"
+      },
+      {
+       "text": "目覚",
+       "gold": [
+        "めざ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "めざ"
+      }
+     ]
+    },
+    {
+     "t": "03:16.18",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "誰",
+       "gold": [
+        "だれ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だれ"
+      },
+      {
+       "text": "光",
+       "gold": [
+        "ひかり"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひかり"
+      },
+      {
+       "text": "放",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    },
+    {
+     "t": "03:22.79",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "人",
+       "gold": [
+        "ひと"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひと"
+      },
+      {
+       "text": "愛",
+       "gold": [
+        "あい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あい"
+      }
+     ]
+    },
+    {
+     "t": "03:26.57",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "歴史",
+       "gold": [
+        "れきし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "れきし"
+      }
+     ]
+    },
+    {
+     "t": "03:30.18",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "女神",
+       "gold": [
+        "めがみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "めがみ"
+      }
+     ]
+    },
+    {
+     "t": "03:33.48",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "私",
+       "gold": [
+        "わたし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わたし"
+      },
+      {
+       "text": "生",
+       "gold": [
+        "い"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "い"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "春よ、来い",
+   "artist": "松任谷由実",
+   "netease": 27566649,
+   "lines": [
+    {
+     "t": "00:22.18",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "淡",
+       "gold": [
+        "あわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あわ"
+      }
+     ]
+    },
+    {
+     "t": "00:23.80",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "光立",
+       "gold": [
+        "ひかりた"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひかりた"
+      }
+     ]
+    },
+    {
+     "t": "00:24.93",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "俄雨",
+       "gold": [
+        "にわかあめ"
+       ],
+       "cat": "rare",
+       "kuromoji": "にわかう"
+      }
+     ]
+    },
+    {
+     "t": "00:27.44",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "面影",
+       "gold": [
+        "おもかげ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おもかげ"
+      }
+     ]
+    },
+    {
+     "t": "00:30.58",
+     "src": "adjudicated",
+     "note": "both readings exist; romaji has ちんちょうげ; confirm by ear",
+     "runs": [
+      {
+       "text": "沈丁花",
+       "gold": [
+        "じんちょうげ",
+        "ちんちょうげ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "じんちょうげ"
+      }
+     ]
+    },
+    {
+     "t": "00:33.10",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "溢",
+       "gold": [
+        "あふ"
+       ],
+       "cat": "rare",
+       "kuromoji": null
+      },
+      {
+       "text": "涙",
+       "gold": [
+        "なみだ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なみだ"
+      }
+     ]
+    },
+    {
+     "t": "00:36.00",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "蕾",
+       "gold": [
+        "つぼみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つぼみ"
+      }
+     ]
+    },
+    {
+     "t": "00:40.52",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "香",
+       "gold": [
+        "かお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かお"
+      },
+      {
+       "text": "始",
+       "gold": [
+        "はじ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はじ"
+      }
+     ]
+    },
+    {
+     "t": "00:45.81",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "空",
+       "gold": [
+        "そら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "そら"
+      },
+      {
+       "text": "超",
+       "gold": [
+        "こ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こ"
+      }
+     ]
+    },
+    {
+     "t": "00:51.25",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "迎",
+       "gold": [
+        "むか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "むか"
+      },
+      {
+       "text": "来",
+       "gold": [
+        "く"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "く"
+      }
+     ]
+    },
+    {
+     "t": "00:53.81",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "春",
+       "gold": [
+        "はる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はる"
+      }
+     ]
+    },
+    {
+     "t": "00:56.60",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "遠",
+       "gold": [
+        "とお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とお"
+      },
+      {
+       "text": "春",
+       "gold": [
+        "はる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はる"
+      }
+     ]
+    },
+    {
+     "t": "00:59.27",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "瞼閉",
+       "gold": [
+        "まぶたと"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まぶたと"
+      }
+     ]
+    },
+    {
+     "t": "01:04.75",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "愛",
+       "gold": [
+        "あい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あい"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      }
+     ]
+    },
+    {
+     "t": "01:10.18",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "懐",
+       "gold": [
+        "なつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なつ"
+      }
+     ]
+    },
+    {
+     "t": "01:12.68",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "声",
+       "gold": [
+        "こえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こえ"
+      }
+     ]
+    },
+    {
+     "t": "01:27.70",
+     "src": "adjudicated",
+     "note": "kuromoji gives the historical spelling あづ; modern spelling is あず, and the romaji cannot tell them apart",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "預",
+       "gold": [
+        "あず",
+        "あづ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あづ"
+      }
+     ]
+    },
+    {
+     "t": "01:30.35",
+     "src": "adjudicated",
+     "note": "romaji drops the final は",
+     "runs": [
+      {
+       "text": "我",
+       "gold": [
+        "わ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わ"
+      },
+      {
+       "text": "心",
+       "gold": [
+        "こころ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こころ"
+      }
+     ]
+    },
+    {
+     "t": "01:33.14",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "今",
+       "gold": [
+        "いま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いま"
+      },
+      {
+       "text": "返事",
+       "gold": [
+        "へんじ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "へんじ"
+      }
+     ]
+    },
+    {
+     "t": "01:35.92",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "待",
+       "gold": [
+        "ま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ま"
+      }
+     ]
+    },
+    {
+     "t": "01:40.67",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "月日",
+       "gold": [
+        "つきひ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つきひ"
+      }
+     ]
+    },
+    {
+     "t": "01:41.12",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "流",
+       "gold": [
+        "なが"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なが"
+      }
+     ]
+    },
+    {
+     "t": "01:51.40",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "明日",
+       "gold": [
+        "あす",
+        "あした"
+       ],
+       "cat": "sung",
+       "kuromoji": "あした"
+      },
+      {
+       "text": "超",
+       "gold": [
+        "こ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こ"
+      }
+     ]
+    },
+    {
+     "t": "01:56.92",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "届",
+       "gold": [
+        "とど"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とど"
+      }
+     ]
+    },
+    {
+     "t": "02:02.13",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      },
+      {
+       "text": "春",
+       "gold": [
+        "はる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はる"
+      }
+     ]
+    },
+    {
+     "t": "02:05.14",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "迷",
+       "gold": [
+        "まよ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まよ"
+      }
+     ]
+    },
+    {
+     "t": "02:06.67",
+     "src": "adjudicated",
+     "note": "romaji has たちとまる, the dictionary たちどまる; confirm by ear",
+     "runs": [
+      {
+       "text": "立",
+       "gold": [
+        "た"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "た"
+      },
+      {
+       "text": "止",
+       "gold": [
+        "ど",
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ど"
+      },
+      {
+       "text": "時",
+       "gold": [
+        "とき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とき"
+      }
+     ]
+    },
+    {
+     "t": "02:10.59",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "夢",
+       "gold": [
+        "ゆめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆめ"
+      },
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      }
+     ]
+    },
+    {
+     "t": "02:16.17",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "眼差",
+       "gold": [
+        "まなざ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まなざ"
+      }
+     ]
+    },
+    {
+     "t": "02:18.16",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "肩",
+       "gold": [
+        "かた"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かた"
+      },
+      {
+       "text": "抱",
+       "gold": [
+        "だ",
+        "いだ"
+       ],
+       "cat": "sung",
+       "kuromoji": "いだ"
+      }
+     ]
+    },
+    {
+     "t": "02:21.79",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "夢",
+       "gold": [
+        "ゆめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆめ"
+      },
+      {
+       "text": "浅",
+       "gold": [
+        "あさ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あさ"
+      },
+      {
+       "text": "夢",
+       "gold": [
+        "ゆめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆめ"
+      }
+     ]
+    },
+    {
+     "t": "02:26.90",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "私",
+       "gold": [
+        "わたし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わたし"
+      }
+     ]
+    },
+    {
+     "t": "02:32.22",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "想",
+       "gold": [
+        "おも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おも"
+      }
+     ]
+    },
+    {
+     "t": "02:37.69",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "歩",
+       "gold": [
+        "ある"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ある"
+      }
+     ]
+    },
+    {
+     "t": "02:43.72",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "流",
+       "gold": [
+        "なが"
+       ],
+       "cat": "rare",
+       "kuromoji": "ながれ"
+      }
+     ]
+    },
+    {
+     "t": "02:45.04",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "雨",
+       "gold": [
+        "あめ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あめ"
+      }
+     ]
+    },
+    {
+     "t": "02:50.57",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "花",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "白日",
+   "artist": "King Gnu",
+   "netease": 1347630432,
+   "lines": [
+    {
+     "t": "00:01.09",
+     "src": "adjudicated",
+     "note": "differed only in how は was romanized",
+     "runs": [
+      {
+       "text": "時",
+       "gold": [
+        "とき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とき"
+      },
+      {
+       "text": "誰",
+       "gold": [
+        "だれ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だれ"
+      }
+     ]
+    },
+    {
+     "t": "00:05.29",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "知",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      },
+      {
+       "text": "知",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      }
+     ]
+    },
+    {
+     "t": "00:08.85",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "傷",
+       "gold": [
+        "きず"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きず"
+      }
+     ]
+    },
+    {
+     "t": "00:14.02",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "失",
+       "gold": [
+        "うしな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うしな"
+      },
+      {
+       "text": "初",
+       "gold": [
+        "はじ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はじ"
+      }
+     ]
+    },
+    {
+     "t": "00:18.49",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "犯",
+       "gold": [
+        "おか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おか"
+      },
+      {
+       "text": "罪",
+       "gold": [
+        "つみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つみ"
+      },
+      {
+       "text": "知",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      }
+     ]
+    },
+    {
+     "t": "00:24.05",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "戻",
+       "gold": [
+        "もど"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "もど"
+      },
+      {
+       "text": "昔",
+       "gold": [
+        "むかし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "むかし"
+      }
+     ]
+    },
+    {
+     "t": "00:28.80",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "煌",
+       "gold": [
+        "きら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きら"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      }
+     ]
+    },
+    {
+     "t": "00:34.64",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "明日",
+       "gold": [
+        "あした"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あした"
+      },
+      {
+       "text": "歩",
+       "gold": [
+        "ある"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ある"
+      },
+      {
+       "text": "出",
+       "gold": [
+        "だ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だ"
+      }
+     ]
+    },
+    {
+     "t": "00:39.16",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "雪",
+       "gold": [
+        "ゆき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆき"
+      },
+      {
+       "text": "降",
+       "gold": [
+        "ふ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ふ"
+      },
+      {
+       "text": "頻",
+       "gold": [
+        "しき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しき"
+      }
+     ]
+    },
+    {
+     "t": "00:46.24",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "今",
+       "gold": [
+        "いま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いま"
+      },
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      }
+     ]
+    },
+    {
+     "t": "00:47.42",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "何",
+       "gold": [
+        "なに"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なに"
+      }
+     ]
+    },
+    {
+     "t": "00:48.72",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "何",
+       "gold": [
+        "なに"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なに"
+      }
+     ]
+    },
+    {
+     "t": "00:49.99",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "誰",
+       "gold": [
+        "だれ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だれ"
+      },
+      {
+       "text": "生",
+       "gold": [
+        "い"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "い"
+      }
+     ]
+    },
+    {
+     "t": "00:53.25",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "正",
+       "gold": [
+        "ただ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ただ"
+      }
+     ]
+    },
+    {
+     "t": "00:54.97",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "言",
+       "gold": [
+        "い"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "い"
+      }
+     ]
+    },
+    {
+     "t": "00:56.48",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "街",
+       "gold": [
+        "まち"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まち"
+      }
+     ]
+    },
+    {
+     "t": "00:57.65",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "出逢",
+       "gold": [
+        "であ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "であ"
+      }
+     ]
+    },
+    {
+     "t": "00:58.94",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      },
+      {
+       "text": "名前",
+       "gold": [
+        "なまえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なまえ"
+      }
+     ]
+    },
+    {
+     "t": "01:00.16",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "覚",
+       "gold": [
+        "おぼ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おぼ"
+      }
+     ]
+    },
+    {
+     "t": "01:01.62",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "頃",
+       "gold": [
+        "ころ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ころ"
+      }
+     ]
+    },
+    {
+     "t": "01:04.82",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "春風",
+       "gold": [
+        "はるかぜ",
+        "しゅんぷう"
+       ],
+       "cat": "sung",
+       "kuromoji": "しゅんぷう"
+      },
+      {
+       "text": "吹",
+       "gold": [
+        "ふ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ふ"
+      }
+     ]
+    },
+    {
+     "t": "01:09.31",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "真",
+       "gold": [
+        "ま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ま"
+      },
+      {
+       "text": "新",
+       "gold": [
+        "さら"
+       ],
+       "cat": "rare",
+       "kuromoji": "しん"
+      },
+      {
+       "text": "生",
+       "gold": [
+        "う"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "う"
+      },
+      {
+       "text": "変",
+       "gold": [
+        "か"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "か"
+      }
+     ]
+    },
+    {
+     "t": "01:11.72",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "人生一",
+       "gold": [
+        "じんせいいち"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "じんせいいち"
+      },
+      {
+       "text": "始",
+       "gold": [
+        "はじ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はじ"
+      }
+     ]
+    },
+    {
+     "t": "01:14.09",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "離",
+       "gold": [
+        "はな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はな"
+      }
+     ]
+    },
+    {
+     "t": "01:16.40",
+     "src": "adjudicated",
+     "note": "romaji has ちつづき, the dictionary じつづき; confirm by ear",
+     "runs": [
+      {
+       "text": "地続",
+       "gold": [
+        "じつづ",
+        "ちつづ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "じつづ"
+      },
+      {
+       "text": "今",
+       "gold": [
+        "いま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いま"
+      },
+      {
+       "text": "歩",
+       "gold": [
+        "ある"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ある"
+      }
+     ]
+    },
+    {
+     "t": "01:19.54",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "真",
+       "gold": [
+        "ま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ま"
+      },
+      {
+       "text": "白",
+       "gold": [
+        "しろ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しろ"
+      },
+      {
+       "text": "全",
+       "gold": [
+        "すべ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すべ"
+      }
+     ]
+    },
+    {
+     "t": "01:21.81",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "降",
+       "gold": [
+        "ふ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ふ"
+      },
+      {
+       "text": "雪",
+       "gold": [
+        "ゆき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ゆき"
+      }
+     ]
+    },
+    {
+     "t": "01:23.53",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "全",
+       "gold": [
+        "すべ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すべ"
+      },
+      {
+       "text": "包",
+       "gold": [
+        "つつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "つつ"
+      },
+      {
+       "text": "込",
+       "gold": [
+        "こ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こ"
+      }
+     ]
+    },
+    {
+     "t": "01:26.17",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "今日",
+       "gold": [
+        "きょう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きょう"
+      }
+     ]
+    },
+    {
+     "t": "01:27.57",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "全",
+       "gold": [
+        "すべ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すべ"
+      },
+      {
+       "text": "隠",
+       "gold": [
+        "かく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かく"
+      }
+     ]
+    },
+    {
+     "t": "01:40.75",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "戻",
+       "gold": [
+        "もど"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "もど"
+      },
+      {
+       "text": "昔",
+       "gold": [
+        "むかし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "むかし"
+      }
+     ]
+    },
+    {
+     "t": "01:46.19",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "羨",
+       "gold": [
+        "うらや"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うらや"
+      }
+     ]
+    },
+    {
+     "t": "02:03.58",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "笑",
+       "gold": [
+        "わら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わら"
+      }
+     ]
+    },
+    {
+     "t": "02:06.05",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "分",
+       "gold": [
+        "わ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わ"
+      },
+      {
+       "text": "合",
+       "gold": [
+        "あ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あ"
+      },
+      {
+       "text": "思",
+       "gold": [
+        "おも"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おも"
+      }
+     ]
+    },
+    {
+     "t": "02:09.19",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "曖昧",
+       "gold": [
+        "あいまい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あいまい"
+      },
+      {
+       "text": "見落",
+       "gold": [
+        "みお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "みお"
+      }
+     ]
+    },
+    {
+     "t": "02:11.55",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "途方",
+       "gold": [
+        "とほう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とほう"
+      },
+      {
+       "text": "間違",
+       "gold": [
+        "まちが"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "まちが"
+      },
+      {
+       "text": "探",
+       "gold": [
+        "さが"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さが"
+      }
+     ]
+    },
+    {
+     "t": "02:13.85",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "季節",
+       "gold": [
+        "きせつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きせつ"
+      },
+      {
+       "text": "越",
+       "gold": [
+        "こ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こ"
+      }
+     ]
+    },
+    {
+     "t": "02:16.30",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "名前",
+       "gold": [
+        "なまえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なまえ"
+      }
+     ]
+    },
+    {
+     "t": "02:17.51",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "呼",
+       "gold": [
+        "よ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よ"
+      }
+     ]
+    },
+    {
+     "t": "02:31.52",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "首",
+       "gold": [
+        "くび"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "くび"
+      },
+      {
+       "text": "皮一枚繋",
+       "gold": [
+        "かわいちまいつな"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かわいちまいつな"
+      }
+     ]
+    },
+    {
+     "t": "02:33.77",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "如何",
+       "gold": [
+        "どう"
+       ],
+       "cat": "context",
+       "kuromoji": "いか"
+      },
+      {
+       "text": "無",
+       "gold": [
+        "な"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "な"
+      },
+      {
+       "text": "今",
+       "gold": [
+        "いま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いま"
+      }
+     ]
+    },
+    {
+     "t": "02:35.42",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "生",
+       "gold": [
+        "い"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "い"
+      }
+     ]
+    },
+    {
+     "t": "02:41.01",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "今",
+       "gold": [
+        "いま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いま"
+      },
+      {
+       "text": "心",
+       "gold": [
+        "こころ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こころ"
+      },
+      {
+       "text": "凍",
+       "gold": [
+        "こお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こお"
+      }
+     ]
+    },
+    {
+     "t": "02:44.70",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "全",
+       "gold": [
+        "すべ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すべ"
+      },
+      {
+       "text": "忘",
+       "gold": [
+        "わす"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "わす"
+      }
+     ]
+    },
+    {
+     "t": "03:10.54",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "朝目覚",
+       "gold": [
+        "あさめざ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あさめざ"
+      }
+     ]
+    },
+    {
+     "t": "03:11.39",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "誰",
+       "gold": [
+        "だれ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だれ"
+      }
+     ]
+    },
+    {
+     "t": "03:19.41",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "聞",
+       "gold": [
+        "き"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "き"
+      },
+      {
+       "text": "流",
+       "gold": [
+        "なが"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なが"
+      }
+     ]
+    },
+    {
+     "t": "03:21.07",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "忙",
+       "gold": [
+        "せわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "せわ"
+      },
+      {
+       "text": "日常",
+       "gold": [
+        "にちじょう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "にちじょう"
+      },
+      {
+       "text": "中",
+       "gold": [
+        "なか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なか"
+      }
+     ]
+    },
+    {
+     "t": "03:23.96",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "歳",
+       "gold": [
+        "とし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とし"
+      },
+      {
+       "text": "重",
+       "gold": [
+        "かさ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かさ"
+      }
+     ]
+    },
+    {
+     "t": "03:26.71",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "向",
+       "gold": [
+        "む"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "む"
+      },
+      {
+       "text": "側",
+       "gold": [
+        "がわ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "がわ"
+      }
+     ]
+    },
+    {
+     "t": "03:29.40",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "待",
+       "gold": [
+        "ま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ま"
+      },
+      {
+       "text": "受",
+       "gold": [
+        "う"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "う"
+      }
+     ]
+    },
+    {
+     "t": "03:30.69",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "天国",
+       "gold": [
+        "てんごく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "てんごく"
+      },
+      {
+       "text": "地獄",
+       "gold": [
+        "じごく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "じごく"
+      }
+     ]
+    },
+    {
+     "t": "03:33.02",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "人",
+       "gold": [
+        "ひと"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひと"
+      },
+      {
+       "text": "鈍感",
+       "gold": [
+        "どんかん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "どんかん"
+      }
+     ]
+    },
+    {
+     "t": "03:36.14",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "肚",
+       "gold": [
+        "はら"
+       ],
+       "cat": "rare",
+       "kuromoji": null
+      },
+      {
+       "text": "中",
+       "gold": [
+        "なか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "なか"
+      }
+     ]
+    },
+    {
+     "t": "03:38.43",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "愛",
+       "gold": [
+        "あい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あい"
+      },
+      {
+       "text": "愛",
+       "gold": [
+        "あい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あい"
+      }
+     ]
+    },
+    {
+     "t": "03:40.96",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "生",
+       "gold": [
+        "い"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "い"
+      },
+      {
+       "text": "行",
+       "gold": [
+        "ゆ",
+        "い"
+       ],
+       "cat": "sung",
+       "kuromoji": "い"
+      },
+      {
+       "text": "定",
+       "gold": [
+        "さだ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さだ"
+      },
+      {
+       "text": "知",
+       "gold": [
+        "し"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "し"
+      }
+     ]
+    },
+    {
+     "t": "03:44.03",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "後悔",
+       "gold": [
+        "こうかい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こうかい"
+      },
+      {
+       "text": "人生",
+       "gold": [
+        "じんせい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "じんせい"
+      }
+     ]
+    },
+    {
+     "t": "03:46.34",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "取",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      },
+      {
+       "text": "返",
+       "gold": [
+        "かえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かえ"
+      },
+      {
+       "text": "過",
+       "gold": [
+        "あやま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あやま"
+      }
+     ]
+    },
+    {
+     "t": "03:49.09",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "一",
+       "gold": [
+        "ひと"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひと"
+      },
+      {
+       "text": "二",
+       "gold": [
+        "ふた"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ふた"
+      }
+     ]
+    },
+    {
+     "t": "03:50.61",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "誰",
+       "gold": [
+        "だれ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だれ"
+      }
+     ]
+    },
+    {
+     "t": "04:04.03",
+     "src": "adjudicated",
+     "note": "romaji has ちつづき, the dictionary じつづき; confirm by ear",
+     "runs": [
+      {
+       "text": "地続",
+       "gold": [
+        "じつづ",
+        "ちつづ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "じつづ"
+      },
+      {
+       "text": "今",
+       "gold": [
+        "いま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "いま"
+      },
+      {
+       "text": "歩",
+       "gold": [
+        "ある"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ある"
+      }
+     ]
+    },
+    {
+     "t": "04:07.10",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "真",
+       "gold": [
+        "ま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ま"
+      },
+      {
+       "text": "白",
+       "gold": [
+        "しろ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しろ"
+      },
+      {
+       "text": "全",
+       "gold": [
+        "すべ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "すべ"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "千本桜",
+   "artist": "黒うさP feat. 初音ミク",
+   "netease": 22677433,
+   "lines": [
+    {
+     "t": "00:33.85",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "大胆不敵",
+       "gold": [
+        "だいたんふてき"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だいたんふてき"
+      },
+      {
+       "text": "革命",
+       "gold": [
+        "かくめい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かくめい"
+      }
+     ]
+    },
+    {
+     "t": "00:36.98",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "磊々落々",
+       "gold": [
+        "らいらいらくらく"
+       ],
+       "cat": "printed",
+       "kuromoji": null
+      }
+     ]
+    },
+    {
+     "t": "00:38.48",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "反戦国家",
+       "gold": [
+        "はんせんこっか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はんせんこっか"
+      }
+     ]
+    },
+    {
+     "t": "00:40.17",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "日",
+       "gold": [
+        "ひ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひ"
+      },
+      {
+       "text": "丸印",
+       "gold": [
+        "まるじるし"
+       ],
+       "cat": "context",
+       "kuromoji": "まるしるし"
+      },
+      {
+       "text": "二輪車転",
+       "gold": [
+        "にりんしゃころ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "にりんしゃころ"
+      }
+     ]
+    },
+    {
+     "t": "00:43.10",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "悪霊退散",
+       "gold": [
+        "あくりょうたいさん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あくりょうたいさん"
+      }
+     ]
+    },
+    {
+     "t": "00:46.29",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "環状線",
+       "gold": [
+        "かんじょうせん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かんじょうせん"
+      },
+      {
+       "text": "走",
+       "gold": [
+        "はし"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はし"
+      },
+      {
+       "text": "抜",
+       "gold": [
+        "ぬ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぬ"
+      }
+     ]
+    },
+    {
+     "t": "00:49.04",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "東奔西走",
+       "gold": [
+        "とうほんせいそう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "とうほんせいそう"
+      }
+     ]
+    },
+    {
+     "t": "00:52.17",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "少年少女戦国無双",
+       "gold": [
+        "しょうねんしょうじょせんごくむそう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しょうねんしょうじょせんごくむそう"
+      }
+     ]
+    },
+    {
+     "t": "00:55.17",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "浮世",
+       "gold": [
+        "うきよ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うきよ"
+      },
+      {
+       "text": "随",
+       "gold": [
+        "まにま"
+       ],
+       "cat": "printed",
+       "kuromoji": "ずい"
+      }
+     ]
+    },
+    {
+     "t": "00:58.41",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "千本桜",
+       "gold": [
+        "せんぼんざくら"
+       ],
+       "cat": "context",
+       "kuromoji": "せんぼんさくら"
+      },
+      {
+       "text": "夜",
+       "gold": [
+        "よる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "よる"
+      },
+      {
+       "text": "紛",
+       "gold": [
+        "まぎ"
+       ],
+       "cat": "rare",
+       "kuromoji": null
+      }
+     ]
+    },
+    {
+     "t": "01:01.54",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "声",
+       "gold": [
+        "こえ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こえ"
+      },
+      {
+       "text": "届",
+       "gold": [
+        "とど"
+       ],
+       "cat": "rare",
+       "kuromoji": "とどけ"
+      }
+     ]
+    },
+    {
+     "t": "01:04.49",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "此処",
+       "gold": [
+        "ここ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ここ"
+      },
+      {
+       "text": "宴",
+       "gold": [
+        "うたげ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うたげ"
+      },
+      {
+       "text": "鋼",
+       "gold": [
+        "はがね"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はがね"
+      },
+      {
+       "text": "檻",
+       "gold": [
+        "おり"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おり"
+      }
+     ]
+    },
+    {
+     "t": "01:07.61",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "断頭台",
+       "gold": [
+        "だんとうだい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だんとうだい"
+      },
+      {
+       "text": "見下",
+       "gold": [
+        "みお"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "みお"
+      }
+     ]
+    },
+    {
+     "t": "01:10.62",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "三千世界",
+       "gold": [
+        "さんぜんせかい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "さんぜんせかい"
+      }
+     ]
+    },
+    {
+     "t": "01:12.62",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "常世之闇",
+       "gold": [
+        "とこよのやみ"
+       ],
+       "cat": "printed",
+       "kuromoji": "とこよのやみ"
+      }
+     ]
+    },
+    {
+     "t": "01:14.00",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "嘆",
+       "gold": [
+        "なげ"
+       ],
+       "cat": "rare",
+       "kuromoji": null
+      },
+      {
+       "text": "唄",
+       "gold": [
+        "うた"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うた"
+      },
+      {
+       "text": "聞",
+       "gold": [
+        "き"
+       ],
+       "cat": "rare",
+       "kuromoji": null
+      }
+     ]
+    },
+    {
+     "t": "01:17.08",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "青藍",
+       "gold": [
+        "せいらん"
+       ],
+       "cat": "printed",
+       "kuromoji": "あおあい"
+      },
+      {
+       "text": "空",
+       "gold": [
+        "そら"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "そら"
+      },
+      {
+       "text": "遥",
+       "gold": [
+        "はる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はる"
+      },
+      {
+       "text": "彼方",
+       "gold": [
+        "かなた"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かなた"
+      }
+     ]
+    },
+    {
+     "t": "01:20.14",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "光線銃",
+       "gold": [
+        "こうせんじゅう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こうせんじゅう"
+      },
+      {
+       "text": "打",
+       "gold": [
+        "う"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "う"
+      },
+      {
+       "text": "抜",
+       "gold": [
+        "ぬ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぬ"
+      }
+     ]
+    },
+    {
+     "t": "01:36.19",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "百戦錬磨",
+       "gold": [
+        "ひゃくせんれんま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ひゃくせんれんま"
+      },
+      {
+       "text": "見",
+       "gold": [
+        "み"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "み"
+      },
+      {
+       "text": "目",
+       "gold": [
+        "め"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "め"
+      },
+      {
+       "text": "将校",
+       "gold": [
+        "しょうこう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "しょうこう"
+      }
+     ]
+    },
+    {
+     "t": "01:40.91",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "花魁",
+       "gold": [
+        "おいらん"
+       ],
+       "cat": "printed",
+       "kuromoji": "おいらん"
+      },
+      {
+       "text": "道中",
+       "gold": [
+        "どうちゅう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "どうちゅう"
+      }
+     ]
+    },
+    {
+     "t": "01:42.42",
+     "src": "adjudicated",
+     "note": "皆 is also read みんな; sung みな",
+     "runs": [
+      {
+       "text": "皆",
+       "gold": [
+        "みな",
+        "みんな"
+       ],
+       "cat": "sung",
+       "kuromoji": "みな"
+      },
+      {
+       "text": "集",
+       "gold": [
+        "あつ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あつ"
+      }
+     ]
+    },
+    {
+     "t": "01:45.49",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "聖者",
+       "gold": [
+        "せいじゃ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "せいじゃ"
+      },
+      {
+       "text": "行進",
+       "gold": [
+        "こうしん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こうしん"
+      }
+     ]
+    },
+    {
+     "t": "01:48.65",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "禅定門",
+       "gold": [
+        "ぜんじょうもん"
+       ],
+       "cat": "printed",
+       "kuromoji": "ぜんじょうもん"
+      }
+     ]
+    },
+    {
+     "t": "01:50.14",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "潜",
+       "gold": [
+        "くぐ"
+       ],
+       "cat": "context",
+       "kuromoji": "もぐ"
+      },
+      {
+       "text": "抜",
+       "gold": [
+        "ぬ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぬ"
+      }
+     ]
+    },
+    {
+     "t": "01:51.70",
+     "src": "adjudicated",
+     "runs": [
+      {
+       "text": "安楽浄土厄払",
+       "gold": [
+        "あんらくじょうどやくばら"
+       ],
+       "cat": "context",
+       "kuromoji": "あんらくじょうどやくはら"
+      }
+     ]
+    },
+    {
+     "t": "01:54.83",
+     "src": "adjudicated",
+     "note": "終幕(さいご) is the lyricist's own reading",
+     "runs": [
+      {
+       "text": "終幕",
+       "gold": [
+        "さいご"
+       ],
+       "cat": "printed",
+       "kuromoji": "しゅうまく"
+      },
+      {
+       "text": "大団円",
+       "gold": [
+        "だいだんえん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だいだんえん"
+      }
+     ]
+    },
+    {
+     "t": "01:57.64",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "拍手",
+       "gold": [
+        "はくしゅ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はくしゅ"
+      },
+      {
+       "text": "合間",
+       "gold": [
+        "あいま"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あいま"
+      }
+     ]
+    },
+    {
+     "t": "02:19.44",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "希望",
+       "gold": [
+        "きぼう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きぼう"
+      },
+      {
+       "text": "丘",
+       "gold": [
+        "おか"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おか"
+      },
+      {
+       "text": "遥",
+       "gold": [
+        "はる"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "はる"
+      },
+      {
+       "text": "彼方",
+       "gold": [
+        "かなた"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "かなた"
+      }
+     ]
+    },
+    {
+     "t": "02:22.30",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "閃光弾",
+       "gold": [
+        "せんこうだん"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "せんこうだん"
+      },
+      {
+       "text": "打",
+       "gold": [
+        "う"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "う"
+      },
+      {
+       "text": "上",
+       "gold": [
+        "あ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "あ"
+      }
+     ]
+    },
+    {
+     "t": "03:18.61",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "断頭台",
+       "gold": [
+        "だんとうだい"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "だんとうだい"
+      },
+      {
+       "text": "飛",
+       "gold": [
+        "と"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "と"
+      },
+      {
+       "text": "降",
+       "gold": [
+        "お"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "お"
+      }
+     ]
+    },
+    {
+     "t": "03:24.80",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "君",
+       "gold": [
+        "きみ"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "きみ"
+      },
+      {
+       "text": "歌",
+       "gold": [
+        "うた"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "うた"
+      },
+      {
+       "text": "僕",
+       "gold": [
+        "ぼく"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "ぼく"
+      },
+      {
+       "text": "踊",
+       "gold": [
+        "おど"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "おど"
+      }
+     ]
+    },
+    {
+     "t": "03:30.92",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "光線銃",
+       "gold": [
+        "こうせんじゅう"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "こうせんじゅう"
+      },
+      {
+       "text": "撃",
+       "gold": [
+        "う"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "う"
+      }
+     ]
+    },
+    {
+     "t": "60:02.08",
+     "src": "agree",
+     "runs": [
+      {
+       "text": "終",
+       "gold": [
+        "お"
+       ],
+       "cat": "dictionary",
+       "kuromoji": "お"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

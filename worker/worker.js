@@ -13,6 +13,21 @@ import {
   findProvider,
   googleTargetCode,
 } from '../translate.js';
+import {
+  FURIGANA_ALLOWED_MODELS,
+  FURIGANA_CACHE_TTL_S,
+  FURIGANA_CHUNK_LINES,
+  FURIGANA_GEMINI_TIMEOUT_MS,
+  FURIGANA_MAX_LINE_CHARS,
+  FURIGANA_MAX_LINES,
+  FURIGANA_MODELS,
+  furiganaCacheKey,
+  furiganaEntry,
+  geminiFuriganaRequest,
+  geminiReplyJson,
+  hasKanji,
+  parseFuriganaReply,
+} from '../furigana.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -573,6 +588,51 @@ async function translateWithOpenRouter(lines, target, model, apiKey) {
   return JSON.parse(content).lines;
 }
 
+/**
+ * Readings for each kanji run of each line.  The runs are worked out here
+ * from the shared furigana.js, so the model is only ever asked for readings
+ * and never writes the lyrics back; the kana it is given along with each
+ * run is cut from its answer before the answer leaves the Worker.
+ */
+async function furiganaWithGemini(lines, model, apiKey) {
+  const entries = lines.map(furiganaEntry);
+  const resp = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify(geminiFuriganaRequest(entries)),
+    signal: AbortSignal.timeout(FURIGANA_GEMINI_TIMEOUT_MS),
+  });
+
+  if (!resp.ok) {
+    const err = new Error(`Gemini HTTP ${resp.status}: ${(await resp.text()).slice(0, 200)}`);
+    err.status = resp.status;
+    throw err;
+  }
+  return parseFuriganaReply(entries, geminiReplyJson(await resp.json()));
+}
+
+/**
+ * A song's readings, read in chunks of FURIGANA_CHUNK_LINES sent together.
+ * A chunk that fails leaves its lines null; `failures` holds why.
+ */
+async function furiganaForSong(lines, model, apiKey) {
+  const chunks = [];
+  for (let i = 0; i < lines.length; i += FURIGANA_CHUNK_LINES) chunks.push(lines.slice(i, i + FURIGANA_CHUNK_LINES));
+  const settled = await Promise.allSettled(chunks.map((chunk) => furiganaWithGemini(chunk, model, apiKey)));
+
+  const readings = [];
+  const failures = [];
+  settled.forEach((s, k) => {
+    if (s.status === 'fulfilled') {
+      readings.push(...s.value);
+    } else {
+      failures.push(s.reason);
+      readings.push(...chunks[k].map(() => null));
+    }
+  });
+  return { readings, failures, chunks: chunks.length };
+}
+
 // ── Route handlers ──
 
 function jsonResponse(body, status = 200) {
@@ -827,8 +887,74 @@ async function handleLlmTranslate(request, env) {
   return jsonResponse({ translations: translations.map(decodeHtmlEntities), model });
 }
 
+/**
+ * Readings for a song's distinct kanji lines.  Stored readings are looked up
+ * first (the FURIGANA_CACHE KV namespace, keyed by a hash of the lines), so
+ * a song read once is never sent to a model again.  Only what this Worker
+ * got from the first model in FURIGANA_MODELS, for every chunk, is stored:
+ * a client cannot write readings of its own, and a song read while that
+ * model was down is read again by it later rather than kept at a lower
+ * quality.  Without the binding the route works, uncached.
+ */
+async function handleFurigana(request, env, ctx) {
+  const apiKey = env.GEMINI_API_KEY;
+  if (!apiKey) {
+    // 501 tells the client furigana is unconfigured, not broken.
+    return jsonResponse({ error: 'GEMINI_API_KEY secret not configured' }, 501);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Body must be JSON' }, 400);
+  }
+
+  const lines = body?.lines;
+  if (!Array.isArray(lines) || lines.length === 0 || lines.length > FURIGANA_MAX_LINES) {
+    return jsonResponse({ error: `lines must be an array of 1–${FURIGANA_MAX_LINES} strings` }, 400);
+  }
+  if (!lines.every((l) => typeof l === 'string' && l.length <= FURIGANA_MAX_LINE_CHARS && hasKanji(l))) {
+    return jsonResponse({ error: `every line must be a string of at most ${FURIGANA_MAX_LINE_CHARS} characters containing kanji` }, 400);
+  }
+
+  const model = body?.model || FURIGANA_MODELS[0];
+  if (!FURIGANA_ALLOWED_MODELS.includes(model)) {
+    return jsonResponse({ error: `Unknown furigana model: ${model}` }, 400);
+  }
+
+  const cache = env.FURIGANA_CACHE;
+  const key = cache ? await furiganaCacheKey(lines) : null;
+  if (cache) {
+    const stored = await cache.get(key, 'json').catch(() => null);
+    if (Array.isArray(stored?.readings) && stored.readings.length === lines.length) {
+      return jsonResponse({ readings: stored.readings, model: stored.model, cached: true, complete: true });
+    }
+  }
+
+  const { readings, failures, chunks } = await furiganaForSong(lines, model, apiKey);
+
+  if (failures.length === chunks) {
+    // Busy (429) and overloaded (503) pass through so the client can tell
+    // them from a model that answered wrongly.
+    const status = failures.every((f) => f.status === 429 || f.status === 503) ? failures[0].status : 502;
+    return jsonResponse({ error: failures[0].message }, status);
+  }
+
+  const complete = failures.length === 0;
+  if (cache && complete && model === FURIGANA_MODELS[0]) {
+    const put = cache.put(key, JSON.stringify({ readings, model, storedAt: new Date().toISOString() }), {
+      expirationTtl: FURIGANA_CACHE_TTL_S,
+    }).catch(() => {});
+    // Store after answering, not before.
+    if (ctx?.waitUntil) ctx.waitUntil(put); else await put;
+  }
+
+  return jsonResponse({ readings, model, cached: false, complete });
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS });
     }
@@ -844,6 +970,12 @@ export default {
           return jsonResponse({ error: 'Use POST' }, 405);
         }
         return await handleLlmTranslate(request, env);
+      }
+      if (url.pathname === '/furigana') {
+        if (request.method !== 'POST') {
+          return jsonResponse({ error: 'Use POST' }, 405);
+        }
+        return await handleFurigana(request, env, ctx);
       }
       if (url.pathname === '/translate') {
         if (request.method !== 'POST') {

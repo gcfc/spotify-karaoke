@@ -1,0 +1,10 @@
+{
+  "name": "furigana-eval-tools",
+  "private": true,
+  "description": "Builds tests/furigana_gold.json. Only this tool needs these packages; the app and the tests do not.",
+  "type": "module",
+  "dependencies": {
+    "kuromoji": "0.1.2",
+    "wanakana": "5.3.1"
+  }
+}
