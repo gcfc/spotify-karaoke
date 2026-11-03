@@ -12,4 +12,4 @@ enabled = false
 # works — every song is simply read by the model each time.
 # [[kv_namespaces]]
 # binding = "FURIGANA_CACHE"
-# id = "<the id from the command above>"
+# id = "b89f08bf01b54248996390f20f0b7edf"
