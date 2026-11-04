@@ -342,6 +342,62 @@ stubChain({ cloud: 'fail' });
 result = await translateLines(two, { ...CHAIN_OPTS, provider: 'cloud' });
 assert(result === null, 'a pinned provider that fails does not fall back');
 
+// ── 9. Which source served — for the page's source panel ──
+
+console.log('\n── onServed ──');
+
+let served = null;
+const onServed = (s) => { served = s; };
+
+resetProviderHealth();
+globalThis.fetch = async (url, opts) => {
+  const body = JSON.parse(opts.body);
+  return new Response(JSON.stringify({
+    translations: body.lines.map((l) => `g(${l})`), model: 'gemini-flash-lite-latest', modelVersion: 'gemini-3.5-flash-lite',
+  }), { status: 200 });
+};
+await translateLines(two, { ...CHAIN_OPTS, onServed });
+assert(served?.provider === 'gemini-flash-lite-latest' && served.model === 'gemini-3.5-flash-lite',
+  'an LLM reports the model version that answered, not just the alias asked');
+
+resetProviderHealth();
+served = null;
+stubChain();
+await translateLines(two, { ...CHAIN_OPTS, onServed });
+assert(served?.provider === 'gemini-flash-lite-latest' && served.model === 'gemini-flash-lite-latest',
+  "an older Worker that does not name the version: the provider's own name stands in");
+
+resetProviderHealth();
+served = null;
+stubChain({ gemini: 'fail' });
+await translateLines(two, { ...CHAIN_OPTS, onServed });
+assert(served?.provider === 'free' && served.model === null, 'the keyless provider reports itself, with no model');
+
+resetProviderHealth();
+served = null;
+stubChain();
+await translateLines(two, { ...CHAIN_OPTS, provider: 'cloud', onServed });
+assert(served?.provider === 'cloud', 'a pinned provider reports itself');
+
+resetProviderHealth();
+served = null;
+stubChain({ gemini: 'fail', free: 'fail', cloud: 'fail' });
+await translateLines(two, { ...CHAIN_OPTS, onServed });
+assert(served === null, 'nothing is reported when nothing served');
+
+// The Worker passes on the version Gemini says answered.
+const { default: worker } = await import('../worker/worker.js');
+globalThis.fetch = async () => new Response(JSON.stringify({
+  candidates: [{ content: { parts: [{ text: JSON.stringify(['One', 'Two']) }] } }], modelVersion: 'gemini-3.5-flash-lite',
+}), { status: 200 });
+const resp = await worker.fetch(new Request('https://w.test/llm-translate', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ lines: two, target: 'en', provider: 'gemini-flash-lite-latest' }),
+}), { GEMINI_API_KEY: 'k' });
+const routed = await resp.json();
+assert(resp.status === 200 && routed.model === 'gemini-flash-lite-latest' && routed.modelVersion === 'gemini-3.5-flash-lite',
+  "the Worker's /llm-translate reports the model version that answered");
+
 globalThis.fetch = realFetch;
 
 // ── Summary ──

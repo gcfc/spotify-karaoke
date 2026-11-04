@@ -8,6 +8,7 @@ import {
 import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
 import { detectLyricsLanguage, normalizeProvider, shouldOfferTranslation, translateLines } from './translate.js';
 import { dictionaryReadings, fetchFurigana, furiganaSegments, hasKanji, layoutWordFurigana } from './furigana.js';
+import { furiganaLabel, SOURCE_FAILED, SOURCE_LOADING, sourcePanelText, translationLabel } from './source-labels.js';
 
 // ============================================================
 //  Configuration — fill these in before deploying
@@ -687,14 +688,37 @@ function hideStatus() {
   statusMessage.classList.add('hidden');
 }
 
-function showLyricsSource(label) {
-  lyricsSourceEl.textContent = label;
+// The source panel, lower right: "lyrics | translation | furigana" — see
+// source-labels.js for what each slot shows.
+const sourcePanel = { lyrics: '', translation: null, furigana: null };
+
+function renderSourcePanel() {
+  if (!sourcePanel.lyrics) {
+    lyricsSourceEl.classList.add('hidden');
+    lyricsSourceEl.textContent = '';
+    return;
+  }
+  lyricsSourceEl.textContent = sourcePanelText(sourcePanel);
   lyricsSourceEl.classList.remove('hidden');
 }
 
+/** Set one slot of the panel: 'translation' or 'furigana'. */
+function setSource(slot, value) {
+  sourcePanel[slot] = value;
+  renderSourcePanel();
+}
+
+function showLyricsSource(label) {
+  sourcePanel.lyrics = label || '';
+  renderSourcePanel();
+}
+
+/** A new track starts with an empty panel. */
 function hideLyricsSource() {
-  lyricsSourceEl.classList.add('hidden');
-  lyricsSourceEl.textContent = '';
+  sourcePanel.lyrics = '';
+  sourcePanel.translation = null;
+  sourcePanel.furigana = null;
+  renderSourcePanel();
 }
 
 function showLoginScreen() {
@@ -1002,17 +1026,21 @@ async function loadTranslations() {
   const cached = translationCacheGet(key);
   if (cached) {
     translateToggle.classList.remove('loading');
-    lyricsTranslations = cached;
+    lyricsTranslations = cached.translations;
+    setSource('translation', cached.source);
     applyTranslations();
     return;
   }
 
   translateToggle.classList.add('loading');
+  setSource('translation', SOURCE_LOADING);
 
+  let served = null;
   const result = await translateLines(texts, {
     target: translateTarget,
     provider: providerOverride(),
     workerUrl: CONFIG.WORKER_URL,
+    onServed: (s) => { served = s; },
   });
 
   // A track change (or another toggle) happened while this was in flight.
@@ -1021,11 +1049,14 @@ async function loadTranslations() {
 
   if (!result) {
     console.debug('[translate] no translation returned; showing originals only');
+    setSource('translation', SOURCE_FAILED);
     return;
   }
 
-  translationCacheSet(key, result);
+  const source = translationLabel(served);
+  translationCacheSet(key, { translations: result, source });
   lyricsTranslations = result;
+  setSource('translation', source);
   applyTranslations();
 }
 
@@ -1042,6 +1073,7 @@ function setTranslateEnabled(enabled) {
     translateToggle.classList.remove('loading');
     closeTranslateMenu();
     clearTranslations();
+    setSource('translation', null);
   }
 }
 
@@ -1081,6 +1113,7 @@ function refreshTranslateControl() {
   if (!lyrics || !shouldOfferTranslation(language)) {
     hideTranslateControl();
     clearTranslations();
+    setSource('translation', null);
     return;
   }
 
@@ -1216,25 +1249,35 @@ async function loadFurigana() {
   const cached = furiganaCacheGet(key);
   if (cached) {
     furiganaToggle.classList.remove('loading');
-    lyricsFurigana = cached;
+    lyricsFurigana = cached.result;
+    setSource('furigana', cached.source);
     applyFurigana();
     return;
   }
 
   furiganaToggle.classList.add('loading');
+  setSource('furigana', SOURCE_LOADING);
 
-  const result = await fetchFurigana(texts, { workerUrl: CONFIG.WORKER_URL, readWithDictionary: readWithKuromoji });
+  const steps = [];
+  const result = await fetchFurigana(texts, {
+    workerUrl: CONFIG.WORKER_URL,
+    readWithDictionary: readWithKuromoji,
+    onStep: (s) => steps.push(s),
+  });
 
   if (requestId !== furiganaRequestId) return;
   furiganaToggle.classList.remove('loading');
 
   if (!result) {
     console.debug('[furigana] none returned; showing lyrics as they are');
+    setSource('furigana', SOURCE_FAILED);
     return;
   }
 
-  furiganaCacheSet(key, result);
+  const source = furiganaLabel(steps);
+  furiganaCacheSet(key, { result, source });
   lyricsFurigana = result;
+  setSource('furigana', source);
   applyFurigana();
 }
 
@@ -1251,6 +1294,7 @@ function setFuriganaEnabled(enabled) {
     furiganaRequestId++;   // abandon anything in flight
     furiganaToggle.classList.remove('loading');
     lyricsFurigana = null;
+    setSource('furigana', null);
     applyFurigana();
   }
 }
@@ -1262,6 +1306,7 @@ function refreshFuriganaControl() {
 
   if (!lyrics || language !== 'ja' || !texts.some(hasKanji)) {
     hideFuriganaControl();
+    setSource('furigana', null);
     return;
   }
 

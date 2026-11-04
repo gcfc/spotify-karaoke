@@ -445,7 +445,12 @@ async function requestLines(lines, model, workerUrl) {
     throw err;
   }
   const data = await resp.json();
-  return { readings: checkFuriganaReadings(lines, data?.readings), cached: Boolean(data?.cached) };
+  return {
+    readings: checkFuriganaReadings(lines, data?.readings),
+    cached: Boolean(data?.cached),
+    // Stored readings say which model made them, which need not be the one asked.
+    model: typeof data?.model === 'string' ? data.model : model,
+  };
 }
 
 /** A model's readings for these lines, in as many requests as the Worker's
@@ -454,7 +459,7 @@ async function requestReadings(lines, model, workerUrl) {
   const parts = [];
   for (let i = 0; i < lines.length; i += FURIGANA_MAX_LINES) parts.push(lines.slice(i, i + FURIGANA_MAX_LINES));
   const replies = await Promise.all(parts.map((part) => requestLines(part, model, workerUrl)));
-  return { readings: replies.flatMap((r) => r.readings), cached: replies.every((r) => r.cached) };
+  return { readings: replies.flatMap((r) => r.readings), cached: replies.every((r) => r.cached), model: replies[0].model };
 }
 
 /**
@@ -473,9 +478,10 @@ async function requestReadings(lines, model, workerUrl) {
  * kanjiRuns order (see dictionaryReadings); without it the step is skipped.
  * Readings the lyrics carry in brackets are laid over the result.
  *
- * `onStep` reports each step that ran — `{step, lines, ok, filled,
+ * `onStep` reports each step that ran — `{step, model, lines, ok, filled,
  * filledRuns: [{line, run}], cached, ms, error, transient}` — for the
- * evaluation; the app does not use it.
+ * evaluation and the page's source panel.  `model` is the model whose
+ * readings came back: for stored readings, the one that made them.
  *
  * @param {string[]} lines
  * @param {{workerUrl?: string, chain?: string[],
@@ -505,10 +511,11 @@ export async function fetchFurigana(lines, options) {
     try {
       let got;
       let cached = false;
+      let model = isDictionary ? null : step;
       if (isDictionary) {
         got = await readWithDictionary(asked);
       } else {
-        ({ readings: got, cached } = await requestReadings(asked, step, workerUrl));
+        ({ readings: got, cached, model } = await requestReadings(asked, step, workerUrl));
       }
       const filledRuns = [];
       todo.forEach((i, k) => {
@@ -521,7 +528,7 @@ export async function fetchFurigana(lines, options) {
           }
         });
       });
-      onStep?.({ step, lines: todo.length, ok: true, filled: filledRuns.length, filledRuns, cached, ms: Date.now() - t0 });
+      onStep?.({ step, model, lines: todo.length, ok: true, filled: filledRuns.length, filledRuns, cached, ms: Date.now() - t0 });
     } catch (err) {
       console.debug(`[furigana] ${step} failed:`, err.message);
       onStep?.({ step, lines: todo.length, ok: false, filled: 0, ms: Date.now() - t0,
