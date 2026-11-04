@@ -11,6 +11,7 @@ A static website that connects to your Spotify account and displays real-time sy
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
 - **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Pick the target language from the dropdown; the app falls back across an LLM, a keyless endpoint and Google Cloud on its own
 - **Furigana** — for Japanese lyrics, a 字 toggle puts each kanji word's reading above it, read in context by Gemini and scored against an answer key of eight songs (see [Furigana](#furigana))
+- **Source panel** — the lower right says where what is on screen came from, as `lyrics | translation | furigana`: `Kugou | 3.5 | 3.1+kuro` is Kugou's lyrics, translated by gemini-3.5-flash-lite, with furigana from gemini-3.1-flash-lite and kuromoji. A model shows its version (`3.1`, `3.5`); the translation's `gemini-flash-lite-latest` alias shows the version it points at, or `flash-lite` until the Worker is redeployed with this change. The other labels are `Google` and `Google Cloud` for the non-model translators, `kuro` for the kuromoji dictionary, `(stored)` for furigana from the Worker's stored readings, and `printed` for readings the lyrics carry themselves. A slot that is off shows `–` when a later one is on, `…` means still loading, and `×` means every source failed
 - **Responsive** — works on desktop and mobile
 
 ## Quick Start
@@ -518,6 +519,7 @@ spotify-karaoke/
 ├── translate.js        # Language detection + translation providers
 ├── furigana.js         # Kanji runs, the reading chain, prompt, reply checks, layout
 ├── kuromoji-worker.js  # Web Worker running kuromoji, the furigana dictionary step
+├── source-labels.js    # Text of the lower-right source panel
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── tools/
 │   ├── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
@@ -529,7 +531,8 @@ spotify-karaoke/
 │                       # `node tests/test_netease.mjs`,
 │                       # `node tests/test_qq.mjs`,
 │                       # `node tests/test_translate.mjs`,
-│                       # `node tests/test_furigana.mjs`;
+│                       # `node tests/test_furigana.mjs`,
+│                       # `node tests/test_source_labels.mjs`;
 │                       # live: `node tests/test_cn_lyrics_live.mjs`,
 │                       # `GEMINI_API_KEY=… node tests/eval_furigana_live.mjs`
 ├── worker/

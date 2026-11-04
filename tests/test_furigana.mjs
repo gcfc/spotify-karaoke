@@ -370,6 +370,18 @@ stubWorker((req) => ok({ readings: req.lines.map((l) => kanjiRuns(l).map(() => '
 await fetchFurigana(['夜'], { workerUrl: W, onStep: (s) => steps.push(s) });
 assert(steps[0].cached === true, 'onStep says when the Worker answered from stored readings');
 
+steps = [];
+stubWorker((req) => ok({ readings: req.lines.map((l) => kanjiRuns(l).map(() => 'よ')), cached: true, model: 'gemini-3.1-flash-lite' }));
+await fetchFurigana(['夜'], { workerUrl: W, chain: ['gemini-3.5-flash-lite'], onStep: (s) => steps.push(s) });
+assert(steps[0].model === 'gemini-3.1-flash-lite', 'onStep names the model whose readings came back, for stored ones the one that made them');
+steps = [];
+stubWorker((req) => ok({ readings: req.lines.map((l) => kanjiRuns(l).map(() => 'よ')) }));
+await fetchFurigana(['夜'], { workerUrl: W, onStep: (s) => steps.push(s) });
+assert(steps[0].model === FURIGANA_MODELS[0], 'a Worker that does not name the model: the step asked stands in');
+steps = [];
+await fetchFurigana(['夜'], { readWithDictionary: dictionary(() => ['よる']), onStep: (s) => steps.push(s) });
+assert(steps[0].step === DICTIONARY_STEP && steps[0].model === null, 'the dictionary step has no model');
+
 stubWorker(fail(502));
 result = await fetchFurigana(['涙が溢(こぼ)れた', '夜'], { workerUrl: W });
 assert(result && result[0][0].reading === 'こぼ' && result[1] === null,

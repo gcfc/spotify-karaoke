@@ -524,7 +524,9 @@ const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 
 /**
  * Gemini takes a JSON schema directly, so the reply is already an array of
- * strings and only its length needs checking.
+ * strings and only its length needs checking.  `modelVersion` is the model
+ * that actually answered, which for an alias such as
+ * gemini-flash-lite-latest is not the name it was asked by.
  */
 async function translateWithGemini(lines, target, model, apiKey) {
   const resp = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
@@ -547,7 +549,7 @@ async function translateWithGemini(lines, target, model, apiKey) {
   const data = await resp.json();
   const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';
   if (!text) throw new Error('Gemini returned no content');
-  return JSON.parse(text);
+  return { translations: JSON.parse(text), modelVersion: data?.modelVersion || model };
 }
 
 /**
@@ -585,7 +587,7 @@ async function translateWithOpenRouter(lines, target, model, apiKey) {
   const data = await resp.json();
   const content = data?.choices?.[0]?.message?.content;
   if (!content) throw new Error(`OpenRouter returned no content (${data?.choices?.[0]?.finish_reason})`);
-  return JSON.parse(content).lines;
+  return { translations: JSON.parse(content).lines, modelVersion: data?.model || model };
 }
 
 /**
@@ -868,10 +870,11 @@ async function handleLlmTranslate(request, env) {
   }
 
   let translations;
+  let modelVersion;
   try {
-    translations = backend === 'gemini'
+    ({ translations, modelVersion } = backend === 'gemini'
       ? await translateWithGemini(lines, target, model, apiKey)
-      : await translateWithOpenRouter(lines, target, model, apiKey);
+      : await translateWithOpenRouter(lines, target, model, apiKey));
   } catch (err) {
     return jsonResponse({ error: err.message }, 502);
   }
@@ -884,7 +887,7 @@ async function handleLlmTranslate(request, env) {
     }, 502);
   }
 
-  return jsonResponse({ translations: translations.map(decodeHtmlEntities), model });
+  return jsonResponse({ translations: translations.map(decodeHtmlEntities), model, modelVersion });
 }
 
 /**

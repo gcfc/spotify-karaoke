@@ -294,11 +294,15 @@ function chunkByCount(texts, size) {
 /**
  * Chunks are translated one at a time rather than in parallel: the free tiers
  * rate-limit bursts, and a whole song is only two or three requests.
+ * Resolves to the translations and the model that answered — the Worker
+ * reports the actual version behind an alias, and an older Worker that does
+ * not is answered for by the provider's own name.
  */
 async function translateViaLlm(texts, target, provider, workerUrl) {
   if (!workerUrl) throw new Error('LLM providers need a Worker URL');
 
   const results = [];
+  let model = null;
   for (const chunk of chunkByCount(texts, LLM_CHUNK_LINES)) {
     const resp = await fetch(`${workerUrl}/llm-translate`, {
       method: 'POST',
@@ -312,8 +316,9 @@ async function translateViaLlm(texts, target, provider, workerUrl) {
       throw new Error(`llm translate: misaligned chunk (${data?.translations?.length}/${chunk.length})`);
     }
     results.push(...data.translations);
+    model ||= data.modelVersion || null;
   }
-  return results;
+  return { translations: results, model: model || provider };
 }
 
 // ── Automatic provider chain ──
@@ -350,24 +355,25 @@ export function resetProviderHealth() {
   failedAt.clear();
 }
 
+/** Resolves to `{translations, model}`; `model` is null for the non-LLM providers. */
 async function runProvider(id, texts, target, workerUrl) {
   const provider = findProvider(id);
   if (provider?.llm) return translateViaLlm(texts, target, provider.id, workerUrl);
-  if (provider?.id === 'cloud') return translateViaWorker(texts, target, workerUrl);
-  return translateViaFree(texts, target);
+  if (provider?.id === 'cloud') return { translations: await translateViaWorker(texts, target, workerUrl), model: null };
+  return { translations: await translateViaFree(texts, target), model: null };
 }
 
 /** Never rejects: a failed attempt resolves with no translations. */
 function attemptProvider(id, texts, target, workerUrl) {
   return runProvider(id, texts, target, workerUrl)
-    .then((translations) => {
+    .then(({ translations, model }) => {
       failedAt.delete(id);
-      return { id, translations };
+      return { id, translations, model };
     })
     .catch((err) => {
       console.debug(`[translate] ${id} failed:`, err.message);
       failedAt.set(id, Date.now());
-      return { id, translations: null };
+      return { id, translations: null, model: null };
     });
 }
 
@@ -436,13 +442,15 @@ async function translateViaChain(texts, target, workerUrl, hedgeDelayMs) {
  *
  * With no `provider` the chain above runs automatically.  Passing one pins
  * that provider instead, which is how the console override compares models.
+ * `onServed({provider, model})` is told which provider answered and, for an
+ * LLM, which model — the page shows it in its source panel.
  *
  * @param {string[]} lines
  * @param {{target: string, workerUrl?: string, provider?: string,
- *          hedgeDelayMs?: number}} options
+ *          hedgeDelayMs?: number, onServed?: Function}} options
  */
 export async function translateLines(lines, options) {
-  const { target, provider, workerUrl, hedgeDelayMs = HEDGE_DELAY_MS } = options || {};
+  const { target, provider, workerUrl, hedgeDelayMs = HEDGE_DELAY_MS, onServed } = options || {};
   if (!Array.isArray(lines) || lines.length === 0) return null;
 
   const { unique, slots } = planTranslation(lines);
@@ -452,7 +460,9 @@ export async function translateLines(lines, options) {
 
   if (provider) {
     try {
-      return finish(await runProvider(provider, unique, target, workerUrl));
+      const { translations, model } = await runProvider(provider, unique, target, workerUrl);
+      onServed?.({ provider, model });
+      return finish(translations);
     } catch (err) {
       console.debug(`[translate] pinned provider ${provider} failed:`, err.message);
       return null;
@@ -465,6 +475,7 @@ export async function translateLines(lines, options) {
     return null;
   }
 
-  console.debug('[translate] served by', won.id);
+  console.debug('[translate] served by', won.id, won.model || '');
+  onServed?.({ provider: won.id, model: won.model });
   return finish(won.translations);
 }
