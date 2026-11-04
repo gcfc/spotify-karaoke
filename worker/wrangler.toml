@@ -5,11 +5,11 @@ compatibility_date = "2024-01-01"
 [observability]
 enabled = false
 
-# Stored furigana readings (optional; see "Furigana" in the README).  Create
-# the namespace once with
+# Stored furigana readings (see "Furigana" in the README).  The namespace was
+# created with
 #   wrangler kv namespace create FURIGANA_CACHE
-# paste the id it prints below, and uncomment.  Without it /furigana still
-# works — every song is simply read by the model each time.
-# [[kv_namespaces]]
-# binding = "FURIGANA_CACHE"
-# id = "b89f08bf01b54248996390f20f0b7edf"
+# and this is the id it printed.  A fork needs its own namespace and id; with
+# this block removed, /furigana still works, reading every song each time.
+[[kv_namespaces]]
+binding = "FURIGANA_CACHE"
+id = "b89f08bf01b54248996390f20f0b7edf"

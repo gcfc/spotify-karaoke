@@ -267,17 +267,18 @@ read while 3.1 was down is read again by 3.1 later, rather than kept at the
 fallback's quality. Entries expire after 180 days; bump `FURIGANA_CACHE_VERSION`
 to drop them all at once.
 
-To enable it, create the namespace and bind it in `worker/wrangler.toml`. The
-block is there, commented out:
+It is bound in `worker/wrangler.toml`'s `[[kv_namespaces]]` block, so
+`wrangler deploy` brings it along. A fork deploying to its own Cloudflare account
+needs its own namespace, since the id there belongs to this one:
 
 ```bash
 cd worker
 wrangler kv namespace create FURIGANA_CACHE   # prints an id
-# paste the id into wrangler.toml's [[kv_namespaces]] block, uncomment it, then
+# replace the id in wrangler.toml's [[kv_namespaces]] block with it, then
 wrangler deploy
 ```
 
-Without the binding, `/furigana` works the same, uncached. The free KV tier
+With the block removed, `/furigana` works the same, uncached. The free KV tier
 allows 1,000 writes a day — one per newly read song.
 
 ### Evaluation
