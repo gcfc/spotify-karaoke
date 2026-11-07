@@ -7,6 +7,7 @@
 import { DICTIONARY_STEP } from '../furigana.js';
 import {
   furiganaLabel,
+  lyricsLabel,
   shortModelLabel,
   SOURCE_FAILED,
   SOURCE_LOADING,
@@ -26,6 +27,15 @@ function assert(condition, label) {
     failed++;
   }
 }
+
+console.log('\n── lyricsLabel ──');
+
+assert(lyricsLabel('Kugou Music') === 'Kugou', 'Kugou Music is Kugou');
+assert(lyricsLabel('QQ Music') === 'QQ', 'QQ Music is QQ');
+assert(lyricsLabel('NetEase Cloud Music') === 'NetEase', 'NetEase Cloud Music is NetEase');
+assert(lyricsLabel('Spotify') === 'Spotify' && lyricsLabel('LRCLIB') === 'LRCLIB', 'short names stay as they are');
+assert(lyricsLabel('Some New Source') === 'Some New Source', 'a source with no short name shows in full');
+assert(lyricsLabel(undefined) === '', 'no source, no label');
 
 console.log('\n── shortModelLabel ──');
 
@@ -65,6 +75,8 @@ console.log('\n── sourcePanelText ──');
 
 assert(sourcePanelText({ lyrics: 'Kugou', translation: '3.5', furigana: '3.1+kuro' }) === 'Kugou | 3.5 | 3.1+kuro',
   'all three slots');
+assert(sourcePanelText({ lyrics: 'NetEase Cloud Music', translation: '3.5', furigana: null }) === 'NetEase | 3.5',
+  "the lyrics source's full name is shortened in the panel");
 assert(sourcePanelText({ lyrics: 'Kugou', translation: null, furigana: null }) === 'Kugou', 'lyrics alone');
 assert(sourcePanelText({ lyrics: 'Kugou', translation: '3.5', furigana: null }) === 'Kugou | 3.5', 'a trailing slot that is off is left out');
 assert(sourcePanelText({ lyrics: 'Kugou', translation: null, furigana: '3.1' }) === 'Kugou | – | 3.1',

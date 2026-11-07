@@ -15,6 +15,18 @@ export const SOURCE_LOADING = '…';
 export const SOURCE_FAILED = '×';
 const SOURCE_OFF = '–';
 
+// lyrics.js names its sources in full; the panel shortens the long ones.
+const LYRICS_SHORT = {
+  'Kugou Music': 'Kugou',
+  'QQ Music': 'QQ',
+  'NetEase Cloud Music': 'NetEase',
+};
+
+/** The lyrics slot: Spotify, LRCLIB, Kugou, QQ or NetEase. */
+export function lyricsLabel(source) {
+  return LYRICS_SHORT[source] || source || '';
+}
+
 /**
  * A model's short name.  A versioned Gemini model shows its version
  * (gemini-3.1-flash-lite → 3.1); an alias without one keeps its family
@@ -60,7 +72,7 @@ export function furiganaLabel(steps) {
  * SOURCE_FAILED, or null when that feature is off.
  */
 export function sourcePanelText({ lyrics, translation, furigana }) {
-  const slots = [lyrics || '', translation, furigana];
+  const slots = [lyricsLabel(lyrics), translation, furigana];
   while (slots.length > 1 && !slots[slots.length - 1]) slots.pop();
   return slots.map((s) => s || SOURCE_OFF).join(' | ');
 }
