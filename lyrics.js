@@ -424,6 +424,89 @@ export function parseLRC(lrcString) {
 
 const NO_RESULT = Object.freeze({ lyrics: null, syncType: null, source: null });
 
+// A source's answer as a result, or null when it has none of that kind.
+const synced = (source, pending) => async () => {
+  const lines = parseLRC((await pending)?.syncedLyrics || '');
+  return lines.length > 0 ? { lyrics: lines, syncType: 'LINE_SYNCED', source } : null;
+};
+const plain = (source, pending) => async () => {
+  const data = await pending;
+  if (!data?.plainLyrics) return null;
+  // KKBOX reported where it matched (deprecated):
+  // if (data.territory) console.debug(`[lyrics] ${source}:`, data.territory, data.exact ? 'exact' : 'title only');
+  return { lyrics: data.plainLyrics, syncType: 'PLAIN', source };
+};
+
+/** Spotify's own lyrics, from the Worker's answer — only when synced. */
+function spotifyResult(workerData) {
+  const sType = workerData?.lyrics?.syncType;
+  if (sType !== 'WORD_SYNCED' && sType !== 'LINE_SYNCED') return null;
+  return {
+    lyrics: workerData.lyrics.lines,
+    syncType: sType,
+    source: 'Spotify',
+    language: workerData.lyrics.language,
+  };
+}
+
+/**
+ * The sources a listener can pick from the source panel, in the order the
+ * automatic chain ranks them.  `label` is the `source` a result from it
+ * carries.  KKBOX is deprecated and not offered.
+ */
+export const LYRICS_SOURCES = Object.freeze([
+  { id: 'spotify', label: 'Spotify' },
+  { id: 'lrclib', label: 'LRCLIB' },
+  { id: 'kugou', label: 'Kugou Music' },
+  { id: 'qq', label: 'QQ Music' },
+  { id: 'netease', label: 'NetEase Cloud Music' },
+]);
+
+/**
+ * Lyrics from one source only, for when the listener picks it: what that
+ * source would contribute to the automatic chain — Spotify's synced lyrics,
+ * LRCLIB's synced lyrics or else its plain text, or the synced lyrics of
+ * Kugou, QQ Music or NetEase.  Resolves to the same shape as fetchLyrics,
+ * with `lyrics: null` when the source has nothing for the track.  Found
+ * lyrics are cached per track and source.
+ *
+ * @param {string} sourceId  an id from LYRICS_SOURCES
+ */
+export async function fetchLyricsFrom(sourceId, workerUrl, trackId, trackName, artistName, trackDurationMs, spotifyToken) {
+  const key = `${trackId}\u0000${sourceId}`;
+  const cached = cacheGet(key);
+  if (cached) return cached;
+
+  const durationSec = trackDurationMs / 1000;
+  let result = null;
+  switch (sourceId) {
+    case 'spotify':
+      result = spotifyResult(await fetchLyricsFromWorker(workerUrl, trackId, spotifyToken));
+      break;
+    case 'lrclib': {
+      const lrclib = fetchLyricsFromLRCLIB(trackName, artistName, durationSec);
+      result = (await synced('LRCLIB', lrclib)()) || (await plain('LRCLIB', lrclib)());
+      break;
+    }
+    case 'kugou':
+      result = await synced('Kugou Music', fetchLyricsFromKugou(workerUrl, trackName, artistName, durationSec))();
+      break;
+    case 'qq':
+      result = await synced('QQ Music', fetchLyricsFromQQ(workerUrl, trackName, artistName, durationSec))();
+      break;
+    case 'netease':
+      result = await synced('NetEase Cloud Music', fetchLyricsFromNetEase(workerUrl, trackName, artistName, durationSec))();
+      break;
+    default:
+      console.debug('[lyrics] unknown source:', sourceId);
+  }
+
+  if (!result) return NO_RESULT;
+  result = await convertLyricsToSimplified(result);
+  cacheSet(key, result);
+  return result;
+}
+
 /**
  * Orchestrates the full lyrics fetch chain.
  *
@@ -451,19 +534,11 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
   }
 
   // 1. Spotify internal via Cloudflare Worker (word or line synced)
-  const workerData = await fetchLyricsFromWorker(workerUrl, trackId, spotifyToken);
-  if (workerData?.lyrics) {
-    const sType = workerData.lyrics.syncType;
-    if (sType === 'WORD_SYNCED' || sType === 'LINE_SYNCED') {
-      const result = await convertLyricsToSimplified({
-        lyrics: workerData.lyrics.lines,
-        syncType: sType,
-        source: 'Spotify',
-        language: workerData.lyrics.language,
-      });
-      cacheSet(trackId, result);
-      return result;
-    }
+  const spotify = spotifyResult(await fetchLyricsFromWorker(workerUrl, trackId, spotifyToken));
+  if (spotify) {
+    const result = await convertLyricsToSimplified(spotify);
+    cacheSet(trackId, result);
+    return result;
   }
 
   // 2. Fire every remaining source at once
@@ -476,18 +551,6 @@ export async function fetchLyrics(workerUrl, trackId, trackName, artistName, tra
   // Deprecated — see the KKBOX note above fetchLyricsFromKKBOX.
   // const kkboxWorker = fetchLyricsFromKKBOX(workerUrl, trackName, artistName);
   // const kkboxDirect = fetchLyricsFromKKBOXDirect(trackName, artistName);
-
-  const synced = (source, pending) => async () => {
-    const lines = parseLRC((await pending)?.syncedLyrics || '');
-    return lines.length > 0 ? { lyrics: lines, syncType: 'LINE_SYNCED', source } : null;
-  };
-  const plain = (source, pending) => async () => {
-    const data = await pending;
-    if (!data?.plainLyrics) return null;
-    // KKBOX reported where it matched (deprecated):
-    // if (data.territory) console.debug(`[lyrics] ${source}:`, data.territory, data.exact ? 'exact' : 'title only');
-    return { lyrics: data.plainLyrics, syncType: 'PLAIN', source };
-  };
 
   // 3. Take the best result as soon as it can be chosen: the first source, in
   //    priority order, with lyrics — once it and every source ranked above it

@@ -13,7 +13,7 @@
  * Usage:  node tests/test_source_priority.mjs
  */
 
-import { fetchLyrics } from '../lyrics.js';
+import { fetchLyrics, fetchLyricsFrom, LYRICS_SOURCES } from '../lyrics.js';
 
 let passed = 0;
 let failed = 0;
@@ -281,6 +281,62 @@ result = await runWithId('tesla|song|artist|album', {
 });
 assert(result.source === 'LRCLIB',
   'a synthesised id skips the Worker and falls to LRCLIB');
+
+console.log('\n── One source, picked from the source panel ──');
+
+const SPOTIFY_SYNCED = () => json({ lyrics: { syncType: 'LINE_SYNCED', language: 'en', lines: [{ startTimeMs: '1000', words: 'first line' }] } });
+let pickCounter = 0;
+async function pick(sourceId, routes, trackId = `pick-${pickCounter++}`) {
+  stubFetch(routes);
+  return fetchLyricsFrom(sourceId, WORKER, trackId, 'Song', 'Artist', 180000, null);
+}
+// Record every URL asked for, answering only the given fragment.
+function recordFetch(fragment, respond) {
+  const asked = [];
+  globalThis.fetch = async (url) => {
+    asked.push(String(url));
+    return fragment && String(url).includes(fragment) ? respond() : NOT_FOUND();
+  };
+  return asked;
+}
+
+assert(JSON.stringify(LYRICS_SOURCES.map((s) => s.id)) === JSON.stringify(['spotify', 'lrclib', 'kugou', 'qq', 'netease']),
+  'the pickable sources are Spotify, LRCLIB, Kugou, QQ and NetEase — not KKBOX');
+
+result = await pick('netease', { '/api/get': LRCLIB_SYNCED, '/kugou-lyrics': KUGOU_SYNCED, '/netease-lyrics': NETEASE_SYNCED });
+assert(result.source === 'NetEase Cloud Music' && result.syncType === 'LINE_SYNCED',
+  'picking NetEase gets NetEase even when higher-ranked sources have lyrics');
+
+let asked = recordFetch('/qq-lyrics', QQ_SYNCED);
+result = await fetchLyricsFrom('qq', WORKER, 'pick-only', 'Song', 'Artist', 180000, null);
+assert(result.source === 'QQ Music' && asked.length > 0 && asked.every((u) => u.includes('/qq-lyrics')),
+  'only the picked source is asked');
+
+result = await pick('kugou', { '/api/get': LRCLIB_SYNCED, '/qq-lyrics': QQ_SYNCED });
+assert(result.lyrics === null && result.source === null, 'a picked source with nothing for the track gives no lyrics, never another source');
+
+result = await pick('lrclib', { '/api/get': LRCLIB_SYNCED });
+assert(result.source === 'LRCLIB' && result.syncType === 'LINE_SYNCED', "LRCLIB gives its synced lyrics when it has them");
+result = await pick('lrclib', { '/api/get': LRCLIB_PLAIN });
+assert(result.source === 'LRCLIB' && result.syncType === 'PLAIN', 'and its plain text when that is all it has');
+
+result = await pick('spotify', { '/lyrics?track_id': SPOTIFY_SYNCED }, '4u7EnebtmKWzUH433cf5Qv');
+assert(result.source === 'Spotify' && result.syncType === 'LINE_SYNCED', "Spotify's lyrics come through the Worker");
+result = await pick('spotify', { '/api/get': LRCLIB_SYNCED }, '4u7EnebtmKWzUH433cf5Qx');
+assert(result.lyrics === null, 'Spotify without lyrics gives none, not LRCLIB');
+
+await pick('qq', { '/qq-lyrics': QQ_SYNCED }, 'pick-cached');
+asked = recordFetch(null);
+result = await fetchLyricsFrom('qq', WORKER, 'pick-cached', 'Song', 'Artist', 180000, null);
+assert(result.source === 'QQ Music' && asked.length === 0, 'a source picked again for the same track is served from the cache');
+result = await fetchLyricsFrom('kugou', WORKER, 'pick-cached', 'Song', 'Artist', 180000, null);
+assert(result.lyrics === null && asked.some((u) => u.includes('/kugou-lyrics')), 'another source for that track is fetched afresh');
+asked = recordFetch(null);
+result = await fetchLyrics(WORKER, 'pick-cached', 'Song', 'Artist', 180000, null);
+assert(asked.length > 0, "a picked source's lyrics are not taken for the automatic chain's");
+
+result = await pick('kkbox', { '/kkbox-lyrics': () => json({ plainLyrics: PLAIN }) });
+assert(result.lyrics === null, 'KKBOX, or any unknown source, gives no lyrics');
 
 globalThis.fetch = realFetch;
 

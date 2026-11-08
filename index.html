@@ -107,7 +107,11 @@
       <div id="status-message" class="status-message hidden">
         <p id="status-text"></p>
       </div>
-      <div id="lyrics-source" class="lyrics-source hidden"></div>
+      <div id="lyrics-source" class="lyrics-source hidden">
+        <button type="button" id="source-picker-toggle" class="source-picker-toggle"
+                aria-haspopup="menu" aria-expanded="false" title="Choose where the lyrics come from"></button><span id="source-rest" class="source-rest"></span>
+        <div id="source-picker-menu" class="source-picker-menu" role="menu" aria-label="Lyrics source"></div>
+      </div>
       <div id="lyrics-offset" class="lyrics-offset hidden">
         <button class="offset-btn" data-delta="-1000">-1s</button>
         <button class="offset-btn" data-delta="-500">-0.5s</button>

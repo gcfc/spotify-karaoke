@@ -68,11 +68,32 @@ export function furiganaLabel(steps) {
 }
 
 /**
- * The panel's text.  `translation` and `furigana` are a label, SOURCE_LOADING,
- * SOURCE_FAILED, or null when that feature is off.
+ * The lyrics slot, which is also the source picker's button.  Left to the
+ * automatic chain it shows the source the lyrics came from, "…" while
+ * looking and "×" when no source had any; with a source picked it names
+ * that source, adding " …" while asking it and " ×" when it had nothing.
+ *
+ * @param {{picked?: string|null, shown?: string|null, loading?: boolean}} state
+ *   `picked`: the picked source's name, or null for automatic;
+ *   `shown`: the source of the lyrics on screen, or null.
  */
-export function sourcePanelText({ lyrics, translation, furigana }) {
+export function lyricsSlot({ picked = null, shown = null, loading = false }) {
+  if (loading) return picked ? `${lyricsLabel(picked)} ${SOURCE_LOADING}` : SOURCE_LOADING;
+  if (shown) return lyricsLabel(shown);
+  return picked ? `${lyricsLabel(picked)} ${SOURCE_FAILED}` : SOURCE_FAILED;
+}
+
+/**
+ * The panel's slots, lyrics first.  `translation` and `furigana` are a
+ * label, SOURCE_LOADING, SOURCE_FAILED, or null when that feature is off.
+ */
+export function sourcePanelSlots({ lyrics, translation, furigana }) {
   const slots = [lyricsLabel(lyrics), translation, furigana];
   while (slots.length > 1 && !slots[slots.length - 1]) slots.pop();
-  return slots.map((s) => s || SOURCE_OFF).join(' | ');
+  return slots.map((s) => s || SOURCE_OFF);
+}
+
+/** The panel's text: its slots joined, "Kugou | 3.5 | 3.1+kuro". */
+export function sourcePanelText(state) {
+  return sourcePanelSlots(state).join(' | ');
 }

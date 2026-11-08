@@ -8,9 +8,11 @@ import { DICTIONARY_STEP } from '../furigana.js';
 import {
   furiganaLabel,
   lyricsLabel,
+  lyricsSlot,
   shortModelLabel,
   SOURCE_FAILED,
   SOURCE_LOADING,
+  sourcePanelSlots,
   sourcePanelText,
   translationLabel,
 } from '../source-labels.js';
@@ -36,6 +38,17 @@ assert(lyricsLabel('NetEase Cloud Music') === 'NetEase', 'NetEase Cloud Music is
 assert(lyricsLabel('Spotify') === 'Spotify' && lyricsLabel('LRCLIB') === 'LRCLIB', 'short names stay as they are');
 assert(lyricsLabel('Some New Source') === 'Some New Source', 'a source with no short name shows in full');
 assert(lyricsLabel(undefined) === '', 'no source, no label');
+
+console.log('\n── lyricsSlot (the source picker) ──');
+
+assert(lyricsSlot({ loading: true }) === '…', 'automatic, still looking: …');
+assert(lyricsSlot({ shown: 'Kugou Music' }) === 'Kugou', 'automatic, found: the source it came from');
+assert(lyricsSlot({}) === '×', 'automatic, found nowhere: ×');
+assert(lyricsSlot({ picked: 'NetEase Cloud Music', loading: true }) === 'NetEase …', 'picked, asking it: the source and …');
+assert(lyricsSlot({ picked: 'NetEase Cloud Music', shown: 'NetEase Cloud Music' }) === 'NetEase', 'picked, found: the source');
+assert(lyricsSlot({ picked: 'QQ Music' }) === 'QQ ×', 'picked, nothing there: the source and ×');
+assert(JSON.stringify(sourcePanelSlots({ lyrics: 'Kugou', translation: null, furigana: '3.1' })) === JSON.stringify(['Kugou', '–', '3.1']),
+  'the slots, for the page to lay out with the picker first');
 
 console.log('\n── shortModelLabel ──');
 

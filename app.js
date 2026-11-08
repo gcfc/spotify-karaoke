@@ -1,4 +1,4 @@
-import { fetchLyrics } from './lyrics.js';
+import { fetchLyrics, fetchLyricsFrom, LYRICS_SOURCES } from './lyrics.js';
 import {
   PositionEstimator,
   createSpotifySource,
@@ -8,7 +8,15 @@ import {
 import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
 import { detectLyricsLanguage, normalizeProvider, shouldOfferTranslation, translateLines } from './translate.js';
 import { dictionaryReadings, fetchFurigana, furiganaSegments, hasKanji, layoutWordFurigana } from './furigana.js';
-import { furiganaLabel, SOURCE_FAILED, SOURCE_LOADING, sourcePanelText, translationLabel } from './source-labels.js';
+import {
+  furiganaLabel,
+  lyricsLabel,
+  lyricsSlot,
+  SOURCE_FAILED,
+  SOURCE_LOADING,
+  sourcePanelSlots,
+  translationLabel,
+} from './source-labels.js';
 
 // ============================================================
 //  Configuration — fill these in before deploying
@@ -44,6 +52,9 @@ const lyricsLines = $('#lyrics-lines');
 const statusMessage = $('#status-message');
 const statusText = $('#status-text');
 const lyricsSourceEl = $('#lyrics-source');
+const sourcePickerToggle = $('#source-picker-toggle');
+const sourcePickerMenu = $('#source-picker-menu');
+const sourceRestEl = $('#source-rest');
 const themeToggle = $('#theme-toggle');
 const touchControlToggle = $('#touch-control-toggle');
 const progressBarTrack = $('.progress-bar-track');
@@ -279,10 +290,23 @@ async function seekToPosition(positionMs) {
 //  Lyrics Fetching — delegates to lyrics.js module
 // ============================================================
 
+// The lyrics source picked in the source panel, for the current track only:
+// 'auto' lets fetchLyrics choose, anything else is an id from LYRICS_SOURCES.
+const AUTO_PICK = 'auto';
+let lyricsPick = AUTO_PICK;
+let currentTrack = null;          // the track's details, to ask another source for its lyrics
+let currentLyricsSource = null;   // `source` of the lyrics on screen, or null
+let lyricsRequestId = 0;          // guards against a slow reply for an old track or pick
+
 async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs) {
+  const requestId = ++lyricsRequestId;
+  currentTrack = { trackId, trackName, artistName, trackDurationMs };
+  const picked = LYRICS_SOURCES.find((s) => s.id === lyricsPick) || null;
+
   lyrics = null;
   syncType = null;
   lyricsLanguage = null;
+  currentLyricsSource = null;
   lyricsTranslations = null;
   translationRequestId++;   // abandon any translation still in flight…
   translateToggle.classList.remove('loading');  // …so the button is not left waiting on it
@@ -293,21 +317,32 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   updateOffsetLabel();
   hideLyricsOffset();
   clearLyricsDisplay();
-  hideLyricsSource();
+  resetSourcePanel(lyricsSlot({ picked: picked?.label, loading: true }));
+  markSourcePicker();
   showStatus('Loading lyrics...');
 
-  const result = await fetchLyrics(CONFIG.WORKER_URL, trackId, trackName, artistName, trackDurationMs, accessToken);
+  const result = picked
+    ? await fetchLyricsFrom(picked.id, CONFIG.WORKER_URL, trackId, trackName, artistName, trackDurationMs, accessToken)
+    : await fetchLyrics(CONFIG.WORKER_URL, trackId, trackName, artistName, trackDurationMs, accessToken);
+
+  // A newer request — another track, or another source picked — owns the screen now.
+  if (requestId !== lyricsRequestId) return;
 
   if (!result.lyrics) {
-    showStatus('No lyrics available for this track');
+    showStatus(picked
+      ? `No lyrics available for this track on ${lyricsLabel(picked.label)}`
+      : 'No lyrics available for this track');
     hideTranslateControl();
     hideFuriganaControl();
+    // The panel stays, so another source can still be picked.
+    showLyricsSource(lyricsSlot({ picked: picked?.label }));
     return;
   }
 
   syncType = result.syncType;
   lyrics = result.lyrics;
   lyricsLanguage = result.language || null;
+  currentLyricsSource = result.source;
 
   if (syncType === 'WORD_SYNCED' || syncType === 'LINE_SYNCED') {
     renderSyncedLyrics();
@@ -315,7 +350,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   } else {
     renderPlainLyrics(lyrics);
   }
-  showLyricsSource(result.source);
+  showLyricsSource(lyricsSlot({ picked: picked?.label, shown: result.source }));
 
   if (detectChineseLyrics()) {
     showCjkFontPicker();
@@ -607,7 +642,10 @@ async function pollOnce() {
     if (!np) {
       if (currentTrackId !== null || !statusMessage.classList.contains('hidden')) {
         currentTrackId = null;
+        currentTrack = null;
+        lyricsRequestId++;   // drop any lyrics still on their way for the last track
         clearLyricsDisplay();
+        hideLyricsSource();
         updateNowPlayingUI(null);
       }
       isPlaying = false;
@@ -632,10 +670,12 @@ async function pollOnce() {
     updateNowPlayingUI(np);
     updateProgressUI(lastProgressMs, durationMs);
 
-    // Track changed — fetch new lyrics
+    // Track changed — fetch new lyrics, from whichever source has them: a
+    // source picked in the panel was for the previous track only.
     if (np.trackId !== currentTrackId) {
       currentTrackId = np.trackId;
       lastHighlightedIndex = -1;
+      lyricsPick = AUTO_PICK;
       await fetchAndSetLyrics(np.trackId, np.title, np.artist, durationMs);
     }
   } catch (err) {
@@ -689,16 +729,20 @@ function hideStatus() {
 }
 
 // The source panel, lower right: "lyrics | translation | furigana" — see
-// source-labels.js for what each slot shows.
+// source-labels.js for what each slot shows.  The lyrics slot is a menu
+// button: picking a source there fetches this track's lyrics from it alone.
 const sourcePanel = { lyrics: '', translation: null, furigana: null };
 
 function renderSourcePanel() {
   if (!sourcePanel.lyrics) {
     lyricsSourceEl.classList.add('hidden');
-    lyricsSourceEl.textContent = '';
+    closeSourcePicker();
     return;
   }
-  lyricsSourceEl.textContent = sourcePanelText(sourcePanel);
+  const [lyricsText, ...rest] = sourcePanelSlots(sourcePanel);
+  sourcePickerToggle.textContent = lyricsText;
+  sourcePickerToggle.classList.toggle('picked', lyricsPick !== AUTO_PICK);
+  sourceRestEl.textContent = rest.map((slot) => ` | ${slot}`).join('');
   lyricsSourceEl.classList.remove('hidden');
 }
 
@@ -708,18 +752,81 @@ function setSource(slot, value) {
   renderSourcePanel();
 }
 
-function showLyricsSource(label) {
-  sourcePanel.lyrics = label || '';
+/** Show the lyrics slot (see lyricsSlot in source-labels.js). */
+function showLyricsSource(slot) {
+  sourcePanel.lyrics = slot || '';
   renderSourcePanel();
 }
 
-/** A new track starts with an empty panel. */
-function hideLyricsSource() {
-  sourcePanel.lyrics = '';
+/** A new request for lyrics starts the panel afresh, showing `lyricsText`. */
+function resetSourcePanel(lyricsText) {
+  sourcePanel.lyrics = lyricsText || '';
   sourcePanel.translation = null;
   sourcePanel.furigana = null;
   renderSourcePanel();
 }
+
+function hideLyricsSource() {
+  resetSourcePanel('');
+}
+
+// ── The source picker ──
+
+function closeSourcePicker() {
+  lyricsSourceEl.classList.remove('open');
+  sourcePickerToggle.setAttribute('aria-expanded', 'false');
+}
+
+/** Tick the option for the current pick. */
+function markSourcePicker() {
+  sourcePickerMenu.querySelectorAll('.source-option').forEach((opt) => {
+    opt.setAttribute('aria-checked', String(opt.dataset.source === lyricsPick));
+  });
+}
+
+/** Fetch this track's lyrics again, from `pick` alone or ('auto') from whichever has them. */
+function pickLyricsSource(pick) {
+  closeSourcePicker();
+  if (!currentTrack || pick === lyricsPick) return;
+  lyricsPick = pick;
+  const { trackId, trackName, artistName, trackDurationMs } = currentTrack;
+  fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs);
+}
+
+function initSourcePicker() {
+  const options = [{ id: AUTO_PICK, label: 'Auto' }, ...LYRICS_SOURCES];
+  sourcePickerMenu.replaceChildren(...options.map(({ id, label }) => {
+    const opt = document.createElement('button');
+    opt.type = 'button';
+    opt.className = 'source-option';
+    opt.setAttribute('role', 'menuitemradio');
+    opt.dataset.source = id;
+    opt.textContent = id === AUTO_PICK ? label : lyricsLabel(label);
+    return opt;
+  }));
+  markSourcePicker();
+
+  sourcePickerToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = lyricsSourceEl.classList.toggle('open');
+    sourcePickerToggle.setAttribute('aria-expanded', String(open));
+  });
+  sourcePickerMenu.addEventListener('click', (e) => {
+    const opt = e.target.closest('.source-option');
+    if (!opt) return;
+    e.stopPropagation();
+    pickLyricsSource(opt.dataset.source);
+  });
+  document.addEventListener('click', closeSourcePicker);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lyricsSourceEl.classList.contains('open')) {
+      closeSourcePicker();
+      sourcePickerToggle.focus();
+    }
+  });
+}
+
+initSourcePicker();
 
 function showLoginScreen() {
   loginScreen.classList.add('active');
@@ -954,8 +1061,11 @@ let translationRequestId = 0;    // guards against a slow reply for an old track
 const TRANSLATION_CACHE_MAX = 30;
 const translationCache = new Map();
 
+// The lyrics source is part of the key: picking another source for the same
+// track brings different lines, which the first source's translation would
+// no longer fit.
 function translationCacheKey() {
-  return `${currentTrackId}:${translateTarget}:${providerOverride() || 'auto'}`;
+  return `${currentTrackId}:${currentLyricsSource}:${translateTarget}:${providerOverride() || 'auto'}`;
 }
 
 function translationCacheGet(key) {
@@ -1160,7 +1270,7 @@ let furiganaEnabled = localStorage.getItem(FURIGANA_ON_KEY) === '1';
 let lyricsFurigana = null;     // per rendered line: annotations, [] or null
 let furiganaRequestId = 0;     // guards against a slow reply for an old track
 
-// Readings depend only on the lyrics, so one entry per track.
+// Readings depend only on the lyrics, so one entry per track and lyrics source.
 const FURIGANA_CACHE_MAX = 30;
 const furiganaCache = new Map();
 
@@ -1245,7 +1355,8 @@ async function loadFurigana() {
   // As with translation: a cached load still abandons anything in flight.
   const requestId = ++furiganaRequestId;
 
-  const key = currentTrackId;
+  // Per track and lyrics source: another source's lines need their own readings.
+  const key = `${currentTrackId}:${currentLyricsSource}`;
   const cached = furiganaCacheGet(key);
   if (cached) {
     furiganaToggle.classList.remove('loading');
