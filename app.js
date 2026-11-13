@@ -322,7 +322,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   showStatus('Loading lyrics...');
 
   const result = picked
-    ? await fetchLyricsFrom(picked.id, CONFIG.WORKER_URL, trackId, trackName, artistName, trackDurationMs, accessToken)
+    ? await fetchLyricsFrom(picked.id, CONFIG.WORKER_URL, trackId, trackName, artistName, trackDurationMs)
     : await fetchLyrics(CONFIG.WORKER_URL, trackId, trackName, artistName, trackDurationMs, accessToken);
 
   // A newer request — another track, or another source picked — owns the screen now.

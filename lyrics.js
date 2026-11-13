@@ -452,10 +452,10 @@ function spotifyResult(workerData) {
 /**
  * The sources a listener can pick from the source panel, in the order the
  * automatic chain ranks them.  `label` is the `source` a result from it
- * carries.  KKBOX is deprecated and not offered.
+ * carries.  Spotify is not offered: the automatic chain asks it first
+ * anyway.  KKBOX is deprecated and not offered either.
  */
 export const LYRICS_SOURCES = Object.freeze([
-  { id: 'spotify', label: 'Spotify' },
   { id: 'lrclib', label: 'LRCLIB' },
   { id: 'kugou', label: 'Kugou Music' },
   { id: 'qq', label: 'QQ Music' },
@@ -464,15 +464,15 @@ export const LYRICS_SOURCES = Object.freeze([
 
 /**
  * Lyrics from one source only, for when the listener picks it: what that
- * source would contribute to the automatic chain — Spotify's synced lyrics,
- * LRCLIB's synced lyrics or else its plain text, or the synced lyrics of
- * Kugou, QQ Music or NetEase.  Resolves to the same shape as fetchLyrics,
- * with `lyrics: null` when the source has nothing for the track.  Found
- * lyrics are cached per track and source.
+ * source would contribute to the automatic chain — LRCLIB's synced lyrics
+ * or else its plain text, or the synced lyrics of Kugou, QQ Music or
+ * NetEase.  Resolves to the same shape as fetchLyrics, with `lyrics: null`
+ * when the source has nothing for the track.  Found lyrics are cached per
+ * track and source.
  *
  * @param {string} sourceId  an id from LYRICS_SOURCES
  */
-export async function fetchLyricsFrom(sourceId, workerUrl, trackId, trackName, artistName, trackDurationMs, spotifyToken) {
+export async function fetchLyricsFrom(sourceId, workerUrl, trackId, trackName, artistName, trackDurationMs) {
   const key = `${trackId}\u0000${sourceId}`;
   const cached = cacheGet(key);
   if (cached) return cached;
@@ -480,9 +480,6 @@ export async function fetchLyricsFrom(sourceId, workerUrl, trackId, trackName, a
   const durationSec = trackDurationMs / 1000;
   let result = null;
   switch (sourceId) {
-    case 'spotify':
-      result = spotifyResult(await fetchLyricsFromWorker(workerUrl, trackId, spotifyToken));
-      break;
     case 'lrclib': {
       const lrclib = fetchLyricsFromLRCLIB(trackName, artistName, durationSec);
       result = (await synced('LRCLIB', lrclib)()) || (await plain('LRCLIB', lrclib)());

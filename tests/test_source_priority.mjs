@@ -300,8 +300,8 @@ function recordFetch(fragment, respond) {
   return asked;
 }
 
-assert(JSON.stringify(LYRICS_SOURCES.map((s) => s.id)) === JSON.stringify(['spotify', 'lrclib', 'kugou', 'qq', 'netease']),
-  'the pickable sources are Spotify, LRCLIB, Kugou, QQ and NetEase — not KKBOX');
+assert(JSON.stringify(LYRICS_SOURCES.map((s) => s.id)) === JSON.stringify(['lrclib', 'kugou', 'qq', 'netease']),
+  'the pickable sources are LRCLIB, Kugou, QQ and NetEase — not Spotify, not KKBOX');
 
 result = await pick('netease', { '/api/get': LRCLIB_SYNCED, '/kugou-lyrics': KUGOU_SYNCED, '/netease-lyrics': NETEASE_SYNCED });
 assert(result.source === 'NetEase Cloud Music' && result.syncType === 'LINE_SYNCED',
@@ -320,10 +320,11 @@ assert(result.source === 'LRCLIB' && result.syncType === 'LINE_SYNCED', "LRCLIB 
 result = await pick('lrclib', { '/api/get': LRCLIB_PLAIN });
 assert(result.source === 'LRCLIB' && result.syncType === 'PLAIN', 'and its plain text when that is all it has');
 
-result = await pick('spotify', { '/lyrics?track_id': SPOTIFY_SYNCED }, '4u7EnebtmKWzUH433cf5Qv');
-assert(result.source === 'Spotify' && result.syncType === 'LINE_SYNCED', "Spotify's lyrics come through the Worker");
-result = await pick('spotify', { '/api/get': LRCLIB_SYNCED }, '4u7EnebtmKWzUH433cf5Qx');
-assert(result.lyrics === null, 'Spotify without lyrics gives none, not LRCLIB');
+asked = recordFetch('/lyrics?track_id', SPOTIFY_SYNCED);
+result = await fetchLyricsFrom('spotify', WORKER, '4u7EnebtmKWzUH433cf5Qv', 'Song', 'Artist', 180000);
+assert(result.lyrics === null && asked.length === 0, 'Spotify cannot be picked: nothing is asked and no lyrics come back');
+result = await runWithId('4u7EnebtmKWzUH433cf5Qy', { '/lyrics?track_id': SPOTIFY_SYNCED, '/api/get': LRCLIB_SYNCED });
+assert(result.source === 'Spotify', "Auto still takes Spotify's lyrics first");
 
 await pick('qq', { '/qq-lyrics': QQ_SYNCED }, 'pick-cached');
 asked = recordFetch(null);
