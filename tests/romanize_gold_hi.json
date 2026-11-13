@@ -1,0 +1,1967 @@
+{
+ "group": "hi",
+ "built": "2026-11-13",
+ "songs": [
+  {
+   "title": "Tum Hi Ho (From \"Aashiqui 2\")",
+   "artist": "Arijit Singh",
+   "native": 32902512,
+   "romanized": 32785523,
+   "lines": [
+    {
+     "line": "तेरे बिना क्या वजूद मेरा?",
+     "roman": "Tere bina kya wajood mera",
+     "gold": [
+      "tere",
+      "bina",
+      "kya",
+      "wajood",
+      "mera"
+     ]
+    },
+    {
+     "line": "हम तेरे बिन अब रह नहीं सकते",
+     "roman": "Hum tere bin ab reh nahi sakte",
+     "gold": [
+      "hum",
+      "tere",
+      "bin",
+      "ab",
+      "reh",
+      "nahi",
+      "sakte"
+     ]
+    },
+    {
+     "line": "तो ख़ुद से ही हो जाएँगे जुदा",
+     "roman": "Toh khud se hi ho jaayenge juda",
+     "gold": [
+      "toh",
+      "khud",
+      "se",
+      "hi",
+      "ho",
+      "jaayenge",
+      "juda"
+     ]
+    },
+    {
+     "line": "ज़िंदगी अब तुम ही हो",
+     "roman": "Zindagi ab tum hi ho",
+     "gold": [
+      "zindagi",
+      "ab",
+      "tum",
+      "hi",
+      "ho"
+     ]
+    },
+    {
+     "line": "मेरी आशिक़ी अब तुम ही हो",
+     "roman": "Meri aashiqui ab tum hi ho",
+     "gold": [
+      "meri",
+      "aashiqui",
+      "ab",
+      "tum",
+      "hi",
+      "ho"
+     ]
+    },
+    {
+     "line": "तुम ही हो",
+     "roman": "Tum hi ho",
+     "gold": [
+      "tum",
+      "hi",
+      "ho"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Channa Mereya - Lofi Flip",
+   "artist": "Arijit Singh, Deepanshu Ruhela",
+   "native": 4849095,
+   "romanized": 2704476,
+   "lines": [
+    {
+     "line": "मेरे जिक्र का जुबाँ पे स्वाद रखना",
+     "roman": "Mere zikr ka zubaan pe swaad rakhna",
+     "gold": [
+      "mere",
+      "zikr",
+      "ka",
+      "zubaan",
+      "pe",
+      "swaad",
+      "rakhna"
+     ]
+    },
+    {
+     "line": "दिल के संदूकों में मेरे अच्छे काम रखना",
+     "roman": "Dil ke sandooqon mein mere achchhe kaam rakhna",
+     "gold": [
+      "dil",
+      "ke",
+      "sandooqon",
+      "mein",
+      "mere",
+      "achchhe",
+      "kaam",
+      "rakhna"
+     ]
+    },
+    {
+     "line": "अंधेरा तेरा मैंने ले लिया",
+     "roman": "Andhera tera maine le liya",
+     "gold": [
+      "andhera",
+      "tera",
+      "maine",
+      "le",
+      "liya"
+     ]
+    },
+    {
+     "line": "ओ, पिया...",
+     "roman": "Oh, piya",
+     "gold": [
+      "oh",
+      "piya"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Kesariya",
+   "artist": "Arijit Singh",
+   "native": 36901201,
+   "romanized": 12380769,
+   "lines": [
+    {
+     "line": "रब्बा ने तुझको बनाने में",
+     "roman": "Rabba ne tujhko banaane mein",
+     "gold": [
+      "rabba",
+      "ne",
+      "tujhko",
+      "banaane",
+      "mein"
+     ]
+    },
+    {
+     "line": "कर दी हैं हुस्न की ख़ाली तिजोरियाँ",
+     "roman": "Kar di hain husn ki khaali tijoriyaan",
+     "gold": [
+      "kar",
+      "di",
+      "hain",
+      "husn",
+      "ki",
+      "khaali",
+      "tijoriyaan"
+     ]
+    },
+    {
+     "line": "केसरिया तेरा इश्क़ है, पिया",
+     "roman": "Kesariya tera ishq hai piya",
+     "gold": [
+      "kesariya",
+      "tera",
+      "ishq",
+      "hai",
+      "piya"
+     ]
+    },
+    {
+     "line": "रंग जाऊँ जो मैं हाथ लगाऊँ",
+     "roman": "Rang jaaun jo main haath lagaaun",
+     "gold": [
+      "rang",
+      "jaaun",
+      "jo",
+      "main",
+      "haath",
+      "lagaaun"
+     ]
+    },
+    {
+     "line": "दिन बीते सारा तेरी फ़िक्र में",
+     "roman": "Din beete saara teri fiqr mein",
+     "gold": [
+      "din",
+      "beete",
+      "saara",
+      "teri",
+      "fiqr",
+      "mein"
+     ]
+    },
+    {
+     "line": "रैन सारी तेरी ख़ैर मनाऊँ",
+     "roman": "Rain saari teri khair manaaun",
+     "gold": [
+      "rain",
+      "saari",
+      "teri",
+      "khair",
+      "manaaun"
+     ]
+    },
+    {
+     "line": "और तू फुलझड़ियों वाले त्योहारों जैसी",
+     "roman": "Aur tu phuljhadiyon waale tyohaaron jaisi",
+     "gold": [
+      "aur",
+      "tu",
+      "phuljhadiyon",
+      "waale",
+      "tyohaaron",
+      "jaisi"
+     ]
+    },
+    {
+     "line": "चंदा भी दीवाना है तेरा",
+     "roman": "Chanda bhi deewana hai tera",
+     "gold": [
+      "chanda",
+      "bhi",
+      "deewana",
+      "hai",
+      "tera"
+     ]
+    },
+    {
+     "line": "जलती हैं तुझसे सारी चकोरियाँ",
+     "roman": "Jalti hai tujhse saari chakoriyaan",
+     "gold": [
+      "jalti",
+      "hai",
+      "tujhse",
+      "saari",
+      "chakoriyaan"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Agar Tum Saath Ho (From \"Tamasha\")",
+   "artist": "BollyKex & Arijit Singh & Alka Yagnik",
+   "native": 38214431,
+   "romanized": 28353962,
+   "lines": [
+    {
+     "line": "कैसे तुम्हे रोका करूँ",
+     "roman": "Kaise tumhein roka karoon?",
+     "gold": [
+      "kaise",
+      "tumhein",
+      "roka",
+      "karoon"
+     ]
+    },
+    {
+     "line": "मेरी तरफ आता हर गम फिसल जाए",
+     "roman": "Meri taraf aata har gham phisal jaaye",
+     "gold": [
+      "meri",
+      "taraf",
+      "aata",
+      "har",
+      "gham",
+      "phisal",
+      "jaaye"
+     ]
+    },
+    {
+     "line": "बिन बोले बातें तुमसे करूँ",
+     "roman": "Bin bole baatein tumse karoon",
+     "gold": [
+      "bin",
+      "bole",
+      "baatein",
+      "tumse",
+      "karoon"
+     ]
+    },
+    {
+     "line": "'गर तुम साथ हो...",
+     "roman": "'Gar tum saath ho",
+     "gold": [
+      "gar",
+      "tum",
+      "saath",
+      "ho"
+     ]
+    },
+    {
+     "line": "अगर तुम साथ हो",
+     "roman": "Agar tum saath ho",
+     "gold": [
+      "agar",
+      "tum",
+      "saath",
+      "ho"
+     ]
+    },
+    {
+     "line": "मेरी दुनिया है तेरी चाहतों में",
+     "roman": "Meri duniya hai teri chaahaton mein",
+     "gold": [
+      "meri",
+      "duniya",
+      "hai",
+      "teri",
+      "chaahaton",
+      "mein"
+     ]
+    },
+    {
+     "line": "मैं ढल जाती हूँ तेरी आदतों में",
+     "roman": "Main dhal jaati hoon teri aadaton mein",
+     "gold": [
+      "main",
+      "dhal",
+      "jaati",
+      "hoon",
+      "teri",
+      "aadaton",
+      "mein"
+     ]
+    },
+    {
+     "line": "'गर तुम साथ हो",
+     "roman": "'Gar tum saath ho",
+     "gold": [
+      "gar",
+      "tum",
+      "saath",
+      "ho"
+     ]
+    },
+    {
+     "line": "तेरी नज़रों में है तेरे सपने",
+     "roman": "Teri nazron mein hain tere sapne",
+     "gold": [
+      "teri",
+      "nazron",
+      "mein",
+      "hain",
+      "tere",
+      "sapne"
+     ]
+    },
+    {
+     "line": "तेरे सपनो में है नाराज़ी",
+     "roman": "Tere sapnon mein hai naaraazi",
+     "gold": [
+      "tere",
+      "sapnon",
+      "mein",
+      "hai",
+      "naaraazi"
+     ]
+    },
+    {
+     "line": "मुझे लगता है के बातें दिल की",
+     "roman": "Mujhe lagta hai ke baatein dil ki",
+     "gold": [
+      "mujhe",
+      "lagta",
+      "hai",
+      "ke",
+      "baatein",
+      "dil",
+      "ki"
+     ]
+    },
+    {
+     "line": "होती लफ़्ज़ों की धोकेबाज़ी",
+     "roman": "Hoti lafzon ki dhokhebaazi",
+     "gold": [
+      "hoti",
+      "lafzon",
+      "ki",
+      "dhokhebaazi"
+     ]
+    },
+    {
+     "line": "तुम साथ हो या ना हो क्या फ़र्क है",
+     "roman": "Tum saath ho ya na ho, kya farq hai?",
+     "gold": [
+      "tum",
+      "saath",
+      "ho",
+      "ya",
+      "na",
+      "ho",
+      "kya",
+      "farq",
+      "hai"
+     ]
+    },
+    {
+     "line": "बेदर्द थी ज़िंदगी बेदर्द है",
+     "roman": "Bedard thi zindagi, bedard hai",
+     "gold": [
+      "bedard",
+      "thi",
+      "zindagi",
+      "bedard",
+      "hai"
+     ]
+    },
+    {
+     "line": "पलकें झपकते ही, दिन ये निकल जाए",
+     "roman": "Palkein jhapakte hi din ye nikal jaaye",
+     "gold": [
+      "palkein",
+      "jhapakte",
+      "hi",
+      "din",
+      "ye",
+      "nikal",
+      "jaaye"
+     ]
+    },
+    {
+     "line": "बेती बेती भागी फिरू...",
+     "roman": "Baithi-baithi bhaagi phiroon",
+     "gold": [
+      "baithi",
+      "baithi",
+      "bhaagi",
+      "phiroon"
+     ]
+    },
+    {
+     "line": "मेरी तरफ आता,हर गम फिसल जाए",
+     "roman": "Meri taraf aata har gham phisal jaaye",
+     "gold": [
+      "meri",
+      "taraf",
+      "aata",
+      "har",
+      "gham",
+      "phisal",
+      "jaaye"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Hawayein",
+   "artist": "VIBIE, Arijit Singh, Pritam",
+   "native": 8612833,
+   "romanized": 21858681,
+   "lines": [
+    {
+     "line": "तुझको मैं रख लूँ वहाँ",
+     "roman": "Tujko main rakh loon vahaan",
+     "gold": [
+      "tujko",
+      "main",
+      "rakh",
+      "loon",
+      "vahaan"
+     ]
+    },
+    {
+     "line": "जहाँ पे कहीं है मेरा यक़ीं",
+     "roman": "Jahaan pe kaheen hai mera yaqeen",
+     "gold": [
+      "jahaan",
+      "pe",
+      "kaheen",
+      "hai",
+      "mera",
+      "yaqeen"
+     ]
+    },
+    {
+     "line": "मैं जो तेरा ना हुआ",
+     "roman": "Main jo tera naa hua",
+     "gold": [
+      "main",
+      "jo",
+      "tera",
+      "naa",
+      "hua"
+     ]
+    },
+    {
+     "line": "किसी का नहीं, किसी का नहीं",
+     "roman": "Kisi ka nahin, kisi ka nahin",
+     "gold": [
+      "kisi",
+      "ka",
+      "nahin",
+      "kisi",
+      "ka",
+      "nahin"
+     ]
+    },
+    {
+     "line": "ले जाएँ जाने कहाँ हवाएँ, हवाएँ",
+     "roman": "Le jaaen jaane kahaan hawaayen, hawaayen",
+     "gold": [
+      "le",
+      "jaaen",
+      "jaane",
+      "kahaan",
+      "hawaayen",
+      "hawaayen"
+     ]
+    },
+    {
+     "line": "ले जाएँ तुझे कहाँ हवाएँ, हवाएँ?",
+     "roman": "Le jaaen tuje kahaan hawaayen, hawaayen?",
+     "gold": [
+      "le",
+      "jaaen",
+      "tuje",
+      "kahaan",
+      "hawaayen",
+      "hawaayen"
+     ]
+    },
+    {
+     "line": "बेगानी हैं ये बाग़ी हवाएँ, हवाएँ",
+     "roman": "Begaani hain ye baagi hawaayen, hawaayen",
+     "gold": [
+      "begaani",
+      "hain",
+      "ye",
+      "baagi",
+      "hawaayen",
+      "hawaayen"
+     ]
+    },
+    {
+     "line": "ले जाएँ मुझे कहाँ हवाएँ, हवाएँ?",
+     "roman": "Le jaaen muje kahaan hawaayen, hawaayen?",
+     "gold": [
+      "le",
+      "jaaen",
+      "muje",
+      "kahaan",
+      "hawaayen",
+      "hawaayen"
+     ]
+    },
+    {
+     "line": "ले जाएँ जाने कहाँ",
+     "roman": "Le jaaen jaane kahaan",
+     "gold": [
+      "le",
+      "jaaen",
+      "jaane",
+      "kahaan"
+     ]
+    },
+    {
+     "line": "ना मुझको ख़बर, ना तुझको पता",
+     "roman": "Naa mujko khabar, naa tujko pata",
+     "gold": [
+      "naa",
+      "mujko",
+      "khabar",
+      "naa",
+      "tujko",
+      "pata"
+     ]
+    },
+    {
+     "line": "बनाती है जो तू वो यादें जाने संग मेरे कब तक चलें",
+     "roman": "Banaati hai jo too vo yaaden jaane sang mere kab tak chalem",
+     "gold": [
+      "banaati",
+      "hai",
+      "jo",
+      "too",
+      "vo",
+      "yaaden",
+      "jaane",
+      "sang",
+      "mere",
+      "kab",
+      "tak",
+      "chalem"
+     ]
+    },
+    {
+     "line": "इन्हीं में तो मेरी सुबह भी ढले, शामें ढलें, मौसम ढलें",
+     "roman": "Inhen mein to meri subah bhee dhale, shaamein dhalen, mausam dhalen",
+     "gold": [
+      "inhen",
+      "mein",
+      "to",
+      "meri",
+      "subah",
+      "bhee",
+      "dhale",
+      "shaamein",
+      "dhalen",
+      "mausam",
+      "dhalen"
+     ]
+    },
+    {
+     "line": "ख़यालों का शहर, तू जाने तेरे होने से ही आबाद है",
+     "roman": "Khayaalon ka shahar, too jaane tere hone se hee aabaad hai",
+     "gold": [
+      "khayaalon",
+      "ka",
+      "shahar",
+      "too",
+      "jaane",
+      "tere",
+      "hone",
+      "se",
+      "hee",
+      "aabaad",
+      "hai"
+     ]
+    },
+    {
+     "line": "हवाएँ हक़ में वो ही हैं आते-जाते जो तेरा नाम लें",
+     "roman": "Hawaayen haq mein vo hee hain aate-jaate jo tera naam len",
+     "gold": [
+      "hawaayen",
+      "haq",
+      "mein",
+      "vo",
+      "hee",
+      "hain",
+      "aate",
+      "jaate",
+      "jo",
+      "tera",
+      "naam",
+      "len"
+     ]
+    },
+    {
+     "line": "देती हैं जो सदाएँ हवाएँ, हवाएँ",
+     "roman": "Detee hain jo sadaayen hawaayen, hawaayen",
+     "gold": [
+      "detee",
+      "hain",
+      "jo",
+      "sadaayen",
+      "hawaayen",
+      "hawaayen"
+     ]
+    },
+    {
+     "line": "ना जाने क्या बताएँ हवाएँ, हवाएँ",
+     "roman": "Naa jaane kya bataaen hawaayen, hawaayen",
+     "gold": [
+      "naa",
+      "jaane",
+      "kya",
+      "bataaen",
+      "hawaayen",
+      "hawaayen"
+     ]
+    },
+    {
+     "line": "चेहरा क्यूँ मिलता तेरा",
+     "roman": "Cheharaa kyun milata tera",
+     "gold": [
+      "cheharaa",
+      "kyun",
+      "milata",
+      "tera"
+     ]
+    },
+    {
+     "line": "यूँ ख़्वाबों से मेरे? ये क्या राज़ है?",
+     "roman": "Yoon khvaabon se mere? ye kya raaj hai?",
+     "gold": [
+      "yoon",
+      "khvaabon",
+      "se",
+      "mere",
+      "ye",
+      "kya",
+      "raaj",
+      "hai"
+     ]
+    },
+    {
+     "line": "कल भी मेरी ना थी तू",
+     "roman": "Kal bhee meri naa thi too",
+     "gold": [
+      "kal",
+      "bhee",
+      "meri",
+      "naa",
+      "thi",
+      "too"
+     ]
+    },
+    {
+     "line": "ना होगी तू कल, मेरी आज है",
+     "roman": "Naa hogee too kal, meri aaj hai",
+     "gold": [
+      "naa",
+      "hogee",
+      "too",
+      "kal",
+      "meri",
+      "aaj",
+      "hai"
+     ]
+    },
+    {
+     "line": "तेरी हैं मेरी सारी वफ़ाएँ, वफ़ाएँ",
+     "roman": "Teri hain meri saaree vafaayen, vafaayen",
+     "gold": [
+      "teri",
+      "hain",
+      "meri",
+      "saaree",
+      "vafaayen",
+      "vafaayen"
+     ]
+    },
+    {
+     "line": "माँगी हैं तेरे लिए दुआएँ, दुआएँ",
+     "roman": "Maangi hain tere liye duaen, duaen",
+     "gold": [
+      "maangi",
+      "hain",
+      "tere",
+      "liye",
+      "duaen",
+      "duaen"
+     ]
+    },
+    {
+     "line": "ले जाएँ जाने कहाँ...",
+     "roman": "Le jaaen jaane kahaan",
+     "gold": [
+      "le",
+      "jaaen",
+      "jaane",
+      "kahaan"
+     ]
+    },
+    {
+     "line": "ले जाएँ तुझे कहाँ...",
+     "roman": "Le jaaen tuje kahaan...",
+     "gold": [
+      "le",
+      "jaaen",
+      "tuje",
+      "kahaan"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Gerua",
+   "artist": "Pritam, Arijit Singh, Antara Mitra",
+   "native": 11150933,
+   "romanized": 17309765,
+   "lines": [
+    {
+     "line": "निकली है दिल से ये दुआ",
+     "roman": "Nikli hai dil se ye dua",
+     "gold": [
+      "nikli",
+      "hai",
+      "dil",
+      "se",
+      "ye",
+      "dua"
+     ]
+    },
+    {
+     "line": "रंग दे तू मोहे गेरुआ",
+     "roman": "Rang de tu mohe gerua",
+     "gold": [
+      "rang",
+      "de",
+      "tu",
+      "mohe",
+      "gerua"
+     ]
+    },
+    {
+     "line": "रांझे की दिल से है दुआ",
+     "roman": "Ranjhe ki dil se hai dua",
+     "gold": [
+      "ranjhe",
+      "ki",
+      "dil",
+      "se",
+      "hai",
+      "dua"
+     ]
+    },
+    {
+     "line": "हाँ, निकली है दिल से ये दुआ",
+     "roman": "Haan, nikli hai dil se ye dua",
+     "gold": [
+      "haan",
+      "nikli",
+      "hai",
+      "dil",
+      "se",
+      "ye",
+      "dua"
+     ]
+    },
+    {
+     "line": "है सुफियान ये दास्तां",
+     "roman": "Hai sufiyana ye daastaan",
+     "gold": [
+      "hai",
+      "sufiyana",
+      "ye",
+      "daastaan"
+     ]
+    },
+    {
+     "line": "मैं कारवां मंज़िल हो तुम",
+     "roman": "Main kaarvaan, manzil ho tum",
+     "gold": [
+      "main",
+      "kaarvaan",
+      "manzil",
+      "ho",
+      "tum"
+     ]
+    },
+    {
+     "line": "जाता जहां को हर रास्ता",
+     "roman": "Jaata jahan ko har raasta",
+     "gold": [
+      "jaata",
+      "jahan",
+      "ko",
+      "har",
+      "raasta"
+     ]
+    },
+    {
+     "line": "हो वीरान था, दिल का जहां",
+     "roman": "Oh, veeraan tha dil ka jahan",
+     "gold": [
+      "oh",
+      "veeraan",
+      "tha",
+      "dil",
+      "ka",
+      "jahan"
+     ]
+    },
+    {
+     "line": "दर्ज़ा मुझे हासिल हुआ",
+     "roman": "Darja mujhe haasil hua",
+     "gold": [
+      "darja",
+      "mujhe",
+      "haasil",
+      "hua"
+     ]
+    },
+    {
+     "line": "तेरे साथ रिश्ता गहरा बन गया",
+     "roman": "Tere saath rishta gehra ban gaya",
+     "gold": [
+      "tere",
+      "saath",
+      "rishta",
+      "gehra",
+      "ban",
+      "gaya"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Pehla Nasha",
+   "artist": "Sanam",
+   "native": 7795684,
+   "romanized": 11654931,
+   "lines": [
+    {
+     "line": "पहला नशा, पहला खुमार",
+     "roman": "Pehlaa nasha, pehlaa khumaar",
+     "gold": [
+      "pehlaa",
+      "nasha",
+      "pehlaa",
+      "khumaar"
+     ]
+    },
+    {
+     "line": "नया प्यार है, नया इंतज़ार",
+     "roman": "Naya pyaar hai, naya intazaar",
+     "gold": [
+      "naya",
+      "pyaar",
+      "hai",
+      "naya",
+      "intazaar"
+     ]
+    },
+    {
+     "line": "उड़ता ही फिरूँ इन हवाओं में कहीं",
+     "roman": "Udata hee firoon in hawaon mein kaheen",
+     "gold": [
+      "udata",
+      "hee",
+      "firoon",
+      "in",
+      "hawaon",
+      "mein",
+      "kaheen"
+     ]
+    },
+    {
+     "line": "या मैं झूल जाऊँ इन घटाओं में कहीं",
+     "roman": "Yaa main jhuthel jaaon in ghataon main kahin",
+     "gold": [
+      "yaa",
+      "main",
+      "jhuthel",
+      "jaaon",
+      "in",
+      "ghataon",
+      "main",
+      "kahin"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Phir Bhi Tumko Chaahunga (From \"Half Girlfriend\")",
+   "artist": "Arijit Singh feat. Mithoon & Shashaa Tirupati",
+   "native": 878113,
+   "romanized": 5871758,
+   "lines": [
+    {
+     "line": "तुम मेरे हो, इस पल मेरे हो",
+     "roman": "Tum mere ho, iss pl mere ho",
+     "gold": [
+      "tum",
+      "mere",
+      "ho",
+      "iss",
+      "pl",
+      "mere",
+      "ho"
+     ]
+    },
+    {
+     "line": "कल शायद ये आलम ना रहे",
+     "roman": "Kl shayad yeh aalam na rahe",
+     "gold": [
+      "kl",
+      "shayad",
+      "yeh",
+      "aalam",
+      "na",
+      "rahe"
+     ]
+    },
+    {
+     "line": "कुछ ऐसा हो, तुम तुम ना रहो",
+     "roman": "Kuch aisa ho, tum tum na raho",
+     "gold": [
+      "kuch",
+      "aisa",
+      "ho",
+      "tum",
+      "tum",
+      "na",
+      "raho"
+     ]
+    },
+    {
+     "line": "कुछ ऐसा हो, हम हम ना रहें",
+     "roman": "Kuch aisa ho hum, hum na rahein…",
+     "gold": [
+      "kuch",
+      "aisa",
+      "ho",
+      "hum",
+      "hum",
+      "na",
+      "rahein"
+     ]
+    },
+    {
+     "line": "ये रास्ते अलग हो जाएँ",
+     "roman": "Yeh raaste alag ho jaaye",
+     "gold": [
+      "yeh",
+      "raaste",
+      "alag",
+      "ho",
+      "jaaye"
+     ]
+    },
+    {
+     "line": "चलते-चलते हम खो जाएँ",
+     "roman": "Chalte chalte hum kho jaayein…",
+     "gold": [
+      "chalte",
+      "chalte",
+      "hum",
+      "kho",
+      "jaayein"
+     ]
+    },
+    {
+     "line": "मैं फिर भी तुमको चाहूँगा",
+     "roman": "Main phir bhi tumko chahunga…",
+     "gold": [
+      "main",
+      "phir",
+      "bhi",
+      "tumko",
+      "chahunga"
+     ]
+    },
+    {
+     "line": "इस चाहत में मर जाऊँगा",
+     "roman": "Iss chahat mein marr jaaunga",
+     "gold": [
+      "iss",
+      "chahat",
+      "mein",
+      "marr",
+      "jaaunga"
+     ]
+    },
+    {
+     "line": "मेरी जान, मैं हर ख़ामोशी में",
+     "roman": "Meri jaan, mein hr khamoshi mein",
+     "gold": [
+      "meri",
+      "jaan",
+      "mein",
+      "hr",
+      "khamoshi",
+      "mein"
+     ]
+    },
+    {
+     "line": "ऐसे ज़रूरी हो मुझको तुम",
+     "roman": "Aise zaroori ho mujhko tum",
+     "gold": [
+      "aise",
+      "zaroori",
+      "ho",
+      "mujhko",
+      "tum"
+     ]
+    },
+    {
+     "line": "जैसे हवाएँ साँसों को",
+     "roman": "Jaise hawayein saanson ko",
+     "gold": [
+      "jaise",
+      "hawayein",
+      "saanson",
+      "ko"
+     ]
+    },
+    {
+     "line": "ऐसे तलाशूँ मैं तुमको",
+     "roman": "Aise talashun main tumko",
+     "gold": [
+      "aise",
+      "talashun",
+      "main",
+      "tumko"
+     ]
+    },
+    {
+     "line": "जैसे कि पैर ज़मीनों को",
+     "roman": "Jaise ki per zameeno ko",
+     "gold": [
+      "jaise",
+      "ki",
+      "per",
+      "zameeno",
+      "ko"
+     ]
+    },
+    {
+     "line": "हँसना या रोना हो मुझे",
+     "roman": "Hansna ya rona ho mujhe",
+     "gold": [
+      "hansna",
+      "ya",
+      "rona",
+      "ho",
+      "mujhe"
+     ]
+    },
+    {
+     "line": "पागल सा ढूँढूँ मैं तुम्हें",
+     "roman": "Paagal sa dhoondu main tumhe",
+     "gold": [
+      "paagal",
+      "sa",
+      "dhoondu",
+      "main",
+      "tumhe"
+     ]
+    },
+    {
+     "line": "कल मुझसे मोहब्बत हो ना हो",
+     "roman": "Kal mujhse mohabbat ho na ho",
+     "gold": [
+      "kal",
+      "mujhse",
+      "mohabbat",
+      "ho",
+      "na",
+      "ho"
+     ]
+    },
+    {
+     "line": "कल मुझको इजाज़त हो ना हो",
+     "roman": "Kal mujhko ijazat ho na ho",
+     "gold": [
+      "kal",
+      "mujhko",
+      "ijazat",
+      "ho",
+      "na",
+      "ho"
+     ]
+    },
+    {
+     "line": "और सुनहरी मैं लगती हूँ",
+     "roman": "Aur sunehari main lagti hoon",
+     "gold": [
+      "aur",
+      "sunehari",
+      "main",
+      "lagti",
+      "hoon"
+     ]
+    },
+    {
+     "line": "सिर्फ़ लबों से नहीं अब तो",
+     "roman": "Sirf labon se nahi ab toh",
+     "gold": [
+      "sirf",
+      "labon",
+      "se",
+      "nahi",
+      "ab",
+      "toh"
+     ]
+    },
+    {
+     "line": "पूरे बदन से हँसती हूँ",
+     "roman": "Poore badan se hansti hoon",
+     "gold": [
+      "poore",
+      "badan",
+      "se",
+      "hansti",
+      "hoon"
+     ]
+    },
+    {
+     "line": "मेरे दिन-रात सलोने से",
+     "roman": "Mere din raat salone se",
+     "gold": [
+      "mere",
+      "din",
+      "raat",
+      "salone",
+      "se"
+     ]
+    },
+    {
+     "line": "सब हैं तेरे ही होने से",
+     "roman": "Sab hai tere hi hone se",
+     "gold": [
+      "sab",
+      "hai",
+      "tere",
+      "hi",
+      "hone",
+      "se"
+     ]
+    },
+    {
+     "line": "ये साथ हमेशा होगा नहीं",
+     "roman": "Yeh saath hamesha hoga nahin",
+     "gold": [
+      "yeh",
+      "saath",
+      "hamesha",
+      "hoga",
+      "nahin"
+     ]
+    },
+    {
+     "line": "तुम और कहीं, मैं और कहीं",
+     "roman": "Tum aur kahin main aur kahin",
+     "gold": [
+      "tum",
+      "aur",
+      "kahin",
+      "main",
+      "aur",
+      "kahin"
+     ]
+    },
+    {
+     "line": "लेकिन जब याद करोगे तुम",
+     "roman": "Lekin jab yaad karoge tum",
+     "gold": [
+      "lekin",
+      "jab",
+      "yaad",
+      "karoge",
+      "tum"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Kal Ho Naa Ho",
+   "artist": "Shankar-Ehsaan-Loy, Sonu Nigam",
+   "native": 4864505,
+   "romanized": 8966355,
+   "lines": [
+    {
+     "line": "हर घड़ी बदल रही है रूप ज़िंदगी",
+     "roman": "Har ghadi badal rahi hai roop zindagi",
+     "gold": [
+      "har",
+      "ghadi",
+      "badal",
+      "rahi",
+      "hai",
+      "roop",
+      "zindagi"
+     ]
+    },
+    {
+     "line": "हर पल यहाँ जी भर जियो",
+     "roman": "Har pal yahaan jee bhar jiyo",
+     "gold": [
+      "har",
+      "pal",
+      "yahaan",
+      "jee",
+      "bhar",
+      "jiyo"
+     ]
+    },
+    {
+     "line": "उस हाथ को तुम थाम लो",
+     "roman": "Us haath ko tum thaam lo",
+     "gold": [
+      "us",
+      "haath",
+      "ko",
+      "tum",
+      "thaam",
+      "lo"
+     ]
+    },
+    {
+     "line": "जो है समाँ कल हो न हो",
+     "roman": "Jo hai samaan kal ho na ho",
+     "gold": [
+      "jo",
+      "hai",
+      "samaan",
+      "kal",
+      "ho",
+      "na",
+      "ho"
+     ]
+    },
+    {
+     "line": "छाँव है कभी, कभी है धूप ज़िंदगी",
+     "roman": "Chhaanv hai kabhi, kabhi hai dhoop zindagi",
+     "gold": [
+      "chhaanv",
+      "hai",
+      "kabhi",
+      "kabhi",
+      "hai",
+      "dhoop",
+      "zindagi"
+     ]
+    },
+    {
+     "line": "जो है समाँ कल हो न हो...",
+     "roman": "Jo hai samaan kal ho na ho",
+     "gold": [
+      "jo",
+      "hai",
+      "samaan",
+      "kal",
+      "ho",
+      "na",
+      "ho"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Pal Pal Dil Ke Paas",
+   "artist": "Arijit Singh, Parampara Tandon",
+   "native": 12035510,
+   "romanized": 22335821,
+   "lines": [
+    {
+     "line": "जुड़ी रहे तुझ से हर एक साँस",
+     "roman": "Judi rahe tujh se har ek saans",
+     "gold": [
+      "judi",
+      "rahe",
+      "tujh",
+      "se",
+      "har",
+      "ek",
+      "saans"
+     ]
+    },
+    {
+     "line": "ख़ुद पे पहले ना इतना यक़ीं मुझ को हो पाया",
+     "roman": "Khud pe pehle na itna yaqeen mujh ko ho paaya",
+     "gold": [
+      "khud",
+      "pe",
+      "pehle",
+      "na",
+      "itna",
+      "yaqeen",
+      "mujh",
+      "ko",
+      "ho",
+      "paaya"
+     ]
+    },
+    {
+     "line": "मुश्किल सी घड़ियाँ आसाँ हुईं, अब जो तू आया",
+     "roman": "Mushkil si ghadiyaan aasaan huyi, ab jo tu aaya",
+     "gold": [
+      "mushkil",
+      "si",
+      "ghadiyaan",
+      "aasaan",
+      "huyi",
+      "ab",
+      "jo",
+      "tu",
+      "aaya"
+     ]
+    },
+    {
+     "line": "एक बात कहूँ तुझ से, तू पास है जो मेरे",
+     "roman": "Ek baat kahoon tujh se, tu paas hai jo mere",
+     "gold": [
+      "ek",
+      "baat",
+      "kahoon",
+      "tujh",
+      "se",
+      "tu",
+      "paas",
+      "hai",
+      "jo",
+      "mere"
+     ]
+    },
+    {
+     "line": "सीने से तेरे सर को लगा के",
+     "roman": "Seene se tere sar ko laga ke",
+     "gold": [
+      "seene",
+      "se",
+      "tere",
+      "sar",
+      "ko",
+      "laga",
+      "ke"
+     ]
+    },
+    {
+     "line": "सुनती मैं रहूँ नाम अपना",
+     "roman": "Sunti main rahoon naam apna",
+     "gold": [
+      "sunti",
+      "main",
+      "rahoon",
+      "naam",
+      "apna"
+     ]
+    },
+    {
+     "line": "सुनता मैं रहूँ नाम अपना, ओ",
+     "roman": "Sunta main rahoon naam apna, oh",
+     "gold": [
+      "sunta",
+      "main",
+      "rahoon",
+      "naam",
+      "apna",
+      "oh"
+     ]
+    },
+    {
+     "line": "नाम अपना",
+     "roman": "Naam apna",
+     "gold": [
+      "naam",
+      "apna"
+     ]
+    },
+    {
+     "line": "तेरी उँगलियों से आसमाँ पे",
+     "roman": "Teri ungliyon se aasmaan pe",
+     "gold": [
+      "teri",
+      "ungliyon",
+      "se",
+      "aasmaan",
+      "pe"
+     ]
+    },
+    {
+     "line": "खींचूँ एक लंबी लकीर",
+     "roman": "Kheenchoon ek lambi lakeer",
+     "gold": [
+      "kheenchoon",
+      "ek",
+      "lambi",
+      "lakeer"
+     ]
+    },
+    {
+     "line": "आधा तेरा, आधा मेरा",
+     "roman": "Aadha tera, aadha mera",
+     "gold": [
+      "aadha",
+      "tera",
+      "aadha",
+      "mera"
+     ]
+    },
+    {
+     "line": "इस जहाँ में हम दो अमीर",
+     "roman": "Iss jahaan mein hum do ameer",
+     "gold": [
+      "iss",
+      "jahaan",
+      "mein",
+      "hum",
+      "do",
+      "ameer"
+     ]
+    },
+    {
+     "line": "तू ही मेरी नौकरी हो गई",
+     "roman": "Tu hi meri naukri ho gayi",
+     "gold": [
+      "tu",
+      "hi",
+      "meri",
+      "naukri",
+      "ho",
+      "gayi"
+     ]
+    },
+    {
+     "line": "दूरियाँ एक पल भी ना गवारा हों",
+     "roman": "Dooriyaan ek pal bhi na gawara hon",
+     "gold": [
+      "dooriyaan",
+      "ek",
+      "pal",
+      "bhi",
+      "na",
+      "gawara",
+      "hon"
+     ]
+    },
+    {
+     "line": "चल, घूमें दुनिया, फिर संग आवारा हों",
+     "roman": "Chal, ghoomein duniya, phir sang aawara hon",
+     "gold": [
+      "chal",
+      "ghoomein",
+      "duniya",
+      "phir",
+      "sang",
+      "aawara",
+      "hon"
+     ]
+    },
+    {
+     "line": "सीने से तेरे सर को (सीने से)",
+     "roman": "Seene se tere sar ko (seene se)",
+     "gold": [
+      "seene",
+      "se",
+      "tere",
+      "sar",
+      "ko",
+      "seene",
+      "se"
+     ]
+    },
+    {
+     "line": "लगा के (तेरे सर को लगा के)",
+     "roman": "Laga ke (tere sar ko laga ke)",
+     "gold": [
+      "laga",
+      "ke",
+      "tere",
+      "sar",
+      "ko",
+      "laga",
+      "ke"
+     ]
+    },
+    {
+     "line": "सुनता मैं रहूँ नाम अपना, हाँ",
+     "roman": "Sunta main rahoon naam apna, haan",
+     "gold": [
+      "sunta",
+      "main",
+      "rahoon",
+      "naam",
+      "apna",
+      "haan"
+     ]
+    },
+    {
+     "line": "नाम अपना (नाम अपना)",
+     "roman": "Naam apna (naam apna)",
+     "gold": [
+      "naam",
+      "apna",
+      "naam",
+      "apna"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "tum se hi",
+   "artist": "Pritam, Mohit Chauhan, Irshad Kamil",
+   "native": 38984446,
+   "romanized": 34291699,
+   "lines": [
+    {
+     "line": "तुम से ही, तुम से ही",
+     "roman": "Tum se hi tum se hi",
+     "gold": [
+      "tum",
+      "se",
+      "hi",
+      "tum",
+      "se",
+      "hi"
+     ]
+    },
+    {
+     "line": "मेरा ना मुझ में कुछ रहा, हुआ क्या?",
+     "roman": "Mera na mujh me kuchh raha hoona kya",
+     "gold": [
+      "mera",
+      "na",
+      "mujh",
+      "me",
+      "kuchh",
+      "raha",
+      "hoona",
+      "kya"
+     ]
+    },
+    {
+     "line": "क्यूँ तेरा सब ये हो गया? हुआ क्या?",
+     "roman": "Kyun tera sab ye ho gaya hoona kya",
+     "gold": [
+      "kyun",
+      "tera",
+      "sab",
+      "ye",
+      "ho",
+      "gaya",
+      "hoona",
+      "kya"
+     ]
+    },
+    {
+     "line": "जो धागा तुम से जुड़ गया वफ़ा का",
+     "roman": "Jo dhaaga tum se judd gaya wafa ka",
+     "gold": [
+      "jo",
+      "dhaaga",
+      "tum",
+      "se",
+      "judd",
+      "gaya",
+      "wafa",
+      "ka"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Tum Mile (Rock)",
+   "artist": "Pritam & Shafqat Amanat Ali",
+   "native": 24983230,
+   "romanized": 12801594,
+   "lines": [
+    {
+     "line": "चाहे कहीं से चलूँ",
+     "roman": "Chahe Kahin Se Chalun",
+     "gold": [
+      "chahe",
+      "kahin",
+      "se",
+      "chalun"
+     ]
+    },
+    {
+     "line": "तेरे सिवा मैं जाऊँ कहाँ?",
+     "roman": "Tere Siva Main Jaun Kahan",
+     "gold": [
+      "tere",
+      "siva",
+      "main",
+      "jaun",
+      "kahan"
+     ]
+    },
+    {
+     "line": "कोई भी राह चुनूँ",
+     "roman": "Koi Bhi Raah Chunu",
+     "gold": [
+      "koi",
+      "bhi",
+      "raah",
+      "chunu"
+     ]
+    },
+    {
+     "line": "तुम मिले तो लम्हे थम गए",
+     "roman": "Tum Mile To Lamhein Tham Gaye",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "lamhein",
+      "tham",
+      "gaye"
+     ]
+    },
+    {
+     "line": "तुम मिले तो सारे ग़म गए",
+     "roman": "Tum Mile To Saare Gum Gaye",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "saare",
+      "gum",
+      "gaye"
+     ]
+    },
+    {
+     "line": "तुम मिले तो मुस्कुराना आ गया",
+     "roman": "Tum Mile To Muskhurana Aa Gaya",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "muskhurana",
+      "aa",
+      "gaya"
+     ]
+    },
+    {
+     "line": "तुम मिले तो जादू छा गया",
+     "roman": "Tum Mile To Jadoo Chaa Gaya",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "jadoo",
+      "chaa",
+      "gaya"
+     ]
+    },
+    {
+     "line": "तुम मिले तो जीना आ गया",
+     "roman": "Tum Mile To Jeena Aa Gaya",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "jeena",
+      "aa",
+      "gaya"
+     ]
+    },
+    {
+     "line": "तुम मिले तो मैंने पाया है खुदा",
+     "roman": "Tum Mile To Mene Paya Hai Khuda",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "mene",
+      "paya",
+      "hai",
+      "khuda"
+     ]
+    },
+    {
+     "line": "दिल को सहारा दिखे",
+     "roman": "Dil Ko Sahara Dikhe",
+     "gold": [
+      "dil",
+      "ko",
+      "sahara",
+      "dikhe"
+     ]
+    },
+    {
+     "line": "आ, मेरी धड़कन थाम ले",
+     "roman": "Aa Meri Dhadkan Tham Le",
+     "gold": [
+      "aa",
+      "meri",
+      "dhadkan",
+      "tham",
+      "le"
+     ]
+    },
+    {
+     "line": "हर पल ये तेरा नाम ले",
+     "roman": "Har Pal Yeh Tera Naam Le",
+     "gold": [
+      "har",
+      "pal",
+      "yeh",
+      "tera",
+      "naam",
+      "le"
+     ]
+    },
+    {
+     "line": "तुम मिले तो अब क्या है कमी",
+     "roman": "Tum Mile To Abb Kya Hai Kami",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "abb",
+      "kya",
+      "hai",
+      "kami"
+     ]
+    },
+    {
+     "line": "तुम मिले तो दुनिया मिल गई",
+     "roman": "Tum Mile To Duniya Mil Gai",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "duniya",
+      "mil",
+      "gai"
+     ]
+    },
+    {
+     "line": "तुम मिले तो मिल गया आसरा",
+     "roman": "Tum Mile To Mil Gaya Asra",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "mil",
+      "gaya",
+      "asra"
+     ]
+    },
+    {
+     "line": "है वक़्त तेरे हाथ में",
+     "roman": "Hai Waqt Tere Haath Mein",
+     "gold": [
+      "hai",
+      "waqt",
+      "tere",
+      "haath",
+      "mein"
+     ]
+    },
+    {
+     "line": "हो, तू ही शहर है मेरा",
+     "roman": "Hooo Tu Hi Shehar Hai Mera",
+     "gold": [
+      "hooo",
+      "tu",
+      "hi",
+      "shehar",
+      "hai",
+      "mera"
+     ]
+    },
+    {
+     "line": "रहता है तेरे साथ में",
+     "roman": "Rehta Hai Tere Saath Mein",
+     "gold": [
+      "rehta",
+      "hai",
+      "tere",
+      "saath",
+      "mein"
+     ]
+    },
+    {
+     "line": "तुम मिले तो खुद की है ख़बर",
+     "roman": "Tum Mile To Khud Ki Hai Khabar",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "khud",
+      "ki",
+      "hai",
+      "khabar"
+     ]
+    },
+    {
+     "line": "तुम मिले तो रिश्ता सा बन गया",
+     "roman": "Tum Mile To Ristha Sa Ban Gaya",
+     "gold": [
+      "tum",
+      "mile",
+      "to",
+      "ristha",
+      "sa",
+      "ban",
+      "gaya"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Teri Meri Kahaani",
+   "artist": "Chirantan Bhatt, Arijit Singh & Palak Muchhal",
+   "native": 23150022,
+   "romanized": 29060464,
+   "lines": []
+  },
+  {
+   "title": "kaun tujhe",
+   "artist": "Palak Muchhal",
+   "native": 32093859,
+   "romanized": 24632756,
+   "lines": [
+    {
+     "line": "तुझे खबर क्या बेकदर",
+     "roman": "tuje khabar kya bekhbar",
+     "gold": [
+      "tuje",
+      "khabar",
+      "kya",
+      "bekhbar"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Saathi Tere Naam (From \"Ustadi Ustad Se\")",
+   "artist": "Asha Bhosle",
+   "native": 24027731,
+   "romanized": 38783841,
+   "lines": [
+    {
+     "line": "खुश्बुओ की तरह तू महकती रहे",
+     "roman": "Khushbuon ki tarah tu mahekti rahe",
+     "gold": [
+      "khushbuon",
+      "ki",
+      "tarah",
+      "tu",
+      "mahekti",
+      "rahe"
+     ]
+    },
+    {
+     "line": "साथी तेरे नाम एक दिन जीवन कर जायेंगे",
+     "roman": "Saathi, tere naam ek din jeevan kar jaayenge",
+     "gold": [
+      "saathi",
+      "tere",
+      "naam",
+      "ek",
+      "din",
+      "jeevan",
+      "kar",
+      "jaayenge"
+     ]
+    },
+    {
+     "line": "प्यार तेरा मेरा गंगा जल की तरह",
+     "roman": "Pyaar tera-mera Ganga-jal ki tarah",
+     "gold": [
+      "pyaar",
+      "tera",
+      "mera",
+      "ganga",
+      "jal",
+      "ki",
+      "tarah"
+     ]
+    },
+    {
+     "line": "धरती अम्बर में तू दिल के मंदिर में तू",
+     "roman": "Dharti-amber me tu, dil ke mandar me tu",
+     "gold": [
+      "dharti",
+      "amber",
+      "me",
+      "tu",
+      "dil",
+      "ke",
+      "mandar",
+      "me",
+      "tu"
+     ]
+    },
+    {
+     "line": "तुम बिन मर जायेंगे (तुम बिन मर जायेंगे)",
+     "roman": "Tum bin mar jaayenge, tum bin mar jaayenge",
+     "gold": [
+      "tum",
+      "bin",
+      "mar",
+      "jaayenge",
+      "tum",
+      "bin",
+      "mar",
+      "jaayenge"
+     ]
+    }
+   ]
+  }
+ ]
+}

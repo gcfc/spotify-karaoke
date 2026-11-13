@@ -28,6 +28,22 @@ import {
   hasKanji,
   parseFuriganaReply,
 } from '../furigana.js';
+import {
+  geminiRomanizeRequest,
+  hasRomanWords,
+  parseRomanizeReply,
+  romanEntry,
+  romanizeCacheKey,
+  romanScriptOf,
+  ROMANIZE_ALLOWED_MODELS,
+  ROMANIZE_CACHE_TTL_S,
+  ROMANIZE_CHAINS,
+  ROMANIZE_CHUNK_LINES,
+  ROMANIZE_GEMINI_TIMEOUT_MS,
+  ROMANIZE_MAX_LINE_CHARS,
+  ROMANIZE_MAX_LINES,
+  ROMANIZE_STORED_MODEL,
+} from '../romanize.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -635,6 +651,46 @@ async function furiganaForSong(lines, model, apiKey) {
   return { readings, failures, chunks: chunks.length };
 }
 
+/**
+ * Romanizations for each word of each line, as `[[start, end, text], …]`
+ * per line.  The words are split here, from the shared romanize.js, and
+ * sent back with their offsets, so the page draws each over the word the
+ * Worker split — Thai's dictionary split can differ between platforms.
+ */
+async function romanizeWithGemini(lines, group, language, model, apiKey) {
+  const entries = lines.map((line) => romanEntry(line, group));
+  const resp = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify(geminiRomanizeRequest(entries, language)),
+    signal: AbortSignal.timeout(ROMANIZE_GEMINI_TIMEOUT_MS),
+  });
+  if (!resp.ok) {
+    const err = new Error(`Gemini HTTP ${resp.status}: ${(await resp.text()).slice(0, 200)}`);
+    err.status = resp.status;
+    throw err;
+  }
+  return parseRomanizeReply(entries, geminiReplyJson(await resp.json()));
+}
+
+/** A song's romanizations, in chunks of ROMANIZE_CHUNK_LINES sent together. */
+async function romanizeSong(lines, group, language, model, apiKey) {
+  const chunks = [];
+  for (let i = 0; i < lines.length; i += ROMANIZE_CHUNK_LINES) chunks.push(lines.slice(i, i + ROMANIZE_CHUNK_LINES));
+  const settled = await Promise.allSettled(chunks.map((chunk) => romanizeWithGemini(chunk, group, language, model, apiKey)));
+  const romanized = [];
+  const failures = [];
+  settled.forEach((s, k) => {
+    if (s.status === 'fulfilled') {
+      romanized.push(...s.value);
+    } else {
+      failures.push(s.reason);
+      romanized.push(...chunks[k].map(() => null));
+    }
+  });
+  return { romanized, failures, chunks: chunks.length };
+}
+
 // ── Route handlers ──
 
 function jsonResponse(body, status = 200) {
@@ -956,6 +1012,67 @@ async function handleFurigana(request, env, ctx) {
   return jsonResponse({ readings, model, cached: false, complete });
 }
 
+/**
+ * Romanizations for a song's distinct lines in Hindi, Thai, Arabic, Hebrew
+ * (and the other languages of their scripts).  As with /furigana, stored
+ * answers are looked up first — in the same KV namespace, under keys
+ * starting "romanize:" — and only a complete answer from the first model
+ * is stored.
+ */
+async function handleRomanize(request, env, ctx) {
+  const apiKey = env.GEMINI_API_KEY;
+  if (!apiKey) return jsonResponse({ error: 'GEMINI_API_KEY secret not configured' }, 501);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Body must be JSON' }, 400);
+  }
+
+  const language = body?.language;
+  const group = romanScriptOf(language);
+  // Greek is romanized by rules in the page; no model is spent on it.
+  if (!group || !ROMANIZE_CHAINS[group].some((step) => ROMANIZE_ALLOWED_MODELS.includes(step))) {
+    return jsonResponse({ error: `Unknown romanization language: ${language}` }, 400);
+  }
+  const lines = body?.lines;
+  if (!Array.isArray(lines) || lines.length === 0 || lines.length > ROMANIZE_MAX_LINES) {
+    return jsonResponse({ error: `lines must be an array of 1–${ROMANIZE_MAX_LINES} strings` }, 400);
+  }
+  if (!lines.every((l) => typeof l === 'string' && l.length <= ROMANIZE_MAX_LINE_CHARS && hasRomanWords(l, group))) {
+    return jsonResponse({ error: `every line must be a string of at most ${ROMANIZE_MAX_LINE_CHARS} characters with words in the language's script` }, 400);
+  }
+  const model = body?.model || ROMANIZE_STORED_MODEL;
+  if (!ROMANIZE_ALLOWED_MODELS.includes(model)) {
+    return jsonResponse({ error: `Unknown romanization model: ${model}` }, 400);
+  }
+
+  const cache = env.FURIGANA_CACHE;
+  const key = cache ? await romanizeCacheKey(language, lines) : null;
+  if (cache) {
+    const stored = await cache.get(key, 'json').catch(() => null);
+    if (Array.isArray(stored?.romanized) && stored.romanized.length === lines.length) {
+      return jsonResponse({ romanized: stored.romanized, model: stored.model, cached: true, complete: true });
+    }
+  }
+
+  const { romanized, failures, chunks } = await romanizeSong(lines, group, language, model, apiKey);
+  if (failures.length === chunks) {
+    const status = failures.every((f) => f.status === 429 || f.status === 503) ? failures[0].status : 502;
+    return jsonResponse({ error: failures[0].message }, status);
+  }
+
+  const complete = failures.length === 0;
+  if (cache && complete && model === ROMANIZE_STORED_MODEL) {
+    const put = cache.put(key, JSON.stringify({ romanized, model, storedAt: new Date().toISOString() }), {
+      expirationTtl: ROMANIZE_CACHE_TTL_S,
+    }).catch(() => {});
+    if (ctx?.waitUntil) ctx.waitUntil(put); else await put;
+  }
+  return jsonResponse({ romanized, model, cached: false, complete });
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
@@ -979,6 +1096,12 @@ export default {
           return jsonResponse({ error: 'Use POST' }, 405);
         }
         return await handleFurigana(request, env, ctx);
+      }
+      if (url.pathname === '/romanize') {
+        if (request.method !== 'POST') {
+          return jsonResponse({ error: 'Use POST' }, 405);
+        }
+        return await handleRomanize(request, env, ctx);
       }
       if (url.pathname === '/translate') {
         if (request.method !== 'POST') {

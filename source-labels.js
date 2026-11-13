@@ -1,6 +1,7 @@
 // ============================================================
 //  The source panel in the lower right: which service supplied the lyrics,
-//  the translation and the furigana now on screen, as
+//  the translation and the furigana — or, for Greek, Hindi, Thai, Arabic
+//  and Hebrew lyrics, the romanization — now on screen, as
 //  "lyrics | translation | furigana" — "Kugou | 3.5 | 3.1+kuro".
 //
 //  The slots keep their places: one that is off shows "–" while a later one
@@ -10,6 +11,7 @@
 // ============================================================
 
 import { DICTIONARY_STEP } from './furigana.js';
+import { RULES_STEP } from './romanize.js';
 
 export const SOURCE_LOADING = '…';
 export const SOURCE_FAILED = '×';
@@ -68,6 +70,18 @@ export function furiganaLabel(steps) {
 }
 
 /**
+ * The romanization slot, from fetchRomanization's onStep reports, as for
+ * furigana: "3.1", "3.1+rules", "3.1 (stored)"; Greek, by rules alone,
+ * shows "rules".
+ */
+export function romanizationLabel(steps) {
+  const parts = (steps || []).filter((s) => s.ok && s.filled > 0).map((s) => (s.step === RULES_STEP
+    ? 'rules'
+    : `${shortModelLabel(s.model || s.step)}${s.cached ? ' (stored)' : ''}`));
+  return parts.length > 0 ? parts.join('+') : SOURCE_FAILED;
+}
+
+/**
  * The lyrics slot, which is also the source picker's button.  Left to the
  * automatic chain it shows the source the lyrics came from, "…" while
  * looking and "×" when no source had any; with a source picked it names
@@ -84,11 +98,13 @@ export function lyricsSlot({ picked = null, shown = null, loading = false }) {
 }
 
 /**
- * The panel's slots, lyrics first.  `translation` and `furigana` are a
- * label, SOURCE_LOADING, SOURCE_FAILED, or null when that feature is off.
+ * The panel's slots, lyrics first.  `translation`, `furigana` and
+ * `romanization` are a label, SOURCE_LOADING, SOURCE_FAILED, or null when
+ * that feature is off.  Furigana and romanization share the third slot:
+ * lyrics are offered one or the other, never both.
  */
-export function sourcePanelSlots({ lyrics, translation, furigana }) {
-  const slots = [lyricsLabel(lyrics), translation, furigana];
+export function sourcePanelSlots({ lyrics, translation, furigana, romanization }) {
+  const slots = [lyricsLabel(lyrics), translation, furigana || romanization || null];
   while (slots.length > 1 && !slots[slots.length - 1]) slots.pop();
   return slots.map((s) => s || SOURCE_OFF);
 }

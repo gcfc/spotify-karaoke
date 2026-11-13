@@ -11,8 +11,9 @@ A static website that connects to your Spotify account and displays real-time sy
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
 - **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Pick the target language from the dropdown; the app falls back across an LLM, a keyless endpoint and Google Cloud on its own
 - **Furigana** — for Japanese lyrics, a 字 toggle puts each kanji word's reading above it, read in context by Gemini and scored against an answer key of eight songs (see [Furigana](#furigana))
+- **Romanization** — for Greek, Hindi (and Marathi, Nepali), Thai, Arabic (and Persian, Urdu) and Hebrew lyrics, a toggle whose glyph follows the script (क, ก, ب, ש, λ) puts each word in plain English letters under it — "pyaar", "habibi", "chan rak thoe" — so the lyrics can be sung without reading the script. Greek is romanized by rules in the page; the others by Gemini, scored against answer keys (see [Romanization](#romanization))
 - **Lyrics fonts** — the lyrics are tagged with their detected language (`lang`, and right-to-left lines for Arabic and Hebrew), so each language gets its platform's own font (PingFang, Hiragino, Apple SD Gothic Neo and Thonburi on Apple; Microsoft YaHei, Yu Gothic, Malgun Gothic and Leelawadee on Windows; Noto on Android and Linux), with a Noto web font downloaded only on a device with no font that draws the lyrics' characters (tested by drawing a few of them on a canvas) — Japanese is no longer drawn in Chinese glyph forms. A font picker beside the track name offers Google Fonts suited to the lyrics' script, remembered per script: for Latin-script lyrics Roboto, Open Sans, Noto Sans, Montserrat, Nunito, Oswald, Raleway, Exo 2, Comfortaa, Playfair Display and Lora, each of which covers English, Vietnamese and Cyrillic; for Chinese 宋体, 龙藏体, 马山正, 志莽行, 站酷小薇 and 站酷快乐; for Japanese the rounded gothics of karaoke screens (丸ゴシック, Zen丸ゴシック) plus 明朝, デラゴシック and 油性マジック; for Korean 주아, 도현, 검은고딕, 고운돋움, 명조 and 나눔펜; for Thai Kanit, Prompt, Mitr, Sarabun, Chakra Petch, Itim and Pridi; for Arabic (also Persian and Urdu) Cairo, Tajawal, Almarai, El Messiri, Reem Kufi, Lalezar, Changa and Amiri; for Hebrew Heebo, Rubik, Assistant, Varela Round, Secular One, Suez One and Frank Ruhl Libre; for Devanagari (Hindi, Marathi, Nepali) Hind, Mukta, Poppins, Baloo 2, Kalam, Martel, Rozha One and Yatra One; for Greek Roboto, Open Sans, Noto Sans, Commissioner, Manrope, Ubuntu, Fira Sans, Comfortaa, Advent Pro, Alegreya and GFS Didot. Fonts with a true bold are drawn in it; translations stay in the page's own font. Fonts load lazily: a font only once the lyrics are drawn in it, and for the menu's previews only the letters of each font's name (about 12 KB for the Chinese menu rather than 830 KB). The list is in `fonts.js`
-- **Source panel** — the lower right says where what is on screen came from, as `lyrics | translation | furigana`: `Kugou | 3.5 | 3.1+kuro` is Kugou's lyrics, translated by gemini-3.5-flash-lite, with furigana from gemini-3.1-flash-lite and kuromoji. The lyrics slot shows `Spotify`, `LRCLIB`, `Kugou`, `QQ` or `NetEase`, and is a menu: pick LRCLIB, Kugou, QQ or NetEase there to load the current track's lyrics from that source alone (Spotify is not offered, since Auto asks it first anyway) (it is highlighted while picked, shows "No lyrics available for this track on …" when that source has none, and goes back to Auto on the next track). A model shows its version (`3.1`, `3.5`); the translation's `gemini-flash-lite-latest` alias shows the version it points at, or `flash-lite` until the Worker is redeployed with this change. The other labels are `Google` and `Google Cloud` for the non-model translators, `kuro` for the kuromoji dictionary, `(stored)` for furigana from the Worker's stored readings, and `printed` for readings the lyrics carry themselves. A slot that is off shows `–` when a later one is on, `…` means still loading, and `×` means every source failed
+- **Source panel** — the lower right says where what is on screen came from, as `lyrics | translation | furigana`: `Kugou | 3.5 | 3.1+kuro` is Kugou's lyrics, translated by gemini-3.5-flash-lite, with furigana from gemini-3.1-flash-lite and kuromoji. For lyrics romanized instead, the third slot names the romanization's source the same way (`3.1`, `3.1+rules`, `rules` for Greek). The lyrics slot shows `Spotify`, `LRCLIB`, `Kugou`, `QQ` or `NetEase`, and is a menu: pick LRCLIB, Kugou, QQ or NetEase there to load the current track's lyrics from that source alone (Spotify is not offered, since Auto asks it first anyway) (it is highlighted while picked, shows "No lyrics available for this track on …" when that source has none, and goes back to Auto on the next track). A model shows its version (`3.1`, `3.5`); the translation's `gemini-flash-lite-latest` alias shows the version it points at, or `flash-lite` until the Worker is redeployed with this change. The other labels are `Google` and `Google Cloud` for the non-model translators, `kuro` for the kuromoji dictionary, `(stored)` for furigana from the Worker's stored readings, and `printed` for readings the lyrics carry themselves. A slot that is off shows `–` when a later one is on, `…` means still loading, and `×` means every source failed
 - **Responsive** — works on desktop and mobile
 
 ## Quick Start
@@ -85,7 +86,7 @@ wrangler secret put SP_DC
 
 # Optional: keys for the translation providers (see below)
 wrangler secret put GOOGLE_TRANSLATE_API_KEY
-wrangler secret put GEMINI_API_KEY        # also enables furigana
+wrangler secret put GEMINI_API_KEY        # also enables furigana and romanization
 wrangler secret put OPENROUTER_API_KEY
 
 # Deploy
@@ -508,6 +509,107 @@ moving between reads.
 - **Polling latency**: Lyrics sync is approximate — the animation loop interpolates between polls, so accuracy tracks the active source's cadence rather than matching playback exactly.
 - **Tesla source auth is not wired**: the adapter is complete and tested, but it needs a server-side Fleet API route before it returns anything. See *Tesla source status* above.
 
+## Romanization
+
+For lyrics in Greek, Devanagari (Hindi, Marathi, Nepali), Thai, Arabic
+(Arabic, Persian, Urdu) and Hebrew, the romanization toggle writes each word in
+plain English letters under it. The spelling is the kind people type when they
+share lyrics — no accents or tone marks — so `प्यार` is `pyaar`, `حبيبي` is
+`habibi`, `אני אוהב אותך` is `ani ohev otach`. Nothing is sent until the toggle
+is switched on, the lyrics keep scrolling while it loads, and it is remembered
+between songs like the furigana toggle.
+
+### How a line is romanized
+
+It works like furigana (`romanize.js`):
+
+1. **Words are split locally** (`romanWords`): letters and marks, keeping an
+   apostrophe or Hebrew geresh inside a word. Only words in the lyrics' script
+   are romanized; English lines in a Hindi song are left alone. Thai, written
+   without spaces, is split by the platform's word dictionary
+   (`Intl.Segmenter`), which browsers and Cloudflare Workers both have.
+2. **The model is given the whole line and a list of its words**, and answers
+   one romanization per word, in a numbered list. It never writes the lyric text
+   back, so it cannot change it. A line answered with the wrong number of words
+   is dropped and goes to the next source. Romanizations are checked: accents
+   are stripped, and anything not in Latin letters (`7abibi`, or the script
+   itself) is refused.
+3. **Each word's romanization is drawn under it**, as ruby, using the same
+   layout as furigana. Word-synced lyrics keep each word timed, and in Arabic
+   and Hebrew lines, which run right to left, each word keeps its own
+   romanization under it.
+4. **The Worker sends back the words it romanized, with their places in the
+   line.** Thai's dictionary split can differ between platforms, so the page
+   draws over the Worker's words rather than splitting the line again.
+
+### Where romanizations come from
+
+| Script | Sources, in order | Why |
+|---|---|---|
+| Greek | rules (`romanizeGreekWord`) | Spelled almost as it sounds; no model needed |
+| Devanagari | gemini-3.1-flash-lite → gemini-3.5-flash-lite → rules (`romanizeHindiWord`) | The rules only have to work out which inherent "a" Hindi leaves unsaid (*kamla*, not *kamala*), and get most words right |
+| Thai | gemini-3.1-flash-lite → gemini-3.5-flash-lite | No spaces, and vowels and tones go unwritten; no rules worth falling back to |
+| Arabic | gemini-3.1-flash-lite → gemini-3.5-flash-lite | Short vowels go unwritten, and songs are often in a dialect |
+| Hebrew | gemini-3.1-flash-lite → gemini-3.5-flash-lite | Vowels go unwritten |
+
+As with furigana, each source fills only the words the ones before it left. The
+Worker's `/romanize` route looks up stored romanizations first, in the same KV
+namespace as furigana (`FURIGANA_CACHE`), under keys starting `romanize:`. It
+stores only complete answers from gemini-3.1-flash-lite, and keeps them for 180
+days. Greek never reaches the Worker. Romanization needs the Worker redeployed
+with this change and its `GEMINI_API_KEY` secret. Until then, Thai, Arabic and
+Hebrew show `×`, Hindi falls back to its rules, and Greek works as is.
+
+### Evaluation
+
+`tests/eval_romanize_live.mjs` runs each source through the page's own code,
+with requests handed straight to the Worker's handler. A word scores **exact**
+when it matches an accepted spelling, and **loose** when it matches once the
+spellings typed lyrics disagree on are folded together: vowel length
+(*pyaar*/*pyar*), w/v, z/j, doubled letters, *-ein*/*-en*, and a final nasal *n*
+(*nahin*/*nahi*). Results over three runs (November 2026):
+
+| Language (words) | gemini-3.1-flash-lite | gemini-3.5-flash-lite | rules |
+|---|---|---|---|
+| Hindi (918) | 95.2% loose, 81.3% exact | 93.4–94.4% loose, 78.3–79.1% exact; dropped 2 of 154 lines in one run | 93.8% loose, 76.9% exact |
+| Thai (63) | 100% | 95.2–100% | — |
+| Arabic (31) | 100% | 87.1–96.8% | — |
+| Hebrew (33) | 100% | 97–100% loose | — |
+| Greek (47) | — | — | 100% |
+
+- **Hindi** is scored against `tests/romanize_gold_hi.json`: 918 words from 154
+  lines of 15 Bollywood songs. For each song, LRCLIB has one upload in
+  Devanagari and one typed in English letters. `tools/romanize-eval/build_gold.mjs`
+  pairs their lines by timestamp and keeps a pair only when it has the same
+  number of words and most of them start with the same sound.
+  - The key is what listeners typed. Most remaining "misses" are a second valid
+    spelling (*achhe*/*achchhe*, *gam*/*gham*), and a few are the key's own
+    errors (its Devanagari has बेती for बैठी). So the loose score is the fairer
+    measure.
+  - The Hindi rules come within 1.4 points of the model, which makes them a
+    sound fallback.
+- **Thai, Arabic, Hebrew and Greek** are scored against
+  `tests/romanize_gold_small.json`: about a dozen common lyric phrases per
+  language. LRCLIB has almost no songs in these scripts uploaded both ways.
+  - The keys were written for this project, with the accepted spellings
+    listed per word, so the scores are indicative until a native speaker
+    checks them.
+  - Three valid readings were added after the first run: Arabic *ohibbuk* and
+    *kolha*, and Hebrew *et* for את, which is genuinely ambiguous in its line.
+  - The Greek key was written with the rules in mind, so its 100% mostly shows
+    the rules do what they were meant to.
+- The order follows the numbers: 3.1 is as good as or better than 3.5 for every
+  language, and answered every line in every run.
+
+```bash
+GEMINI_API_KEY=… node tests/eval_romanize_live.mjs --runs 3            # every language, every source, and the chain
+GEMINI_API_KEY=… node tests/eval_romanize_live.mjs --lang hi --source gemini-3.1-flash-lite --misses   # what one source got wrong
+node tools/romanize-eval/build_gold.mjs hi tests/romanize_gold_hi.json "tum hi ho arijit" "kesariya arijit" …   # rebuild the Hindi key
+```
+
+`node tests/test_romanize.mjs` covers the same code offline: the splitting, both
+sets of rules, the reply checks and the chain.
+
 ## File Structure
 
 ```
@@ -521,12 +623,14 @@ spotify-karaoke/
 ├── translate.js        # Language detection + translation providers
 ├── furigana.js         # Kanji runs, the reading chain, prompt, reply checks, layout
 ├── kuromoji-worker.js  # Web Worker running kuromoji, the furigana dictionary step
+├── romanize.js         # Words, Greek and Hindi rules, the romanization chain, prompt, reply checks
 ├── source-labels.js    # Text of the lower-right source panel
 ├── fonts.js            # The lyrics font picker's fonts, per script
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── tools/
 │   ├── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
-│   └── furigana-eval/  # Builds tests/furigana_gold.json (has its own npm deps)
+│   ├── furigana-eval/  # Builds tests/furigana_gold.json (has its own npm deps)
+│   └── romanize-eval/  # Builds tests/romanize_gold_hi.json from LRCLIB; scoring
 ├── tests/              # Node and Python tests — `node tests/test_matching.mjs`,
 │                       # `node tests/test_source_priority.mjs`,
 │                       # `node tests/test_sources.mjs`,
@@ -536,9 +640,11 @@ spotify-karaoke/
 │                       # `node tests/test_translate.mjs`,
 │                       # `node tests/test_furigana.mjs`,
 │                       # `node tests/test_source_labels.mjs`,
-│                       # `node tests/test_fonts.mjs`;
+│                       # `node tests/test_fonts.mjs`,
+│                       # `node tests/test_romanize.mjs`;
 │                       # live: `node tests/test_cn_lyrics_live.mjs`,
-│                       # `GEMINI_API_KEY=… node tests/eval_furigana_live.mjs`
+│                       # `GEMINI_API_KEY=… node tests/eval_furigana_live.mjs`,
+│                       # `GEMINI_API_KEY=… node tests/eval_romanize_live.mjs`
 ├── worker/
 │   ├── worker.js       # Cloudflare Worker (lyrics proxy)
 │   └── wrangler.toml   # Worker config

@@ -8,6 +8,7 @@ import {
 import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
 import { detectLyricsLanguage, languageTag, normalizeProvider, shouldOfferTranslation, translateLines } from './translate.js';
 import { dictionaryReadings, fetchFurigana, furiganaSegments, hasKanji, layoutWordFurigana } from './furigana.js';
+import { fetchRomanization, hasRomanWords, ROMAN_SCRIPTS, romanLanguage } from './romanize.js';
 import {
   findFont,
   fontFamilyValue,
@@ -20,6 +21,7 @@ import {
 } from './fonts.js';
 import {
   furiganaLabel,
+  romanizationLabel,
   lyricsLabel,
   lyricsSlot,
   SOURCE_FAILED,
@@ -75,6 +77,7 @@ const translateControl = $('#translate-control');
 const translateToggle = $('#translate-toggle');
 const translateMenuToggle = $('#translate-menu-toggle');
 const furiganaToggle = $('#furigana-toggle');
+const romanizeToggle = $('#romanize-toggle');
 
 // ============================================================
 //  State
@@ -323,6 +326,9 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   lyricsFurigana = null;
   furiganaRequestId++;      // abandon any furigana still in flight…
   furiganaToggle.classList.remove('loading');   // …so the button is not left waiting on it
+  lyricsRomanization = null;
+  romanizeRequestId++;
+  romanizeToggle.classList.remove('loading');
   lyricsOffsetMs = 0;
   updateOffsetLabel();
   hideLyricsOffset();
@@ -344,6 +350,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
       : 'No lyrics available for this track');
     hideTranslateControl();
     hideFuriganaControl();
+    hideRomanizeControl();
     // The panel stays, so another source can still be picked.
     showLyricsSource(lyricsSlot({ picked: picked?.label }));
     return;
@@ -366,6 +373,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
 
   refreshTranslateControl();
   refreshFuriganaControl();
+  refreshRomanizeControl();
 }
 
 // ============================================================
@@ -414,7 +422,9 @@ function renderSyncedLyrics() {
  * when furigana is on and has arrived for the line.
  */
 function fillLineText(textEl, index) {
-  const annotations = lyricsFurigana ? lyricsFurigana[index] : null;
+  // Furigana or romanization: lyrics are offered one or the other.
+  const annotations = (lyricsFurigana ? lyricsFurigana[index] : null)
+    || (lyricsRomanization ? lyricsRomanization[index] : null);
   textEl.replaceChildren();
 
   if (Array.isArray(lyrics)) {
@@ -737,7 +747,7 @@ function hideStatus() {
 // The source panel, lower right: "lyrics | translation | furigana" — see
 // source-labels.js for what each slot shows.  The lyrics slot is a menu
 // button: picking a source there fetches this track's lyrics from it alone.
-const sourcePanel = { lyrics: '', translation: null, furigana: null };
+const sourcePanel = { lyrics: '', translation: null, furigana: null, romanization: null };
 
 function renderSourcePanel() {
   if (!sourcePanel.lyrics) {
@@ -752,7 +762,7 @@ function renderSourcePanel() {
   lyricsSourceEl.classList.remove('hidden');
 }
 
-/** Set one slot of the panel: 'translation' or 'furigana'. */
+/** Set one slot of the panel: 'translation', 'furigana' or 'romanization'. */
 function setSource(slot, value) {
   sourcePanel[slot] = value;
   renderSourcePanel();
@@ -769,6 +779,7 @@ function resetSourcePanel(lyricsText) {
   sourcePanel.lyrics = lyricsText || '';
   sourcePanel.translation = null;
   sourcePanel.furigana = null;
+  sourcePanel.romanization = null;
   renderSourcePanel();
 }
 
@@ -1524,6 +1535,146 @@ function refreshFuriganaControl() {
 }
 
 furiganaToggle.addEventListener('click', () => setFuriganaEnabled(!furiganaEnabled));
+
+// ============================================================
+//  Romanization — Greek, Hindi, Thai, Arabic and Hebrew lyrics in English
+//  letters, under each word (see romanize.js)
+// ============================================================
+
+const ROMANIZE_ON_KEY = 'romanize-on';
+
+let romanizeEnabled = localStorage.getItem(ROMANIZE_ON_KEY) === '1';
+let lyricsRomanization = null;   // per rendered line: annotations, [] or null
+let romanizeRequestId = 0;       // guards against a slow reply for an old track
+let romanizeGroup = null;        // the lyrics' script group, while the button shows
+let romanizeLanguage = null;
+
+// The button's glyph: a letter of the lyrics' script over its romanization.
+const ROMANIZE_GLYPHS = { el: ['λ', 'l'], hi: ['क', 'k'], th: ['ก', 'k'], ar: ['ب', 'b'], he: ['ש', 'sh'] };
+
+const ROMANIZE_CACHE_MAX = 30;
+const romanizeCache = new Map();
+
+function romanizeCacheGet(key) {
+  if (!romanizeCache.has(key)) return undefined;
+  const value = romanizeCache.get(key);
+  romanizeCache.delete(key);
+  romanizeCache.set(key, value);
+  return value;
+}
+
+function romanizeCacheSet(key, value) {
+  if (romanizeCache.has(key)) romanizeCache.delete(key);
+  romanizeCache.set(key, value);
+  if (romanizeCache.size > ROMANIZE_CACHE_MAX) romanizeCache.delete(romanizeCache.keys().next().value);
+}
+
+/** Redraw every line's text, with or without romanization. */
+function applyRomanization() {
+  lyricsLines.classList.toggle('with-romanization', Boolean(lyricsRomanization));
+  lineElements().forEach((el, i) => {
+    const textEl = el.querySelector('.line-text');
+    if (textEl) fillLineText(textEl, i);
+  });
+}
+
+function hideRomanizeControl() {
+  romanizeToggle.classList.add('hidden');
+  romanizeGroup = null;
+}
+
+/**
+ * Fetch and show romanization for the current track.  As with furigana,
+ * nothing is sent until the button is switched on, and the lyrics keep
+ * scrolling while it loads.
+ */
+async function loadRomanization() {
+  const texts = currentLineTexts();
+  const group = romanizeGroup;
+  if (texts.length === 0 || !group) return;
+
+  const requestId = ++romanizeRequestId;
+  const key = `${currentTrackId}:${currentLyricsSource}`;
+  const cached = romanizeCacheGet(key);
+  if (cached) {
+    romanizeToggle.classList.remove('loading');
+    lyricsRomanization = cached.result;
+    setSource('romanization', cached.source);
+    applyRomanization();
+    return;
+  }
+
+  romanizeToggle.classList.add('loading');
+  setSource('romanization', SOURCE_LOADING);
+
+  const steps = [];
+  const result = await fetchRomanization(texts, {
+    group,
+    language: romanizeLanguage,
+    workerUrl: CONFIG.WORKER_URL,
+    onStep: (s) => steps.push(s),
+  });
+
+  if (requestId !== romanizeRequestId) return;
+  romanizeToggle.classList.remove('loading');
+
+  if (!result) {
+    console.debug('[romanize] none returned; showing lyrics as they are');
+    setSource('romanization', SOURCE_FAILED);
+    return;
+  }
+
+  const source = romanizationLabel(steps);
+  romanizeCacheSet(key, { result, source });
+  lyricsRomanization = result;
+  setSource('romanization', source);
+  applyRomanization();
+}
+
+function setRomanizeEnabled(enabled) {
+  romanizeEnabled = enabled;
+  localStorage.setItem(ROMANIZE_ON_KEY, enabled ? '1' : '0');
+  romanizeToggle.classList.toggle('active', enabled);
+  romanizeToggle.setAttribute('aria-pressed', String(enabled));
+  romanizeToggle.title = enabled ? 'Hide romanization' : 'Show romanization';
+
+  if (enabled) {
+    loadRomanization();
+  } else {
+    romanizeRequestId++;   // abandon anything in flight
+    romanizeToggle.classList.remove('loading');
+    lyricsRomanization = null;
+    setSource('romanization', null);
+    applyRomanization();
+  }
+}
+
+/** Show the button only for lyrics in a script romanize.js covers. */
+function refreshRomanizeControl() {
+  const texts = currentLineTexts();
+  const sample = texts.slice(0, 40).join('\n');
+  const language = lyrics ? detectLyricsLanguage(sample, lyricsLanguage) : '';
+  const group = lyrics ? fontGroupFor(language, sample) : null;
+
+  if (!group || !ROMAN_SCRIPTS[group] || !texts.some((t) => hasRomanWords(t, group))) {
+    hideRomanizeControl();
+    setSource('romanization', null);
+    return;
+  }
+
+  romanizeGroup = group;
+  romanizeLanguage = romanLanguage(group, language);
+  const [letter, roman] = ROMANIZE_GLYPHS[group];
+  romanizeToggle.querySelector('.romanize-glyph-letter').textContent = letter;
+  romanizeToggle.querySelector('.romanize-glyph rt').textContent = roman;
+  romanizeToggle.classList.remove('hidden');
+  romanizeToggle.classList.toggle('active', romanizeEnabled);
+  romanizeToggle.setAttribute('aria-pressed', String(romanizeEnabled));
+  romanizeToggle.title = romanizeEnabled ? 'Hide romanization' : 'Show romanization';
+  if (romanizeEnabled) loadRomanization();
+}
+
+romanizeToggle.addEventListener('click', () => setRomanizeEnabled(!romanizeEnabled));
 
 // ============================================================
 //  Theme — follows the local sunrise / sunset

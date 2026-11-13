@@ -857,6 +857,41 @@ html, body {
   line-height: 1.9;
 }
 
+/* ─── Romanization ─── */
+
+#romanize-toggle.active {
+  color: var(--accent);
+}
+
+#romanize-toggle.loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Romanization goes under each word, where it reads as a line to sing,
+   rather than over it like furigana. */
+.romanize-glyph {
+  align-items: flex-start;
+}
+
+.romanize-glyph ruby,
+#lyrics-lines.with-romanization ruby {
+  ruby-position: under;
+}
+
+/* In the page's font whatever the lyrics are drawn in: a Thai or Arabic
+   display font's Latin letters can be hard to read that small. */
+#lyrics-lines.with-romanization .line-text rt {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: max(0.42em, 11px);
+  letter-spacing: 0.01em;
+}
+
+#lyrics-lines.with-romanization .lyrics-line,
+#lyrics-lines.with-romanization .lyrics-plain {
+  line-height: 2;
+}
+
 /* ─── Lyrics Offset Controls ─── */
 
 .lyrics-offset {
