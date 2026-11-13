@@ -372,6 +372,7 @@ function clearLyricsDisplay() {
   lyricsLines.innerHTML = '';
   lyricsLines.style.fontFamily = '';
   lyricsLines.style.fontWeight = '';
+  lyricsLines.classList.remove('cjk-bold');   // put back by applyCjkFont, for Chinese lyrics only
   hideStatus();
   hideCjkFontPicker();
 }
@@ -962,6 +963,11 @@ function detectChineseLyrics() {
 
 const CJK_BOLD_FONTS = new Set(['', 'Noto Serif SC', 'Long Cang']);
 
+// 宋体's strokes are hairline-thin, so at the lyrics' usual weight (600) it
+// reads as light; it is drawn in its true bold instead (see .cjk-bold in
+// style.css).  The 700 weight is among those loadGoogleFont requests.
+const CJK_TRUE_BOLD_FONTS = new Set(['Noto Serif SC']);
+
 function applyCjkFont(fontName) {
   currentCjkFont = fontName;
   localStorage.setItem('cjk-font', fontName);
@@ -972,6 +978,7 @@ function applyCjkFont(fontName) {
     lyricsLines.style.fontFamily = '';
   }
   lyricsLines.style.fontWeight = CJK_BOLD_FONTS.has(fontName) ? '' : '300';
+  lyricsLines.classList.toggle('cjk-bold', CJK_TRUE_BOLD_FONTS.has(fontName));
 }
 
 const cjkPickerToggle = cjkFontPicker.querySelector('.cjk-picker-toggle');

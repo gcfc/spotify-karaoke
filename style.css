@@ -432,6 +432,14 @@ html, body {
   padding: 2rem 0;
 }
 
+/* 宋体 picked for Chinese lyrics: its hairline strokes read as light at the
+   usual weight, so synced and plain lyrics alike take its true bold.
+   Translations and furigana keep their own weights. */
+#lyrics-lines.cjk-bold .lyrics-line,
+#lyrics-lines.cjk-bold .lyrics-plain {
+  font-weight: 700;
+}
+
 /* One element per line so a translation can sit under each. An empty line
    keeps the blank-line spacing the old pre-wrap block used to give. */
 .lyrics-plain-line {
