@@ -11,6 +11,7 @@ A static website that connects to your Spotify account and displays real-time sy
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
 - **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Pick the target language from the dropdown; the app falls back across an LLM, a keyless endpoint and Google Cloud on its own
 - **Furigana** — for Japanese lyrics, a 字 toggle puts each kanji word's reading above it, read in context by Gemini and scored against an answer key of eight songs (see [Furigana](#furigana))
+- **Lyrics fonts** — the lyrics are tagged with their detected language (`lang`, and right-to-left lines for Arabic and Hebrew), so each language gets its platform's own font (PingFang, Hiragino, Apple SD Gothic Neo and Thonburi on Apple; Microsoft YaHei, Yu Gothic, Malgun Gothic and Leelawadee on Windows; Noto on Android and Linux), with a Noto web font downloaded only on a device with no font that draws the lyrics' characters (tested by drawing a few of them on a canvas) — Japanese is no longer drawn in Chinese glyph forms. A font picker beside the track name offers Google Fonts suited to the lyrics' script, remembered per script: for Latin-script lyrics Roboto, Open Sans, Noto Sans, Montserrat, Nunito, Oswald, Raleway, Exo 2, Comfortaa, Playfair Display and Lora, each of which covers English, Vietnamese and Cyrillic; for Chinese 宋体, 龙藏体, 马山正, 志莽行, 站酷小薇 and 站酷快乐; for Japanese the rounded gothics of karaoke screens (丸ゴシック, Zen丸ゴシック) plus 明朝, デラゴシック and 油性マジック; for Korean 주아, 도현, 검은고딕, 고운돋움, 명조 and 나눔펜; for Thai Kanit, Prompt, Mitr, Sarabun, Chakra Petch, Itim and Pridi; for Arabic (also Persian and Urdu) Cairo, Tajawal, Almarai, El Messiri, Reem Kufi, Lalezar, Changa and Amiri; for Hebrew Heebo, Rubik, Assistant, Varela Round, Secular One, Suez One and Frank Ruhl Libre; for Devanagari (Hindi, Marathi, Nepali) Hind, Mukta, Poppins, Baloo 2, Kalam, Martel, Rozha One and Yatra One; for Greek Roboto, Open Sans, Noto Sans, Commissioner, Manrope, Ubuntu, Fira Sans, Comfortaa, Advent Pro, Alegreya and GFS Didot. Fonts with a true bold are drawn in it; translations stay in the page's own font. Fonts load lazily: a font only once the lyrics are drawn in it, and for the menu's previews only the letters of each font's name (about 12 KB for the Chinese menu rather than 830 KB). The list is in `fonts.js`
 - **Source panel** — the lower right says where what is on screen came from, as `lyrics | translation | furigana`: `Kugou | 3.5 | 3.1+kuro` is Kugou's lyrics, translated by gemini-3.5-flash-lite, with furigana from gemini-3.1-flash-lite and kuromoji. The lyrics slot shows `Spotify`, `LRCLIB`, `Kugou`, `QQ` or `NetEase`, and is a menu: pick LRCLIB, Kugou, QQ or NetEase there to load the current track's lyrics from that source alone (Spotify is not offered, since Auto asks it first anyway) (it is highlighted while picked, shows "No lyrics available for this track on …" when that source has none, and goes back to Auto on the next track). A model shows its version (`3.1`, `3.5`); the translation's `gemini-flash-lite-latest` alias shows the version it points at, or `flash-lite` until the Worker is redeployed with this change. The other labels are `Google` and `Google Cloud` for the non-model translators, `kuro` for the kuromoji dictionary, `(stored)` for furigana from the Worker's stored readings, and `printed` for readings the lyrics carry themselves. A slot that is off shows `–` when a later one is on, `…` means still loading, and `×` means every source failed
 - **Responsive** — works on desktop and mobile
 
@@ -521,6 +522,7 @@ spotify-karaoke/
 ├── furigana.js         # Kanji runs, the reading chain, prompt, reply checks, layout
 ├── kuromoji-worker.js  # Web Worker running kuromoji, the furigana dictionary step
 ├── source-labels.js    # Text of the lower-right source panel
+├── fonts.js            # The lyrics font picker's fonts, per script
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── tools/
 │   ├── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
@@ -533,7 +535,8 @@ spotify-karaoke/
 │                       # `node tests/test_qq.mjs`,
 │                       # `node tests/test_translate.mjs`,
 │                       # `node tests/test_furigana.mjs`,
-│                       # `node tests/test_source_labels.mjs`;
+│                       # `node tests/test_source_labels.mjs`,
+│                       # `node tests/test_fonts.mjs`;
 │                       # live: `node tests/test_cn_lyrics_live.mjs`,
 │                       # `GEMINI_API_KEY=… node tests/eval_furigana_live.mjs`
 ├── worker/

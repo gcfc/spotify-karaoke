@@ -6,8 +6,18 @@ import {
   selectSourceId,
 } from './sources.js';
 import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
-import { detectLyricsLanguage, normalizeProvider, shouldOfferTranslation, translateLines } from './translate.js';
+import { detectLyricsLanguage, languageTag, normalizeProvider, shouldOfferTranslation, translateLines } from './translate.js';
 import { dictionaryReadings, fetchFurigana, furiganaSegments, hasKanji, layoutWordFurigana } from './furigana.js';
+import {
+  findFont,
+  fontFamilyValue,
+  fontGroupFor,
+  fontStorageKey,
+  googleFontsUrl,
+  previewFontUrl,
+  scriptChars,
+  LYRICS_FONT_GROUPS,
+} from './fonts.js';
 import {
   furiganaLabel,
   lyricsLabel,
@@ -60,7 +70,7 @@ const touchControlToggle = $('#touch-control-toggle');
 const progressBarTrack = $('.progress-bar-track');
 const lyricsOffsetEl = $('#lyrics-offset');
 const offsetResetBtn = lyricsOffsetEl.querySelector('.offset-reset');
-const cjkFontPicker = $('#cjk-font-picker');
+const fontPicker = $('#font-picker');
 const translateControl = $('#translate-control');
 const translateToggle = $('#translate-toggle');
 const translateMenuToggle = $('#translate-menu-toggle');
@@ -352,13 +362,7 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
   }
   showLyricsSource(lyricsSlot({ picked: picked?.label, shown: result.source }));
 
-  if (detectChineseLyrics()) {
-    showCjkFontPicker();
-    if (currentCjkFont) applyCjkFont(currentCjkFont);
-  } else {
-    hideCjkFontPicker();
-    lyricsLines.style.fontFamily = '';
-  }
+  refreshFontPicker();
 
   refreshTranslateControl();
   refreshFuriganaControl();
@@ -370,11 +374,10 @@ async function fetchAndSetLyrics(trackId, trackName, artistName, trackDurationMs
 
 function clearLyricsDisplay() {
   lyricsLines.innerHTML = '';
-  lyricsLines.style.fontFamily = '';
-  lyricsLines.style.fontWeight = '';
-  lyricsLines.classList.remove('cjk-bold');   // put back by applyCjkFont, for Chinese lyrics only
+  clearLyricsFont();   // put back by refreshFontPicker once lyrics are drawn
+  lyricsLines.removeAttribute('lang');
   hideStatus();
-  hideCjkFontPicker();
+  hideFontPicker();
 }
 
 function hideTranslateControl() {
@@ -395,6 +398,7 @@ function renderSyncedLyrics() {
     // as a sibling without disturbing them.
     const textEl = document.createElement('span');
     textEl.className = 'line-text';
+    textEl.dir = 'auto';   // right to left for Arabic and Hebrew lines
     fillLineText(textEl, i);
 
     el.appendChild(textEl);
@@ -517,6 +521,7 @@ function renderPlainLyrics(text) {
 
     const textEl = document.createElement('span');
     textEl.className = 'line-text';
+    textEl.dir = 'auto';   // right to left for Arabic and Hebrew lines
     fillLineText(textEl, i);
     el.appendChild(textEl);
 
@@ -917,118 +922,199 @@ function hideLyricsOffset() {
 }
 
 // ============================================================
-//  CJK Font Picker
+//  Lyrics Font Picker
 // ============================================================
 
-const CJK_FONTS = {
-  'Noto Serif SC': 'Noto+Serif+SC:wght@400;600;700',
-  'Long Cang': 'Long+Cang',
-  'Ma Shan Zheng': 'Ma+Shan+Zheng',
-  'Zhi Mang Xing': 'Zhi+Mang+Xing',
-  'ZCOOL XiaoWei': 'ZCOOL+XiaoWei',
-  'ZCOOL KuaiLe': 'ZCOOL+KuaiLe',
-};
-
+// Offered for every script fonts.js has fonts for, with the choice
+// remembered per script.
+let fontGroup = null;   // the group of the lyrics on screen, or null when none is offered
+let fontSample = '';    // some of the lyrics on screen, for the device test below
 const loadedFonts = new Set();
+const deviceDraws = new Map();   // group → whether the device has fonts for its script
 
-function loadGoogleFont(fontName) {
-  if (!fontName || loadedFonts.has(fontName)) return;
-  const spec = CJK_FONTS[fontName];
-  if (!spec) return;
+// The picker once covered Chinese only, under one key.
+if (localStorage.getItem('cjk-font') !== null && localStorage.getItem(fontStorageKey('zh')) === null) {
+  localStorage.setItem(fontStorageKey('zh'), localStorage.getItem('cjk-font'));
+}
+localStorage.removeItem('cjk-font');
+
+function loadStylesheet(url) {
+  if (!url || loadedFonts.has(url)) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?family=${spec}&display=swap`;
+  link.href = url;
   document.head.appendChild(link);
-  loadedFonts.add(fontName);
+  loadedFonts.add(url);
 }
 
-const CJK_RE = /[\u4e00-\u9fff]/;
-const JAPANESE_RE = /[\u3040-\u309f\u30a0-\u30ff]/;
-let currentCjkFont = localStorage.getItem('cjk-font') || '';
-
-function detectChineseLyrics() {
-  if (lyricsLanguage) {
-    return lyricsLanguage.toLowerCase().startsWith('zh');
+/** How `text` looks drawn on a canvas in `lang`, in the CSS font list `fonts`. */
+function canvasLook(text, fonts, lang) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 240;
+  canvas.height = 48;
+  canvas.lang = lang;
+  canvas.style.cssText = 'position:absolute;left:-9999px;top:0';
+  document.body.appendChild(canvas);   // a canvas takes its language from the page only once in it
+  try {
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if ('lang' in ctx) ctx.lang = lang;
+    ctx.font = `32px ${fonts}`;
+    ctx.textBaseline = 'top';
+    ctx.fillText(text, 4, 4);
+    return `${ctx.measureText(text).width}:${ctx.getImageData(0, 0, canvas.width, canvas.height).data.join('')}`;
+  } finally {
+    canvas.remove();
   }
-  let sample = '';
-  if (typeof lyrics === 'string') {
-    sample = lyrics;
-  } else if (Array.isArray(lyrics)) {
-    sample = lyrics.slice(0, 5).map((l) => l.words || '').join('');
+}
+
+/** Whether the font `name` is installed: text drawn in it differs from the
+ *  generic font's (tried against two, in case it is one of them). */
+function fontInstalled(name, text) {
+  return ['monospace', 'serif'].some((generic) => canvasLook(text, `"${name}", ${generic}`, '') !== canvasLook(text, generic, ''));
+}
+
+/**
+ * Whether the device can draw the lyrics in `group`'s script.  A character
+ * no font has is drawn as the same empty box as a code point nothing is
+ * assigned to, so each of a few lyrics' characters is drawn on a canvas and
+ * compared with that.
+ *
+ * Chinese and Japanese also need a font of their own: a Chinese font has
+ * kana and kanji too, but draws many kanji (直, 骨, 写 …) in Chinese forms,
+ * and a Japanese font the other way about.  So one of the group's `local`
+ * fonts must be installed.  Comparing the forms themselves does not work:
+ * neither a canvas nor an SVG image picks a fallback font by language.
+ * Android's fonts cannot be named, but its CJK font takes its forms from
+ * the lyrics' lang tag, so there the first test is enough.
+ *
+ * If the test cannot run, assume not: the fallback is then fetched.
+ */
+function deviceDrawsScript(group, sample) {
+  if (deviceDraws.has(group)) return deviceDraws.get(group);
+  let draws = false;
+  try {
+    const missing = canvasLook('\u{10FFFD}', 'sans-serif', '');
+    const chars = scriptChars(group, sample);
+    draws = chars.length > 0 && chars.every((ch) => canvasLook(ch, 'sans-serif', '') !== missing);
+    const local = LYRICS_FONT_GROUPS[group]?.[0]?.local;
+    if (draws && local && !/Android/i.test(navigator.userAgent)) {
+      draws = local.some((name) => fontInstalled(name, `mmwwlli ${chars.join('')}`));
+    }
+  } catch {
+    draws = false;
   }
-  if (!CJK_RE.test(sample)) return false;
-  if (JAPANESE_RE.test(sample)) return false;
-  return true;
+  deviceDraws.set(group, draws);
+  return draws;
 }
 
-const CJK_BOLD_FONTS = new Set(['', 'Noto Serif SC', 'Long Cang']);
-
-// 宋体's strokes are hairline-thin, so at the lyrics' usual weight (600) it
-// reads as light; it is drawn in its true bold instead (see .cjk-bold in
-// style.css).  The 700 weight is among those loadGoogleFont requests.
-const CJK_TRUE_BOLD_FONTS = new Set(['Noto Serif SC']);
-
-function applyCjkFont(fontName) {
-  currentCjkFont = fontName;
-  localStorage.setItem('cjk-font', fontName);
-  if (fontName) {
-    loadGoogleFont(fontName);
-    lyricsLines.style.fontFamily = `"${fontName}", sans-serif`;
-  } else {
-    lyricsLines.style.fontFamily = '';
+/** Draw the lyrics in `choice` (its family and weight), or the page's own
+ *  font — fetching the Noto fallback only on a device with no font for the
+ *  lyrics' script. */
+function applyLyricsFont(choice) {
+  if (choice?.family || (choice?.fallback && !deviceDrawsScript(fontGroup, fontSample))) {
+    loadStylesheet(googleFontsUrl(choice));
   }
-  lyricsLines.style.fontWeight = CJK_BOLD_FONTS.has(fontName) ? '' : '300';
-  lyricsLines.classList.toggle('cjk-bold', CJK_TRUE_BOLD_FONTS.has(fontName));
+  lyricsLines.style.fontFamily = fontFamilyValue(choice);
+  if (choice?.family) lyricsLines.style.setProperty('--lyrics-weight', String(choice.weight));
+  else lyricsLines.style.removeProperty('--lyrics-weight');
 }
 
-const cjkPickerToggle = cjkFontPicker.querySelector('.cjk-picker-toggle');
-const cjkPickerMenu = cjkFontPicker.querySelector('.cjk-picker-menu');
-const cjkPickerOptions = cjkFontPicker.querySelectorAll('.cjk-picker-option');
-
-function setCjkPickerValue(value) {
-  cjkPickerOptions.forEach((opt) => {
-    const match = opt.dataset.value === value;
-    opt.classList.toggle('selected', match);
-    if (match) cjkPickerToggle.textContent = opt.textContent;
-  });
+/** Put the lyrics back in the page's own font. */
+function clearLyricsFont() {
+  applyLyricsFont(null);
 }
 
-function showCjkFontPicker() {
-  setCjkPickerValue(currentCjkFont);
-  cjkFontPicker.classList.remove('hidden');
+const fontPickerToggle = fontPicker.querySelector('.font-picker-toggle');
+const fontPickerMenu = fontPicker.querySelector('.font-picker-menu');
+
+function closeFontPicker() {
+  fontPicker.classList.remove('open');
+  fontPickerToggle.setAttribute('aria-expanded', 'false');
 }
 
-function hideCjkFontPicker() {
-  cjkFontPicker.classList.add('hidden');
-  cjkFontPicker.classList.remove('open');
+function hideFontPicker() {
+  fontPicker.classList.add('hidden');
+  closeFontPicker();
 }
 
-function initCjkFont() {
-  if (currentCjkFont) {
-    loadGoogleFont(currentCjkFont);
+/** Fill the menu with the group's fonts, each label drawn in its own font
+ *  (only the label's letters, fetched once the menu is opened). */
+function renderFontOptions(group, selected) {
+  fontPickerMenu.replaceChildren(...LYRICS_FONT_GROUPS[group].map((choice) => {
+    const opt = document.createElement('div');
+    opt.className = 'font-picker-option';
+    opt.setAttribute('role', 'option');
+    opt.dataset.value = choice.family;
+    opt.textContent = choice.label;
+    opt.classList.toggle('selected', choice.family === selected.family);
+    opt.setAttribute('aria-selected', String(choice.family === selected.family));
+    if (choice.family) opt.style.fontFamily = fontFamilyValue(choice);
+    return opt;
+  }));
+  fontPickerToggle.querySelector('.font-picker-label').textContent = selected.label;
+  // Phones show only "Aa" on the button, so the name is also its tooltip and label.
+  fontPickerToggle.title = `Lyrics font: ${selected.label}`;
+  fontPickerToggle.setAttribute('aria-label', `Lyrics font: ${selected.label}`);
+}
+
+/**
+ * Tag the lyrics with their language, show the picker with their script's
+ * fonts, and draw them in the one last picked for it.  The tag picks the
+ * default font stack for the language (style.css) and, for characters
+ * Chinese and Japanese share, the right forms.  The picker is hidden, and
+ * the page's own font used, for lyrics none of the fonts can draw.
+ */
+function refreshFontPicker() {
+  const sample = currentLineTexts().slice(0, 40).join('\n');
+  const language = lyrics ? detectLyricsLanguage(sample, lyricsLanguage) : '';
+  const tag = languageTag(language);
+  if (tag) lyricsLines.lang = tag; else lyricsLines.removeAttribute('lang');
+
+  fontGroup = lyrics ? fontGroupFor(language, sample) : null;
+  fontSample = sample;
+  if (!fontGroup) {
+    hideFontPicker();
+    clearLyricsFont();
+    return;
   }
+  const choice = findFont(fontGroup, localStorage.getItem(fontStorageKey(fontGroup)) || '');
+  renderFontOptions(fontGroup, choice);
+  applyLyricsFont(choice);
+  fontPicker.classList.remove('hidden');
+}
 
-  cjkPickerToggle.addEventListener('click', (e) => {
+function pickLyricsFont(family) {
+  if (!fontGroup) return;
+  const choice = findFont(fontGroup, family);
+  localStorage.setItem(fontStorageKey(fontGroup), choice.family);
+  renderFontOptions(fontGroup, choice);
+  applyLyricsFont(choice);
+}
+
+function initFontPicker() {
+  fontPickerToggle.addEventListener('click', (e) => {
     e.stopPropagation();
-    cjkFontPicker.classList.toggle('open');
+    const open = fontPicker.classList.toggle('open');
+    fontPickerToggle.setAttribute('aria-expanded', String(open));
+    if (open && fontGroup) {
+      for (const choice of LYRICS_FONT_GROUPS[fontGroup]) {
+        if (!loadedFonts.has(googleFontsUrl(choice))) loadStylesheet(previewFontUrl(choice));
+      }
+    }
   });
 
-  cjkPickerMenu.addEventListener('click', (e) => {
-    const opt = e.target.closest('.cjk-picker-option');
+  fontPickerMenu.addEventListener('click', (e) => {
+    const opt = e.target.closest('.font-picker-option');
     if (!opt) return;
     e.stopPropagation();
-    const value = opt.dataset.value;
-    setCjkPickerValue(value);
-    applyCjkFont(value);
-    cjkFontPicker.classList.remove('open');
+    pickLyricsFont(opt.dataset.value);
+    closeFontPicker();
   });
 
-  document.addEventListener('click', () => {
-    cjkFontPicker.classList.remove('open');
-  });
+  document.addEventListener('click', closeFontPicker);
 }
 
-initCjkFont();
+initFontPicker();
 
 // ============================================================
 //  Lyrics Translation
@@ -1115,6 +1201,9 @@ function applyTranslations() {
     }
     const target = existing || document.createElement('span');
     target.className = 'line-translation';
+    // In the target language, whatever the lyrics above are in.
+    target.lang = languageTag(translateTarget);
+    target.dir = 'auto';
     target.textContent = text;
     if (!existing) el.appendChild(target);
   });

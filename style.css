@@ -372,7 +372,8 @@ html, body {
 .lyrics-line {
   padding: 0.6rem 0;
   font-size: 1.6rem;
-  font-weight: 600;
+  /* A font picked for the lyrics sets its own weight (see fonts.js). */
+  font-weight: var(--lyrics-weight, 600);
   line-height: 1.4;
   color: var(--text-dim);
   transition: color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
@@ -427,17 +428,10 @@ html, body {
 
 .lyrics-plain {
   font-size: 1.6rem;
+  font-weight: var(--lyrics-weight, 400);
   line-height: 1.8;
   color: var(--text-secondary);
   padding: 2rem 0;
-}
-
-/* 宋体 picked for Chinese lyrics: its hairline strokes read as light at the
-   usual weight, so synced and plain lyrics alike take its true bold.
-   Translations and furigana keep their own weights. */
-#lyrics-lines.cjk-bold .lyrics-line,
-#lyrics-lines.cjk-bold .lyrics-plain {
-  font-weight: 700;
 }
 
 /* One element per line so a translation can sit under each. An empty line
@@ -570,14 +564,14 @@ html, body {
   color: var(--accent);
 }
 
-/* ─── CJK Font Picker (inline in now-playing bar) ─── */
+/* ─── Lyrics Font Picker (inline in now-playing bar) ─── */
 
-.cjk-font-picker {
+.font-picker {
   position: relative;
   flex-shrink: 0;
 }
 
-.cjk-picker-toggle {
+.font-picker-toggle {
   font-family: inherit;
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -593,12 +587,48 @@ html, body {
   white-space: nowrap;
 }
 
-.cjk-picker-toggle:hover,
-.cjk-font-picker.open .cjk-picker-toggle {
+/* Phones show "Aa" in place of the font's name, which the header has no
+   room for beside the furigana and translate buttons. */
+.font-picker-icon {
+  display: none;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .font-picker-icon {
+    display: inline;
+  }
+
+  .font-picker-label {
+    display: none;
+  }
+
+  /* Borderless, like the icon buttons beside it. */
+  .font-picker-toggle {
+    border-color: transparent;
+    background-color: transparent;
+    padding: 0.4rem 1.1rem 0.4rem 0.3rem;
+    background-position: right 0.3rem center;
+  }
+
+  /* Tighter spacing, so the song title keeps its room when the font,
+     furigana and translate controls are all showing. */
+  .now-playing-inner {
+    gap: 0.4rem;
+  }
+
+  .now-playing-inner .btn-icon-toggle,
+  .now-playing-inner .btn-disconnect {
+    padding: 0.3rem;
+  }
+}
+
+.font-picker-toggle:hover,
+.font-picker.open .font-picker-toggle {
   color: var(--text-primary);
 }
 
-.cjk-picker-menu {
+.font-picker-menu {
   display: none;
   position: absolute;
   top: calc(100% + 6px);
@@ -610,13 +640,15 @@ html, body {
   padding: 3px 0;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   z-index: 10;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
-.cjk-font-picker.open .cjk-picker-menu {
+.font-picker.open .font-picker-menu {
   display: block;
 }
 
-.cjk-picker-option {
+.font-picker-option {
   font-size: 0.85rem;
   padding: 0.5rem 0.85rem;
   color: var(--text-secondary);
@@ -625,12 +657,12 @@ html, body {
   transition: background 0.1s, color 0.1s;
 }
 
-.cjk-picker-option:hover {
+.font-picker-option:hover {
   background: var(--surface-hover);
   color: var(--text-primary);
 }
 
-.cjk-picker-option.selected {
+.font-picker-option.selected {
   color: var(--accent);
 }
 
@@ -729,6 +761,8 @@ html, body {
    highlight or the decorative CJK font applied to the originals. */
 .line-translation {
   display: block;
+  /* The page's own font, whatever font the lyrics above it are in. */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 0.55em;
   font-weight: 400;
   line-height: 1.35;
@@ -740,6 +774,33 @@ html, body {
 .lyrics-line.active .line-translation {
   color: var(--text-secondary);
 }
+
+/* ─── Default fonts per language ───
+   With "Default" picked, lyrics are drawn in Inter for Latin, Greek and
+   Cyrillic, and otherwise in the font each platform ships for the lyrics'
+   language (listed macOS and iOS first, then Windows, then Android), then
+   in the Noto web font fonts.js fetches as a last resort, which is only
+   downloaded for characters no system font has.  The `lang` tag app.js
+   puts on #lyrics-lines picks the stack; it also makes Chinese and
+   Japanese draw the characters they share in their own forms.  A font
+   picked from the menu is an inline style, and takes precedence. */
+:root {
+  --fonts-zh: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", "WenQuanYi Zen Hei", "Noto Sans SC";
+  --fonts-ja: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", "Meiryo", "Noto Sans CJK JP", "Source Han Sans JP", "IPAexGothic", "IPAPGothic", "IPAGothic", "TakaoPGothic", "VL PGothic", "Noto Sans JP";
+  --fonts-ko: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", "Source Han Sans KR", "Noto Sans KR";
+  --fonts-th: Thonburi, "Leelawadee UI", Leelawadee, Tahoma, "Noto Sans Thai";
+  --fonts-ar: "Geeza Pro", "SF Arabic", "Segoe UI", Tahoma, "Noto Sans Arabic", "Noto Naskh Arabic";
+  --fonts-he: "Arial Hebrew", "SF Hebrew", "Segoe UI", Arial, "Noto Sans Hebrew";
+  --fonts-hi: "Kohinoor Devanagari", "Devanagari Sangam MN", "Nirmala UI", Mangal, "Noto Sans Devanagari";
+}
+
+#lyrics-lines:lang(zh), .line-translation:lang(zh) { font-family: 'Inter', var(--fonts-zh), sans-serif; }
+#lyrics-lines:lang(ja) { font-family: 'Inter', var(--fonts-ja), sans-serif; }
+#lyrics-lines:lang(ko) { font-family: 'Inter', var(--fonts-ko), sans-serif; }
+#lyrics-lines:lang(th) { font-family: 'Inter', var(--fonts-th), sans-serif; }
+#lyrics-lines:lang(ar), #lyrics-lines:lang(fa), #lyrics-lines:lang(ur) { font-family: 'Inter', var(--fonts-ar), sans-serif; }
+#lyrics-lines:lang(he), #lyrics-lines:lang(yi) { font-family: 'Inter', var(--fonts-he), sans-serif; }
+#lyrics-lines:lang(hi), #lyrics-lines:lang(mr), #lyrics-lines:lang(ne) { font-family: 'Inter', var(--fonts-hi), sans-serif; }
 
 /* ─── Furigana ─── */
 

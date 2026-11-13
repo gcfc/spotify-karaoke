@@ -114,6 +114,18 @@ export function detectLyricsLanguage(sample, declaredLanguage) {
   return markers / tokens.length >= ENGLISH_MARKER_RATIO ? 'en' : 'und';
 }
 
+/**
+ * A language from detectLyricsLanguage, or a translation target, as an HTML
+ * `lang` value — '' when unknown.  The tag decides which system font draws
+ * characters that Chinese and Japanese share (in their own forms: 直, 角, 骨
+ * differ) and which default font stack applies (style.css).  Chinese is
+ * shown converted to Simplified, so it is tagged as such.
+ */
+export function languageTag(language) {
+  if (!language || language === 'und') return '';
+  return language === 'zh' ? 'zh-Hans' : language;
+}
+
 /** Translation is offered for anything that isn't already English or Chinese. */
 export function shouldOfferTranslation(language) {
   return Boolean(language) && language !== 'en' && language !== 'zh';

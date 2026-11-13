@@ -15,6 +15,7 @@ import {
   detectLyricsLanguage,
   findProvider,
   googleTargetCode,
+  languageTag,
   LLM_CHUNK_LINES,
   normalizeProvider,
   planTranslation,
@@ -69,6 +70,12 @@ assert(detectLyricsLanguage('Bonjour comment allez vous aujourd hui mon ami') ==
 assert(detectLyricsLanguage('') === '', 'empty text yields no language');
 assert(detectLyricsLanguage('   \n  ') === '', 'whitespace yields no language');
 assert(detectLyricsLanguage('Oh oh oh') === '', 'too few tokens to judge yields no language');
+
+console.log('\n── languageTag ──');
+
+assert(languageTag('zh') === 'zh-Hans', 'Chinese is tagged Simplified, as it is shown');
+assert(languageTag('ja') === 'ja' && languageTag('ar') === 'ar' && languageTag('en') === 'en', 'other languages keep their code');
+assert(languageTag('und') === '' && languageTag('') === '' && languageTag(undefined) === '', 'an undetermined language gets no tag');
 
 // ── 2. Gating ──
 
