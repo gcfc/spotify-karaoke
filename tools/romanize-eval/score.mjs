@@ -14,7 +14,7 @@ export function exactKey(word) {
 /** The word with the spelling choices typed lyrics disagree on folded away:
  *  vowel length (aa/a, ee/i, oo/u), w/v, z/j, q/k, ph/f, doubled letters,
  *  chh/ch and chch/ch, ei/e and a y between vowels (hawaayein/hawaayen,
- *  jaayein/jaaen), an h closing a vowel (oh/o, reh/re) and a nasal n or m
+ *  jaayein/jaaen), eya/iya/ya (socheya/sochya, Punjabi's ਿਆ), an h closing a vowel (oh/o, reh/re) and a nasal n or m
  *  at the end (nahin/nahi, main/mai, chalein/chalem).  Aspiration (jh/j,
  *  gh/g) is a different sound and is not folded. */
 export function looseKey(word) {
@@ -22,6 +22,7 @@ export function looseKey(word) {
   k = k.replace(/ph/g, 'f').replace(/w/g, 'v').replace(/z/g, 'j').replace(/q/g, 'k').replace(/chh/g, 'ch').replace(/x/g, 'ks');
   k = k.replace(/ee/g, 'i').replace(/oo/g, 'u').replace(/ou/g, 'u');
   k = k.replace(/([a-z])\1+/g, '$1').replace(/(ch)+/g, 'ch');
+  k = k.replace(/([^aeiouy])[eiy]+a/g, '$1ia');
   k = k.replace(/([aeiou])y(?=[aeiou])/g, '$1').replace(/ei/g, 'e');
   k = k.replace(/([a-z])\1+/g, '$1');
   k = k.replace(/([aeiou])h(?=[^aeiou]|$)/g, '$1');

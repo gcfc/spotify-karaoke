@@ -56,12 +56,19 @@ const SCRIPT_PATTERNS = [
   ['ja', /[\u3040-\u309f\u30a0-\u30ff]/],
   ['ko', /[\uac00-\ud7af\u1100-\u11ff]/],
   ['zh', /[\u3400-\u9fff\uf900-\ufaff]/],
+  // Cyrillic: the languages with letters of their own, then Russian.
+  ['uk', /[іїєґІЇЄҐ]/],
+  ['be', /[ўЎ]/],
+  ['sr', /[ђјљњћџЂЈЉЊЋЏ]/],
+  ['mk', /[ѓќѕЃЌЅ]/],
+  ['kk', /[әғқңөұүһӘҒҚҢӨҰҮҺ]/],
   ['ru', /[\u0400-\u04ff]/],
   ['el', /[\u0370-\u03ff]/],
   ['he', /[\u0590-\u05ff]/],
   ['ar', /[\u0600-\u06ff]/],
   ['th', /[\u0e00-\u0e7f]/],
   ['hi', /[\u0900-\u097f]/],
+  ['pa', /[\u0a00-\u0a7f]/],   // Punjabi, in Gurmukhi
 ];
 
 // Function words that are common in English and rare or absent in the other

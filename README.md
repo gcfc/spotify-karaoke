@@ -11,8 +11,8 @@ A static website that connects to your Spotify account and displays real-time sy
 - **Dark theme** with smooth animations — switches to light at sunrise and back to dark at sunset for San Mateo, CA. The location is fixed in `sun.js` (`DEFAULT_LOCATION`), so the page never asks for location permission; edit it to follow a different city. The toggle button overrides the theme until the next sunrise or sunset.
 - **Translation** — for lyrics that are neither English nor Chinese, a translate toggle shows each line's translation underneath it in a smaller font. Pick the target language from the dropdown; the app falls back across an LLM, a keyless endpoint and Google Cloud on its own
 - **Furigana** — for Japanese lyrics, a 字 toggle puts each kanji word's reading above it, read in context by Gemini and scored against an answer key of eight songs (see [Furigana](#furigana))
-- **Romanization** — for Greek, Hindi (and Marathi, Nepali), Thai, Arabic (and Persian, Urdu) and Hebrew lyrics, a toggle whose glyph follows the script (क, ก, ب, ש, λ) puts each word in plain English letters under it — "pyaar", "habibi", "chan rak thoe" — so the lyrics can be sung without reading the script. Greek is romanized by rules in the page; the others by Gemini, scored against answer keys (see [Romanization](#romanization))
-- **Lyrics fonts** — the lyrics are tagged with their detected language (`lang`, and right-to-left lines for Arabic and Hebrew), so each language gets its platform's own font (PingFang, Hiragino, Apple SD Gothic Neo and Thonburi on Apple; Microsoft YaHei, Yu Gothic, Malgun Gothic and Leelawadee on Windows; Noto on Android and Linux), with a Noto web font downloaded only on a device with no font that draws the lyrics' characters (tested by drawing a few of them on a canvas) — Japanese is no longer drawn in Chinese glyph forms. A font picker beside the track name offers Google Fonts suited to the lyrics' script, remembered per script: for Latin-script lyrics Roboto, Open Sans, Noto Sans, Montserrat, Nunito, Oswald, Raleway, Exo 2, Comfortaa, Playfair Display and Lora, each of which covers English, Vietnamese and Cyrillic; for Chinese 宋体, 龙藏体, 马山正, 志莽行, 站酷小薇 and 站酷快乐; for Japanese the rounded gothics of karaoke screens (丸ゴシック, Zen丸ゴシック) plus 明朝, デラゴシック and 油性マジック; for Korean 주아, 도현, 검은고딕, 고운돋움, 명조 and 나눔펜; for Thai Kanit, Prompt, Mitr, Sarabun, Chakra Petch, Itim and Pridi; for Arabic (also Persian and Urdu) Cairo, Tajawal, Almarai, El Messiri, Reem Kufi, Lalezar, Changa and Amiri; for Hebrew Heebo, Rubik, Assistant, Varela Round, Secular One, Suez One and Frank Ruhl Libre; for Devanagari (Hindi, Marathi, Nepali) Hind, Mukta, Poppins, Baloo 2, Kalam, Martel, Rozha One and Yatra One; for Greek Roboto, Open Sans, Noto Sans, Commissioner, Manrope, Ubuntu, Fira Sans, Comfortaa, Advent Pro, Alegreya and GFS Didot. Fonts with a true bold are drawn in it; translations stay in the page's own font. Fonts load lazily: a font only once the lyrics are drawn in it, and for the menu's previews only the letters of each font's name (about 12 KB for the Chinese menu rather than 830 KB). The list is in `fonts.js`
+- **Romanization** — for Greek, Hindi (and Marathi, Nepali), Punjabi (in Gurmukhi), Thai, Arabic (and Persian, Urdu), Hebrew and Cyrillic (Russian, Ukrainian, Belarusian, Bulgarian, Serbian, Macedonian …) lyrics, a toggle whose glyph follows the script (क, ਕ, ก, ب, ש, λ, Я) puts each word in plain English letters under it — "pyaar", "habibi", "chan rak thoe", "ya tebya lyublyu" — so the lyrics can be sung without reading the script. Greek and Cyrillic are romanized by rules in the page; the others by Gemini, scored against answer keys (see [Romanization](#romanization))
+- **Lyrics fonts** — the lyrics are tagged with their detected language (`lang`, and right-to-left lines for Arabic and Hebrew), so each language gets its platform's own font (PingFang, Hiragino, Apple SD Gothic Neo and Thonburi on Apple; Microsoft YaHei, Yu Gothic, Malgun Gothic and Leelawadee on Windows; Noto on Android and Linux), with a Noto web font downloaded only on a device with no font that draws the lyrics' characters (tested by drawing a few of them on a canvas) — Japanese is no longer drawn in Chinese glyph forms. A font picker beside the track name offers Google Fonts suited to the lyrics' script, remembered per script: for Latin-script lyrics Roboto, Open Sans, Noto Sans, Montserrat, Nunito, Oswald, Raleway, Exo 2, Comfortaa, Playfair Display and Lora, each of which covers English, Vietnamese and Cyrillic; for Chinese 宋体, 龙藏体, 马山正, 志莽行, 站酷小薇 and 站酷快乐; for Japanese the rounded gothics of karaoke screens (丸ゴシック, Zen丸ゴシック) plus 明朝, デラゴシック and 油性マジック; for Korean 주아, 도현, 검은고딕, 고운돋움, 명조 and 나눔펜; for Thai Kanit, Prompt, Mitr, Sarabun, Chakra Petch, Itim and Pridi; for Arabic (also Persian and Urdu) Cairo, Tajawal, Almarai, El Messiri, Reem Kufi, Lalezar, Changa and Amiri; for Hebrew Heebo, Rubik, Assistant, Varela Round, Secular One, Suez One and Frank Ruhl Libre; for Devanagari (Hindi, Marathi, Nepali) and Gurmukhi (Punjabi) one shared list — songs switch between the two, and Spotify labels Punjabi songs Hindi — of fonts that draw both: Google Sans, and Mukta, Baloo, Anek, Noto Serif and Tiro, each a family made in matching Devanagari and Gurmukhi editions and offered as one choice; for Greek Roboto, Open Sans, Noto Sans, Commissioner, Manrope, Ubuntu, Fira Sans, Comfortaa, Advent Pro, Alegreya and GFS Didot. Fonts with a true bold are drawn in it; translations stay in the page's own font. Fonts load lazily: a font only once the lyrics are drawn in it, and for the menu's previews only the letters of each font's name (about 12 KB for the Chinese menu rather than 830 KB). Lyrics mostly in a script with no fonts here (Tamil, Bengali …) get no picker, rather than the Latin one over a few English words. The list is in `fonts.js`
 - **Source panel** — the lower right says where what is on screen came from, as `lyrics | translation | furigana`: `Kugou | 3.5 | 3.1+kuro` is Kugou's lyrics, translated by gemini-3.5-flash-lite, with furigana from gemini-3.1-flash-lite and kuromoji. For lyrics romanized instead, the third slot names the romanization's source the same way (`3.1`, `3.1+rules`, `rules` for Greek). The lyrics slot shows `Spotify`, `LRCLIB`, `Kugou`, `QQ` or `NetEase`, and is a menu: pick LRCLIB, Kugou, QQ or NetEase there to load the current track's lyrics from that source alone (Spotify is not offered, since Auto asks it first anyway) (it is highlighted while picked, shows "No lyrics available for this track on …" when that source has none, and goes back to Auto on the next track). A model shows its version (`3.1`, `3.5`); the translation's `gemini-flash-lite-latest` alias shows the version it points at, or `flash-lite` until the Worker is redeployed with this change. The other labels are `Google` and `Google Cloud` for the non-model translators, `kuro` for the kuromoji dictionary, `(stored)` for furigana from the Worker's stored readings, and `printed` for readings the lyrics carry themselves. A slot that is off shows `–` when a later one is on, `…` means still loading, and `×` means every source failed
 - **Responsive** — works on desktop and mobile
 
@@ -511,8 +511,9 @@ moving between reads.
 
 ## Romanization
 
-For lyrics in Greek, Devanagari (Hindi, Marathi, Nepali), Thai, Arabic
-(Arabic, Persian, Urdu) and Hebrew, the romanization toggle writes each word in
+For lyrics in Greek, Devanagari (Hindi, Marathi, Nepali), Gurmukhi (Punjabi),
+Thai, Arabic (Arabic, Persian, Urdu), Hebrew and Cyrillic (Russian, Ukrainian,
+Belarusian, Bulgarian, Serbian, Macedonian …), the romanization toggle writes each word in
 plain English letters under it. The spelling is the kind people type when they
 share lyrics — no accents or tone marks — so `प्यार` is `pyaar`, `حبيبي` is
 `habibi`, `אני אוהב אותך` is `ani ohev otach`. Nothing is sent until the toggle
@@ -524,8 +525,12 @@ between songs like the furigana toggle.
 It works like furigana (`romanize.js`):
 
 1. **Words are split locally** (`romanWords`): letters and marks, keeping an
-   apostrophe or Hebrew geresh inside a word. Only words in the lyrics' script
-   are romanized; English lines in a Hindi song are left alone. Thai, written
+   apostrophe or Hebrew geresh inside a word. Every word in a script romanized
+   here is included, not only the song's own. Songs switch scripts:
+   Dilliwaali Girlfriend is Hindi in Devanagari, with its Punjabi lines in
+   Gurmukhi. Each word is romanized as its own script is read, and the rules
+   fallback likewise picks Hindi or Punjabi rules per word. English words are
+   left alone. Thai, written
    without spaces, is split by the platform's word dictionary
    (`Intl.Segmenter`), which browsers and Cloudflare Workers both have.
 2. **The model is given the whole line and a list of its words**, and answers
@@ -537,7 +542,9 @@ It works like furigana (`romanize.js`):
 3. **Each word's romanization is drawn under it**, as ruby, using the same
    layout as furigana. Word-synced lyrics keep each word timed, and in Arabic
    and Hebrew lines, which run right to left, each word keeps its own
-   romanization under it.
+   romanization under it. If a word-synced line's timed pieces cannot be found
+   in its text, its romanization is shown as one line under it rather than
+   dropped.
 4. **The Worker sends back the words it romanized, with their places in the
    line.** Thai's dictionary split can differ between platforms, so the page
    draws over the Worker's words rather than splitting the line again.
@@ -547,7 +554,9 @@ It works like furigana (`romanize.js`):
 | Script | Sources, in order | Why |
 |---|---|---|
 | Greek | rules (`romanizeGreekWord`) | Spelled almost as it sounds; no model needed |
+| Cyrillic | rules (`romanizeCyrillicWord`) | Spelled close to how it sounds, and typed in a settled transliteration (*ya tebya lyublyu*). The rules matched or beat Gemini (below). The language — told apart by its own letters (Ukrainian і ї є ґ, Serbian ђ ј љ њ ћ џ …) or as Spotify declares it — picks where the letters differ: Ukrainian г is *h* and и is *y* (*harna divchyna*), Bulgarian ъ is *a* and щ is *sht* |
 | Devanagari | gemini-3.1-flash-lite → gemini-3.5-flash-lite → rules (`romanizeHindiWord`) | The rules only have to work out which inherent "a" Hindi leaves unsaid (*kamla*, not *kamala*), and get most words right |
+| Gurmukhi | gemini-3.1-flash-lite → gemini-3.5-flash-lite → rules (`romanizePunjabiWord`) | Gurmukhi's letters sit at the same places in Unicode as Devanagari's, so a Punjabi word is moved across to its Devanagari spelling and read by the Hindi rules, with Gurmukhi's own marks handled first (the addak ੱ doubles the next consonant: ਬੱਚਾ, *bachcha*) |
 | Thai | gemini-3.1-flash-lite → gemini-3.5-flash-lite | No spaces, and vowels and tones go unwritten; no rules worth falling back to |
 | Arabic | gemini-3.1-flash-lite → gemini-3.5-flash-lite | Short vowels go unwritten, and songs are often in a dialect |
 | Hebrew | gemini-3.1-flash-lite → gemini-3.5-flash-lite | Vowels go unwritten |
@@ -556,7 +565,10 @@ As with furigana, each source fills only the words the ones before it left. The
 Worker's `/romanize` route looks up stored romanizations first, in the same KV
 namespace as furigana (`FURIGANA_CACHE`), under keys starting `romanize:`. It
 stores only complete answers from gemini-3.1-flash-lite, and keeps them for 180
-days. Greek never reaches the Worker. Romanization needs the Worker redeployed
+days. `ROMANIZE_CACHE_VERSION` is bumped whenever the words sent change; version
+2 added words in a song's other scripts, and 3 Cyrillic words. Greek and Cyrillic never reach the Worker. Cyrillic lyrics share the Latin font
+menu, whose fonts all draw Cyrillic, so the button is offered by
+`romanGroupFor` rather than by the font group. Romanization needs the Worker redeployed
 with this change and its `GEMINI_API_KEY` secret. Until then, Thai, Arabic and
 Hebrew show `×`, Hindi falls back to its rules, and Greek works as is.
 
@@ -566,16 +578,20 @@ Hebrew show `×`, Hindi falls back to its rules, and Greek works as is.
 with requests handed straight to the Worker's handler. A word scores **exact**
 when it matches an accepted spelling, and **loose** when it matches once the
 spellings typed lyrics disagree on are folded together: vowel length
-(*pyaar*/*pyar*), w/v, z/j, doubled letters, *-ein*/*-en*, and a final nasal *n*
-(*nahin*/*nahi*). Results over three runs (November 2026):
+(*pyaar*/*pyar*), w/v, z/j, doubled letters, *-ein*/*-en*, *-eya*/*-iya*/*-ya*
+(*socheya*/*sochya*, how Punjabi's ਿਆ is typed), and a final nasal *n*
+(*nahin*/*nahi*). Results over two to three runs each (November 2026):
 
 | Language (words) | gemini-3.1-flash-lite | gemini-3.5-flash-lite | rules |
 |---|---|---|---|
-| Hindi (918) | 95.2% loose, 81.3% exact | 93.4–94.4% loose, 78.3–79.1% exact; dropped 2 of 154 lines in one run | 93.8% loose, 76.9% exact |
+| Hindi (918) | 95.1–95.2% loose, 81.3% exact | 90.2–94.4% loose, 77.3–80.0% exact; dropped 2 of 154 lines in most runs | 93.8% loose, 76.9% exact |
+| Punjabi (863) | 89.5–89.6% loose, 64.4–65.6% exact | 84.6–85.4% loose, 54.2–58.1% exact; dropped 3–5 of 135 lines | 84.7% loose, 54.0% exact |
 | Thai (63) | 100% | 95.2–100% | — |
-| Arabic (31) | 100% | 87.1–96.8% | — |
+| Arabic (31) | 96.8–100% (since the prompt asked about other scripts, one word comes back *ohibbak*, between *uhibbuk* and *ahebbak*) | 87.1–96.8% | — |
 | Hebrew (33) | 100% | 97–100% loose | — |
 | Greek (47) | — | — | 100% |
+| Russian (256) | 97.3% | 92.2–94.9% | 97.7% |
+| Ukrainian (14) | 100% loose, 92.9% exact | 92.9–100% | 100% |
 
 - **Hindi** is scored against `tests/romanize_gold_hi.json`: 918 words from 154
   lines of 15 Bollywood songs. For each song, LRCLIB has one upload in
@@ -588,6 +604,18 @@ spellings typed lyrics disagree on are folded together: vowel length
     measure.
   - The Hindi rules come within 1.4 points of the model, which makes them a
     sound fallback.
+- **Punjabi** is scored the same way against `tests/romanize_gold_pa.json`: 863
+  words from 135 lines of 8 songs, Mundian To Bach Ke among them.
+  - Typed Punjabi is less settled than typed Hindi, hence the lower exact
+    scores. Most misses are the key's spelling, or the key's mistake, not the
+    model's: ਕੁੱਝ is *kujh* (key: *kuch*), ਲੈ is *lai* (key: *le*), ਮੁੰਡਿਆਂ is
+    *mundiyan* (key: *munday*), and the key has typos such as *sohani*.
+- **Russian** is scored against `tests/romanize_gold_ru.json`, 209 words from the
+  two Russian songs LRCLIB had in both alphabets (Kino's Легенда and t.A.T.u.'s
+  Нас не догонят), plus 47 words of common phrases in
+  `tests/romanize_gold_small.json`. The rules' few misses are the key's
+  spelling (*esli* for Если, *zvezdy* for звёзды) or its typos (*poyatno* for
+  понятно). Ukrainian has only the small hand-made key.
 - **Thai, Arabic, Hebrew and Greek** are scored against
   `tests/romanize_gold_small.json`: about a dozen common lyric phrases per
   language. LRCLIB has almost no songs in these scripts uploaded both ways.
@@ -605,10 +633,12 @@ spellings typed lyrics disagree on are folded together: vowel length
 GEMINI_API_KEY=… node tests/eval_romanize_live.mjs --runs 3            # every language, every source, and the chain
 GEMINI_API_KEY=… node tests/eval_romanize_live.mjs --lang hi --source gemini-3.1-flash-lite --misses   # what one source got wrong
 node tools/romanize-eval/build_gold.mjs hi tests/romanize_gold_hi.json "tum hi ho arijit" "kesariya arijit" …   # rebuild the Hindi key
+node tools/romanize-eval/build_gold.mjs pa tests/romanize_gold_pa.json "mundian to bach ke" "excuses ap dhillon" …   # and the Punjabi one
+node tools/romanize-eval/build_gold.mjs ru tests/romanize_gold_ru.json "kino gruppa krovi" "нас не догонят"   # and the Russian one
 ```
 
-`node tests/test_romanize.mjs` covers the same code offline: the splitting, both
-sets of rules, the reply checks and the chain.
+`node tests/test_romanize.mjs` covers the same code offline: the splitting, the
+rules, the reply checks and the chain.
 
 ## File Structure
 
@@ -630,7 +660,7 @@ spotify-karaoke/
 ├── tools/
 │   ├── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table
 │   ├── furigana-eval/  # Builds tests/furigana_gold.json (has its own npm deps)
-│   └── romanize-eval/  # Builds tests/romanize_gold_hi.json from LRCLIB; scoring
+│   └── romanize-eval/  # Builds tests/romanize_gold_{hi,pa,ru}.json from LRCLIB; scoring
 ├── tests/              # Node and Python tests — `node tests/test_matching.mjs`,
 │                       # `node tests/test_source_priority.mjs`,
 │                       # `node tests/test_sources.mjs`,

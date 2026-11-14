@@ -54,6 +54,9 @@ assert(detectLyricsLanguage('今天天气很好我们去公园') === 'zh', 'Han 
 assert(detectLyricsLanguage('Сегодня хорошая погода') === 'ru', 'Cyrillic marks Russian');
 assert(detectLyricsLanguage('اليوم الطقس جميل') === 'ar', 'Arabic script detected');
 assert(detectLyricsLanguage('วันนี้อากาศดี') === 'th', 'Thai script detected');
+assert(detectLyricsLanguage('Стефанія мамо, мамо') === 'uk' && detectLyricsLanguage('Љубав је') === 'sr' && detectLyricsLanguage('Группа крови') === 'ru',
+  "Cyrillic is told apart by each language's own letters, else Russian");
+assert(detectLyricsLanguage('ਮੁੰਡਿਆਂ ਤੋਂ ਬਚ ਕੇ ਰਹੀਂ\nOh ho, yeah') === 'pa', 'Gurmukhi marks Punjabi, English lines or not');
 
 assert(detectLyricsLanguage('I know that you have been waiting for me all of this time')
   === 'en', 'English prose is recognised as English');

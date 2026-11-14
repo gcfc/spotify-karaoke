@@ -14,7 +14,7 @@
  *   e.g.  node tools/romanize-eval/build_gold.mjs hi tests/romanize_gold_hi.json "tum hi ho arijit"
  */
 import { writeFileSync } from 'node:fs';
-import { romanWords, ROMAN_SCRIPTS, romanizeGreekWord, romanizeHindiWord } from '../../romanize.js';
+import { romanWords, ROMAN_SCRIPTS, romanizeCyrillicWord, romanizeGreekWord, romanizeHindiWord, romanizePunjabiWord } from '../../romanize.js';
 import { sameStart } from './score.mjs';
 
 const [group, out, ...queries] = process.argv.slice(2);
@@ -42,8 +42,8 @@ for (const query of queries) {
   const roman = results.filter((r) => scriptCount(r) === 0 && countOf(r.syncedLyrics, /[A-Za-z]/g) > 200);
   // The pair whose lines line up best: most lines at the same moment.
   let best = null;
-  for (const n of native.slice(0, 6)) {
-    for (const r of roman.slice(0, 6)) {
+  for (const n of native.slice(0, 15)) {
+    for (const r of roman.slice(0, 15)) {
       if (Math.abs(n.duration - r.duration) > 3) continue;
       const a = parseLrc(n.syncedLyrics);
       const b = parseLrc(r.syncedLyrics);
@@ -66,7 +66,7 @@ for (const query of queries) {
     // Every word in the native line must be in the script, so the places line up.
     const allNative = (nativeLine.match(/[\p{L}\p{M}\p{N}]+/gu) || []).length === words.length;
     if (!allNative || words.length === 0 || words.length !== romans.length) continue;
-    const rule = group === 'hi' ? romanizeHindiWord : group === 'el' ? romanizeGreekWord : null;
+    const rule = { hi: romanizeHindiWord, pa: romanizePunjabiWord, el: romanizeGreekWord, ru: romanizeCyrillicWord }[group] || null;
     if (rule && words.filter((w, i) => sameStart(rule(w.text), romans[i])).length < 0.75 * words.length) continue;
     seen.add(nativeLine);
     lines.push({ line: nativeLine, roman: romanLine, gold: romans.map((w) => w.toLowerCase()) });

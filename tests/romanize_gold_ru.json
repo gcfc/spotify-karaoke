@@ -1,0 +1,537 @@
+{
+ "group": "ru",
+ "built": "2026-11-14",
+ "songs": [
+  {
+   "title": "Легенда",
+   "artist": "Kino",
+   "native": 35363462,
+   "romanized": 32490624,
+   "lines": [
+    {
+     "line": "Среди связок",
+     "roman": "Sredi svyazok",
+     "gold": [
+      "sredi",
+      "svyazok"
+     ]
+    },
+    {
+     "line": "В горле комом теснится крик",
+     "roman": "V gorle komom tesnitsya krik",
+     "gold": [
+      "v",
+      "gorle",
+      "komom",
+      "tesnitsya",
+      "krik"
+     ]
+    },
+    {
+     "line": "Но настала пора",
+     "roman": "No nastala pora",
+     "gold": [
+      "no",
+      "nastala",
+      "pora"
+     ]
+    },
+    {
+     "line": "И тут уж кричи-не кричи",
+     "roman": "I tut uzh krichi-ne krichi",
+     "gold": [
+      "i",
+      "tut",
+      "uzh",
+      "krichi",
+      "ne",
+      "krichi"
+     ]
+    },
+    {
+     "line": "Лишь потом",
+     "roman": "Lish' potom",
+     "gold": [
+      "lish",
+      "potom"
+     ]
+    },
+    {
+     "line": "Кто-то долго не сможет забыть",
+     "roman": "Kto-to dolgo ne smozhet zabyt'",
+     "gold": [
+      "kto",
+      "to",
+      "dolgo",
+      "ne",
+      "smozhet",
+      "zabyt"
+     ]
+    },
+    {
+     "line": "Как шатаясь бойцы",
+     "roman": "Kak shatayas' boytsy",
+     "gold": [
+      "kak",
+      "shatayas",
+      "boytsy"
+     ]
+    },
+    {
+     "line": "Об траву вытирали мечи",
+     "roman": "Ob travu vytirali mechi",
+     "gold": [
+      "ob",
+      "travu",
+      "vytirali",
+      "mechi"
+     ]
+    },
+    {
+     "line": "И как хлопало крыльями",
+     "roman": "I kak khlopalo kryl'yami",
+     "gold": [
+      "i",
+      "kak",
+      "khlopalo",
+      "kryl'yami"
+     ]
+    },
+    {
+     "line": "Чёрное племя ворон",
+     "roman": "Chyornoye plemya voron",
+     "gold": [
+      "chyornoye",
+      "plemya",
+      "voron"
+     ]
+    },
+    {
+     "line": "Как смеялось небо",
+     "roman": "Kak smeyalos' nebo",
+     "gold": [
+      "kak",
+      "smeyalos",
+      "nebo"
+     ]
+    },
+    {
+     "line": "А потом прикусило язык",
+     "roman": "A potom prikusilo yazyk",
+     "gold": [
+      "a",
+      "potom",
+      "prikusilo",
+      "yazyk"
+     ]
+    },
+    {
+     "line": "И дрожала рука",
+     "roman": "I drozhala ruka",
+     "gold": [
+      "i",
+      "drozhala",
+      "ruka"
+     ]
+    },
+    {
+     "line": "У того, кто остался жив",
+     "roman": "U togo, kto ostalsya zhiv",
+     "gold": [
+      "u",
+      "togo",
+      "kto",
+      "ostalsya",
+      "zhiv"
+     ]
+    },
+    {
+     "line": "И внезапно в вечность",
+     "roman": "I vnezapno v vechnost'",
+     "gold": [
+      "i",
+      "vnezapno",
+      "v",
+      "vechnost"
+     ]
+    },
+    {
+     "line": "Вдруг превратился миг",
+     "roman": "Vdrug prevratilsya mig",
+     "gold": [
+      "vdrug",
+      "prevratilsya",
+      "mig"
+     ]
+    },
+    {
+     "line": "И горел",
+     "roman": "I gorel",
+     "gold": [
+      "i",
+      "gorel"
+     ]
+    },
+    {
+     "line": "Погребальным костром закат",
+     "roman": "Pogrebal'nym kostrom zakat",
+     "gold": [
+      "pogrebal'nym",
+      "kostrom",
+      "zakat"
+     ]
+    },
+    {
+     "line": "И волками смотрели",
+     "roman": "I volkami smotreli",
+     "gold": [
+      "i",
+      "volkami",
+      "smotreli"
+     ]
+    },
+    {
+     "line": "Звёзды из облаков",
+     "roman": "Zvyozdy iz oblakov",
+     "gold": [
+      "zvyozdy",
+      "iz",
+      "oblakov"
+     ]
+    },
+    {
+     "line": "Как раскинув руки",
+     "roman": "Kak raskinuv ruki",
+     "gold": [
+      "kak",
+      "raskinuv",
+      "ruki"
+     ]
+    },
+    {
+     "line": "Лежали, ушедшие в ночь",
+     "roman": "Lezhali, ushedshiye v noch'",
+     "gold": [
+      "lezhali",
+      "ushedshiye",
+      "v",
+      "noch"
+     ]
+    },
+    {
+     "line": "И как спали вповалку",
+     "roman": "I kak spali vpovalku",
+     "gold": [
+      "i",
+      "kak",
+      "spali",
+      "vpovalku"
+     ]
+    },
+    {
+     "line": "Живые, не видя снов",
+     "roman": "Zhivyye, ne vidya snov",
+     "gold": [
+      "zhivyye",
+      "ne",
+      "vidya",
+      "snov"
+     ]
+    },
+    {
+     "line": "А \"жизнь\" - только слово",
+     "roman": "A \"zhizn'\" - tol'ko slovo",
+     "gold": [
+      "a",
+      "zhizn",
+      "tol'ko",
+      "slovo"
+     ]
+    },
+    {
+     "line": "Есть лишь любовь и есть смерть",
+     "roman": "Yest' lish' lyubov' i yest' smert'",
+     "gold": [
+      "yest",
+      "lish",
+      "lyubov",
+      "i",
+      "yest",
+      "smert"
+     ]
+    },
+    {
+     "line": "Эй! А кто будет петь",
+     "roman": "Ey! A kto budet pet'",
+     "gold": [
+      "ey",
+      "a",
+      "kto",
+      "budet",
+      "pet"
+     ]
+    },
+    {
+     "line": "Если все будут спать?",
+     "roman": "Esli vse budut spat'?",
+     "gold": [
+      "esli",
+      "vse",
+      "budut",
+      "spat"
+     ]
+    },
+    {
+     "line": "Смерть",
+     "roman": "Smert'",
+     "gold": [
+      "smert"
+     ]
+    },
+    {
+     "line": "Стоит того, чтобы жить",
+     "roman": "Stoit togo, chtoby zhit'",
+     "gold": [
+      "stoit",
+      "togo",
+      "chtoby",
+      "zhit"
+     ]
+    },
+    {
+     "line": "А любовь",
+     "roman": "A lyubov'",
+     "gold": [
+      "a",
+      "lyubov"
+     ]
+    },
+    {
+     "line": "Стоит того, чтобы ждать",
+     "roman": "Stoit togo, chtoby zhdat'",
+     "gold": [
+      "stoit",
+      "togo",
+      "chtoby",
+      "zhdat"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Нас Не Догонят",
+   "artist": "t.A.T.u.",
+   "native": 30370940,
+   "romanized": 31644457,
+   "lines": [
+    {
+     "line": "Нас не догонят!",
+     "roman": "Nas ne dogonyat!",
+     "gold": [
+      "nas",
+      "ne",
+      "dogonyat"
+     ]
+    },
+    {
+     "line": "Нас не догонят, нас не догонят!",
+     "roman": "Nas ne dogonyat, Nas ne dogonyat!",
+     "gold": [
+      "nas",
+      "ne",
+      "dogonyat",
+      "nas",
+      "ne",
+      "dogonyat"
+     ]
+    },
+    {
+     "line": "(Нас не догонят!)",
+     "roman": "(Nas ne dogonyat!)",
+     "gold": [
+      "nas",
+      "ne",
+      "dogonyat"
+     ]
+    },
+    {
+     "line": "Только скажи, дальше нас двое",
+     "roman": "Tol'ko skazhi, dal'she nas dvoye",
+     "gold": [
+      "tol'ko",
+      "skazhi",
+      "dal'she",
+      "nas",
+      "dvoye"
+     ]
+    },
+    {
+     "line": "Только огни аэродрома",
+     "roman": "Tol'ko ogni aerodroma",
+     "gold": [
+      "tol'ko",
+      "ogni",
+      "aerodroma"
+     ]
+    },
+    {
+     "line": "Мы убежим, нас не догонят",
+     "roman": "My ubezhim, nas ne dogonyat",
+     "gold": [
+      "my",
+      "ubezhim",
+      "nas",
+      "ne",
+      "dogonyat"
+     ]
+    },
+    {
+     "line": "Дальше от них, дальше от дома!",
+     "roman": "Dal'she ot nikh, dal'she ot doma!",
+     "gold": [
+      "dal'she",
+      "ot",
+      "nikh",
+      "dal'she",
+      "ot",
+      "doma"
+     ]
+    },
+    {
+     "line": "Ночь-проводник, спрячь наши тени",
+     "roman": "Noch'-provodnik, spryach' nashi tyeni",
+     "gold": [
+      "noch",
+      "provodnik",
+      "spryach",
+      "nashi",
+      "tyeni"
+     ]
+    },
+    {
+     "line": "За облака, за облаками",
+     "roman": "Za oblaka, za oblakami",
+     "gold": [
+      "za",
+      "oblaka",
+      "za",
+      "oblakami"
+     ]
+    },
+    {
+     "line": "Нас не найдут, нас не изменят",
+     "roman": "Nas ne naydut, nas ne izmenyat",
+     "gold": [
+      "nas",
+      "ne",
+      "naydut",
+      "nas",
+      "ne",
+      "izmenyat"
+     ]
+    },
+    {
+     "line": "Им не достать звёзды руками!",
+     "roman": "Im ne dostat' zvezdy rukami!",
+     "gold": [
+      "im",
+      "ne",
+      "dostat",
+      "zvezdy",
+      "rukami"
+     ]
+    },
+    {
+     "line": "Небо уронит ночь на ладони",
+     "roman": "Nebo uronit noch' na ladoni",
+     "gold": [
+      "nebo",
+      "uronit",
+      "noch",
+      "na",
+      "ladoni"
+     ]
+    },
+    {
+     "line": "Мы убежим, всё будет просто",
+     "roman": "My ubezhim, vsyo budet prosto",
+     "gold": [
+      "my",
+      "ubezhim",
+      "vsyo",
+      "budet",
+      "prosto"
+     ]
+    },
+    {
+     "line": "Ночь упадёт, небо уронит",
+     "roman": "Noch' upadyot, nebo uronit",
+     "gold": [
+      "noch",
+      "upadyot",
+      "nebo",
+      "uronit"
+     ]
+    },
+    {
+     "line": "И пустота на перекрёстках",
+     "roman": "I pustota na perekrostkakh",
+     "gold": [
+      "i",
+      "pustota",
+      "na",
+      "perekrostkakh"
+     ]
+    },
+    {
+     "line": "Не говори, им не понятно",
+     "roman": "Ne govori, im ne poyatno",
+     "gold": [
+      "ne",
+      "govori",
+      "im",
+      "ne",
+      "poyatno"
+     ]
+    },
+    {
+     "line": "Только без них, только не мимо!",
+     "roman": "Tol'ko bez nikh, tol'ko ne mimo!",
+     "gold": [
+      "tol'ko",
+      "bez",
+      "nikh",
+      "tol'ko",
+      "ne",
+      "mimo"
+     ]
+    },
+    {
+     "line": "Лучше никак, но не обратно!",
+     "roman": "Luchshe nikak, no ne obratno!",
+     "gold": [
+      "luchshe",
+      "nikak",
+      "no",
+      "ne",
+      "obratno"
+     ]
+    },
+    {
+     "line": "Только не с ними, только не с ними!",
+     "roman": "Tol'ko ne s nimi, tol'ko ne s nimi!",
+     "gold": [
+      "tol'ko",
+      "ne",
+      "s",
+      "nimi",
+      "tol'ko",
+      "ne",
+      "s",
+      "nimi"
+     ]
+    }
+   ]
+  }
+ ]
+}

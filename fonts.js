@@ -31,6 +31,23 @@
 
 const DEFAULT_LABEL = 'Default';
 
+// Hindi (Devanagari) and Punjabi (Gurmukhi) share one list, and one
+// remembered choice: songs switch between the two scripts (Dilliwaali
+// Girlfriend's Punjabi lines are in Gurmukhi), and Spotify labels Punjabi
+// songs Hindi.  Only Google Sans draws both scripts itself; the others are
+// type families made in matching Devanagari and Gurmukhi editions, offered
+// as one choice — `families` — with each script drawn by its own edition
+// (Google Fonts fetches only the files for the scripts on screen).
+const INDIC_FONTS = Object.freeze([
+  { family: '', label: DEFAULT_LABEL, fallback: 'Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Gurmukhi:wght@400;600' },
+  { family: 'Google Sans', label: 'Google Sans', spec: 'Google+Sans:wght@700', weight: 700 },
+  { family: 'Mukta', families: ['Mukta', 'Mukta Mahee'], label: 'Mukta', spec: 'Mukta:wght@700&family=Mukta+Mahee:wght@700', weight: 700 },
+  { family: 'Baloo 2', families: ['Baloo 2', 'Baloo Paaji 2'], label: 'Baloo', spec: 'Baloo+2:wght@700&family=Baloo+Paaji+2:wght@700', weight: 700 },
+  { family: 'Anek Devanagari', families: ['Anek Devanagari', 'Anek Gurmukhi'], label: 'Anek', spec: 'Anek+Devanagari:wght@700&family=Anek+Gurmukhi:wght@700', weight: 700 },
+  { family: 'Noto Serif Devanagari', families: ['Noto Serif Devanagari', 'Noto Serif Gurmukhi'], label: 'Noto Serif', spec: 'Noto+Serif+Devanagari:wght@700&family=Noto+Serif+Gurmukhi:wght@700', weight: 700, generic: 'serif' },
+  { family: 'Tiro Devanagari Hindi', families: ['Tiro Devanagari Hindi', 'Tiro Gurmukhi'], label: 'Tiro', spec: 'Tiro+Devanagari+Hindi&family=Tiro+Gurmukhi', weight: 400, generic: 'serif' },
+]);
+
 export const LYRICS_FONT_GROUPS = Object.freeze({
   // English, Vietnamese, Cyrillic and other Latin-script lyrics.
   latin: [
@@ -109,17 +126,10 @@ export const LYRICS_FONT_GROUPS = Object.freeze({
     { family: 'Frank Ruhl Libre', label: 'Frank Ruhl Libre', spec: 'Frank+Ruhl+Libre:wght@700', weight: 700, generic: 'serif' },
   ],
   // Hindi and the other languages written in Devanagari.
-  hi: [
-    { family: '', label: DEFAULT_LABEL, fallback: 'Noto+Sans+Devanagari:wght@400;600' },
-    { family: 'Hind', label: 'Hind', spec: 'Hind:wght@700', weight: 700 },
-    { family: 'Mukta', label: 'Mukta', spec: 'Mukta:wght@700', weight: 700 },
-    { family: 'Poppins', label: 'Poppins', spec: 'Poppins:wght@700', weight: 700 },
-    { family: 'Baloo 2', label: 'Baloo 2', spec: 'Baloo+2:wght@700', weight: 700 },
-    { family: 'Kalam', label: 'Kalam', spec: 'Kalam:wght@700', weight: 700 },
-    { family: 'Martel', label: 'Martel', spec: 'Martel:wght@700', weight: 700, generic: 'serif' },
-    { family: 'Rozha One', label: 'Rozha One', spec: 'Rozha+One', weight: 400, generic: 'serif' },
-    { family: 'Yatra One', label: 'Yatra One', spec: 'Yatra+One', weight: 400 },
-  ],
+  // Hindi and the other languages written in Devanagari, and Punjabi in
+  // Gurmukhi: the same list (see INDIC_FONTS).
+  hi: INDIC_FONTS,
+  pa: INDIC_FONTS,
   // The page's own font, Inter, draws Greek itself.
   el: [
     { family: '', label: DEFAULT_LABEL },
@@ -149,6 +159,7 @@ const SCRIPT_GROUPS = [
   ['ar', /[؀-ۿݐ-ݿࢠ-ࣿ]/],
   ['he', /[֐-׿]/],
   ['hi', /[ऀ-ॿ]/],
+  ['pa', /[\u0a00-\u0a7f]/],
   ['el', /[Ͱ-Ͽἀ-῿]/],
   ['latin', /[A-Za-zÀ-ɏḀ-ỿЀ-ӿԀ-ԯ]/],
 ];
@@ -166,9 +177,19 @@ export function fontGroupFor(language, sample = '') {
   const base = String(language || '').toLowerCase().split(/[-_]/)[0];
   if (base === 'zh' || base === 'ja' || base === 'ko') return base;
   for (const [group, pattern] of SCRIPT_GROUPS) {
-    if (pattern.test(sample)) return group;
+    if (!pattern.test(sample)) continue;
+    // Latin only for lyrics mostly in it: a few English words in lyrics in
+    // a script with no fonts here (Tamil, Bengali …) do not make them Latin.
+    if (group === 'latin' && !mostlyLatin(sample)) return null;
+    return group;
   }
   return null;
+}
+
+function mostlyLatin(sample) {
+  const letters = sample.match(/\p{L}/gu) || [];
+  const latin = letters.filter((ch) => /\p{Script=Latin}|\p{Script=Cyrillic}/u.test(ch));
+  return latin.length * 2 >= letters.length;
 }
 
 /** The choice for `family` in `group`, or the group's default. */
@@ -201,7 +222,8 @@ export function previewFontUrl(choice) {
  * them.
  */
 export function scriptChars(group, sample, limit = 6) {
-  const patterns = SCRIPT_GROUPS.filter(([g]) => g === group || (group === 'ja' && g === 'zh')).map(([, p]) => p);
+  const related = { ja: ['ja', 'zh'], hi: ['hi', 'pa'], pa: ['pa', 'hi'] }[group] || [group];
+  const patterns = SCRIPT_GROUPS.filter(([g]) => related.includes(g)).map(([, p]) => p);
   const chars = [];
   for (const ch of new Set(String(sample || ''))) {
     if (patterns.some((p) => p.test(ch))) chars.push(ch);
@@ -212,10 +234,13 @@ export function scriptChars(group, sample, limit = 6) {
 
 /** The CSS font-family value for a choice, or '' for the page's own font. */
 export function fontFamilyValue(choice) {
-  return choice?.family ? `"${choice.family}", ${choice.generic || 'sans-serif'}` : '';
+  if (!choice?.family) return '';
+  const families = choice.families || [choice.family];
+  return `${families.map((f) => `"${f}"`).join(', ')}, ${choice.generic || 'sans-serif'}`;
 }
 
 /** localStorage key for a group's choice. */
 export function fontStorageKey(group) {
-  return `lyrics-font:${group}`;
+  // Hindi and Punjabi share their list, so they share the choice too.
+  return `lyrics-font:${group === 'pa' ? 'hi' : group}`;
 }

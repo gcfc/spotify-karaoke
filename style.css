@@ -791,7 +791,10 @@ html, body {
   --fonts-th: Thonburi, "Leelawadee UI", Leelawadee, Tahoma, "Noto Sans Thai";
   --fonts-ar: "Geeza Pro", "SF Arabic", "Segoe UI", Tahoma, "Noto Sans Arabic", "Noto Naskh Arabic";
   --fonts-he: "Arial Hebrew", "SF Hebrew", "Segoe UI", Arial, "Noto Sans Hebrew";
-  --fonts-hi: "Kohinoor Devanagari", "Devanagari Sangam MN", "Nirmala UI", Mangal, "Noto Sans Devanagari";
+  /* Each also names the other's fonts: songs switch between Devanagari and
+     Gurmukhi, and Spotify labels Punjabi songs Hindi. */
+  --fonts-hi: "Kohinoor Devanagari", "Devanagari Sangam MN", "Nirmala UI", Mangal, "Gurmukhi Sangam MN", "Gurmukhi MN", Raavi, "Noto Sans Devanagari", "Noto Sans Gurmukhi";
+  --fonts-pa: "Gurmukhi Sangam MN", "Gurmukhi MN", "Mukta Mahee", "Nirmala UI", Raavi, "Kohinoor Devanagari", "Devanagari Sangam MN", Mangal, "Noto Sans Gurmukhi", "Noto Sans Devanagari";
 }
 
 #lyrics-lines:lang(zh), .line-translation:lang(zh) { font-family: 'Inter', var(--fonts-zh), sans-serif; }
@@ -801,6 +804,7 @@ html, body {
 #lyrics-lines:lang(ar), #lyrics-lines:lang(fa), #lyrics-lines:lang(ur) { font-family: 'Inter', var(--fonts-ar), sans-serif; }
 #lyrics-lines:lang(he), #lyrics-lines:lang(yi) { font-family: 'Inter', var(--fonts-he), sans-serif; }
 #lyrics-lines:lang(hi), #lyrics-lines:lang(mr), #lyrics-lines:lang(ne) { font-family: 'Inter', var(--fonts-hi), sans-serif; }
+#lyrics-lines:lang(pa) { font-family: 'Inter', var(--fonts-pa), sans-serif; }
 
 /* ─── Furigana ─── */
 
@@ -885,11 +889,26 @@ html, body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: max(0.42em, 11px);
   letter-spacing: 0.01em;
+  /* Clear of the vowel marks Gurmukhi and Devanagari hang below the line
+     (ਤੂੰ, तू). */
+  padding-top: 0.35em;
 }
 
 #lyrics-lines.with-romanization .lyrics-line,
 #lyrics-lines.with-romanization .lyrics-plain {
   line-height: 2;
+}
+
+/* A word-synced line whose timed pieces do not match its text: its
+   romanization as one line under it (fillWordSyncedText). */
+.line-romanization {
+  display: block;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: max(0.42em, 11px);
+  font-weight: 500;
+  line-height: 1.3;
+  opacity: 0.9;
+  user-select: none;
 }
 
 /* ─── Lyrics Offset Controls ─── */

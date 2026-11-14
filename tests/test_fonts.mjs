@@ -47,12 +47,16 @@ assert(fontGroupFor('en', 'Every night') === 'latin' && fontGroupFor('und', 'Ti�
   'English and Vietnamese take the Latin fonts');
 assert(fontGroupFor('ru', 'Привет мир') === 'latin', 'Cyrillic takes the Latin fonts, which all cover it');
 assert(fontGroupFor('ta', 'தமிழ் பாடல்') === null && fontGroupFor('', '') === null, 'a script no font covers, or nothing to judge: no picker');
+assert(fontGroupFor('pa', 'ਮੁੰਡਿਆਂ ਤੋਂ ਬਚ ਕੇ ਰਹੀਂ\nOh ho ho, yeah') === 'pa', 'Punjabi in Gurmukhi has fonts of its own, English lines or not');
+assert(fontGroupFor('', 'தமிழ் பாடல் வரிகள் இங்கே\nyeah baby') === null,
+  'lyrics mostly in a script with no fonts here are not taken for Latin over a few English words');
+assert(fontGroupFor('en', 'Every night in my dreams, தமிழ்') === 'latin', 'English with a word of another script is still Latin');
 
 console.log('\n── the choices ──');
 
 const groups = Object.entries(LYRICS_FONT_GROUPS);
-assert(groups.map(([g]) => g).join(',') === 'latin,zh,ja,ko,th,ar,he,hi,el',
-  'groups: Latin, Chinese, Japanese, Korean, Thai, Arabic, Hebrew, Devanagari, Greek');
+assert(groups.map(([g]) => g).join(',') === 'latin,zh,ja,ko,th,ar,he,hi,pa,el',
+  'groups: Latin, Chinese, Japanese, Korean, Thai, Arabic, Hebrew, Devanagari, Gurmukhi, Greek');
 assert(groups.every(([, list]) => list[0].family === '' && !list[0].spec), "each group starts with the page's own font");
 assert(groups.every(([, list]) => list.slice(1).every((c) => c.family && c.label && c.spec && Number.isInteger(c.weight))),
   'every other choice has a family, a label, a stylesheet and a weight');
@@ -71,9 +75,16 @@ assert(['Roboto', 'Open Sans', 'Noto Sans'].every((f) => findFont('el', f).famil
 assert(!['Raleway', 'Exo 2'].some((f) => findFont('el', f).family === f), 'fonts with no Greek are not offered for it');
 assert(findFont('zh', 'Noto Serif SC').label === '宋体' && findFont('zh', 'Noto Serif SC').weight === 700, '宋体 keeps its true bold');
 
+assert(LYRICS_FONT_GROUPS.hi === LYRICS_FONT_GROUPS.pa, 'Hindi and Punjabi share one list, so a label from Spotify cannot change it');
+assert(fontStorageKey('pa') === fontStorageKey('hi'), 'and one remembered choice');
+assert(LYRICS_FONT_GROUPS.hi.slice(1).every((c) => c.family === 'Google Sans' || (c.families?.length === 2 && c.spec.includes('&family='))),
+  'every choice draws both scripts: Google Sans itself, the others as a Devanagari and Gurmukhi edition of one family');
+assert(fontFamilyValue(findFont('pa', 'Mukta')) === '"Mukta", "Mukta Mahee", sans-serif', 'a pair is set as both families, each drawing its own script');
+assert(scriptChars('hi', 'तेरे ਤੈਨੂੰ').some((c) => /[\u0a00-\u0a7f]/.test(c)), "the device test for Hindi lyrics includes their Gurmukhi");
+
 console.log('\n── defaults ──');
 
-for (const g of ['zh', 'ja', 'ko', 'th', 'ar', 'he', 'hi']) {
+for (const g of ['zh', 'ja', 'ko', 'th', 'ar', 'he', 'hi', 'pa']) {
   assert(/^Noto\+Sans\+/.test(LYRICS_FONT_GROUPS[g][0].fallback || ''), `${g}: the default has a Noto web font as its last resort`);
 }
 assert(!LYRICS_FONT_GROUPS.latin[0].fallback && !LYRICS_FONT_GROUPS.el[0].fallback, 'Latin and Greek need none: Inter draws them');

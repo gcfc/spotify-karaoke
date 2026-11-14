@@ -8,7 +8,7 @@ import {
 import { DEFAULT_LOCATION, isDaylight, lastSolarTransition, nextSolarTransition } from './sun.js';
 import { detectLyricsLanguage, languageTag, normalizeProvider, shouldOfferTranslation, translateLines } from './translate.js';
 import { dictionaryReadings, fetchFurigana, furiganaSegments, hasKanji, layoutWordFurigana } from './furigana.js';
-import { fetchRomanization, hasRomanWords, ROMAN_SCRIPTS, romanLanguage } from './romanize.js';
+import { fetchRomanization, hasRomanWords, romanGroupFor, romanLanguage } from './romanize.js';
 import {
   findFont,
   fontFamilyValue,
@@ -484,6 +484,15 @@ function fillWordSyncedText(textEl, line, annotations) {
 
   if (!groups) {
     syllables.forEach((syl) => textEl.appendChild(wordSpan(syl, syl.word + ' ')));
+    // The timed pieces could not be found in the line's text, so readings
+    // cannot sit over their words.  Romanization is still shown, as one
+    // line under the lyrics line, rather than lost.
+    if (lyricsRomanization && annotations && annotations.length > 0) {
+      const block = document.createElement('span');
+      block.className = 'line-romanization';
+      block.textContent = annotations.map((a) => a.reading).join(' ');
+      textEl.appendChild(block);
+    }
     return;
   }
 
@@ -1078,11 +1087,13 @@ function renderFontOptions(group, selected) {
 function refreshFontPicker() {
   const sample = currentLineTexts().slice(0, 40).join('\n');
   const language = lyrics ? detectLyricsLanguage(sample, lyricsLanguage) : '';
-  const tag = languageTag(language);
-  if (tag) lyricsLines.lang = tag; else lyricsLines.removeAttribute('lang');
-
   fontGroup = lyrics ? fontGroupFor(language, sample) : null;
   fontSample = sample;
+
+  // The tag follows the script the lyrics are written in: Gurmukhi lyrics
+  // declared as Hindi are tagged Punjabi, so they get Gurmukhi's fonts.
+  const tag = languageTag(romanLanguage(fontGroup, language) || language);
+  if (tag) lyricsLines.lang = tag; else lyricsLines.removeAttribute('lang');
   if (!fontGroup) {
     hideFontPicker();
     clearLyricsFont();
@@ -1537,7 +1548,7 @@ function refreshFuriganaControl() {
 furiganaToggle.addEventListener('click', () => setFuriganaEnabled(!furiganaEnabled));
 
 // ============================================================
-//  Romanization — Greek, Hindi, Thai, Arabic and Hebrew lyrics in English
+//  Romanization — Greek, Hindi, Punjabi, Thai, Arabic, Hebrew and Cyrillic lyrics in English
 //  letters, under each word (see romanize.js)
 // ============================================================
 
@@ -1550,7 +1561,7 @@ let romanizeGroup = null;        // the lyrics' script group, while the button s
 let romanizeLanguage = null;
 
 // The button's glyph: a letter of the lyrics' script over its romanization.
-const ROMANIZE_GLYPHS = { el: ['λ', 'l'], hi: ['क', 'k'], th: ['ก', 'k'], ar: ['ب', 'b'], he: ['ש', 'sh'] };
+const ROMANIZE_GLYPHS = { el: ['λ', 'l'], hi: ['क', 'k'], pa: ['ਕ', 'k'], th: ['ก', 'k'], ar: ['ب', 'b'], he: ['ש', 'sh'], ru: ['Я', 'ya'] };
 
 const ROMANIZE_CACHE_MAX = 30;
 const romanizeCache = new Map();
@@ -1654,9 +1665,10 @@ function refreshRomanizeControl() {
   const texts = currentLineTexts();
   const sample = texts.slice(0, 40).join('\n');
   const language = lyrics ? detectLyricsLanguage(sample, lyricsLanguage) : '';
-  const group = lyrics ? fontGroupFor(language, sample) : null;
+  // Not the font group alone: Cyrillic shares the Latin fonts.
+  const group = lyrics ? romanGroupFor(fontGroupFor(language, sample), sample) : null;
 
-  if (!group || !ROMAN_SCRIPTS[group] || !texts.some((t) => hasRomanWords(t, group))) {
+  if (!group || !texts.some((t) => hasRomanWords(t, group))) {
     hideRomanizeControl();
     setSource('romanization', null);
     return;

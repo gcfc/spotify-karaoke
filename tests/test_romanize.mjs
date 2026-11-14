@@ -17,6 +17,10 @@ import {
   romanizeCacheKey,
   romanizeGreekWord,
   romanizeHindiWord,
+  romanizeCyrillicWord,
+  romanGroupFor,
+  romanizePunjabiWord,
+  gurmukhiToDevanagari,
   ROMANIZE_CHAINS,
   romanLanguage,
   romanScriptOf,
@@ -46,6 +50,7 @@ console.log('\n── languages ──');
 
 assert(romanLanguage('hi', 'mr') === 'mr' && romanLanguage('hi', 'en') === 'hi' && romanLanguage('ar', 'fa') === 'fa',
   "a detected language written in the script is kept; anything else takes the script's main language");
+assert(romanLanguage('pa', 'hi') === 'pa' && romanScriptOf('pa') === 'pa', 'Punjabi lyrics are romanized as Punjabi, whatever language they were declared');
 assert(romanLanguage('ja', 'ja') === null && romanLanguage('latin', 'en') === null, 'scripts not romanized have no language');
 assert(romanScriptOf('ur') === 'ar' && romanScriptOf('ne') === 'hi' && romanScriptOf('ja') === null, "a language's script group");
 
@@ -79,7 +84,50 @@ const hindi = {
 for (const [word, want] of Object.entries(hindi)) assert(romanizeHindiWord(word) === want, `${word} → ${want}`);
 assert(romanizeHindiWord('ज़िंदगी') === romanizeHindiWord('ज़िंदगी'), 'a nukta letter reads the same precomposed or not');
 assert(eq(romanizeByRules(['तुम ही हो'], 'hi')[0].map((a) => a.reading), ['tum', 'hi', 'ho']), 'rules romanize each word of a line');
-assert(romanizeByRules(['ฉันรักเธอ'], 'th')[0] === null, 'there are no Thai rules');
+assert(romanizeByRules(['ฉันรักเธอ'], 'th')[0].every((a) => a.reading === null), 'there are no Thai rules');
+
+console.log('\n── Punjabi rules ──');
+
+assert(gurmukhiToDevanagari('ਮੁੰਡਿਆਂ') === 'मुंडिआं', 'a Gurmukhi word is spelled in Devanagari letter for letter, the tippi as a nasal');
+assert(gurmukhiToDevanagari('ਬੱਚਾ') === 'बच्चा', 'the addak doubles the consonant after it');
+const punjabi = {
+  ਮੁੰਡਿਆਂ: 'mundiaan', ਬਚ: 'bach', ਕੇ: 'ke', ਕੁੜੀ: 'kudi', ਸੋਹਣੀ: 'sohni', ਯਾਰ: 'yaar', ਬੱਚਾ: 'bachcha',
+  ਪੱਕਾ: 'pakka', ਨੱਚ: 'nach', ਗੱਲ: 'gal', 'ਖ਼ੁਸ਼': 'khush', 'ਖੁਸ਼': 'khush', ਨਹੀਂ: 'nahin', ਜ਼ਿੰਦਗੀ: 'zindagi',
+};
+for (const [word, want] of Object.entries(punjabi)) assert(romanizePunjabiWord(word) === want, `${word} → ${want}`);
+assert(eq(romanizeByRules(['ਮੁੰਡਿਆਂ ਤੋਂ ਬਚ ਕੇ, yeah'], 'pa')[0].map((a) => a.reading), ['mundiaan', 'ton', 'bach', 'ke']),
+  'rules romanize the Gurmukhi words of a Punjabi line, not the English');
+assert(eq(ROMANIZE_CHAINS.pa, ROMANIZE_CHAINS.hi), 'Punjabi, like Hindi, asks the models and falls back to rules');
+
+console.log('\n── Cyrillic rules ──');
+
+const russian = {
+  Я: 'Ya', тебя: 'tebya', люблю: 'lyublyu', ещё: 'yeshcho', жёлтый: 'zholty', новый: 'novy', синий: 'siniy',
+  её: 'yeyo', объявление: 'obyavleniye', семья: 'semya', щастье: 'shchastye', Звёзды: 'Zvyozdy', хочу: 'khochu',
+};
+for (const [word, want] of Object.entries(russian)) assert(romanizeCyrillicWord(word) === want, `${word} → ${want}`);
+assert(romanizeCyrillicWord('гарна', 'uk') === 'harna' && romanizeCyrillicWord('дівчина', 'uk') === 'divchyna' && romanizeCyrillicWord('Їде', 'uk') === 'Yide',
+  'Ukrainian: г is h, и is y, ї is yi');
+assert(romanizeCyrillicWord('България', 'bg') === 'Balgariya' && romanizeCyrillicWord('щастие', 'bg') === 'shtastie', 'Bulgarian: ъ is a, щ is sht, е stays e');
+assert(romanizeCyrillicWord('Љубав', 'sr') === 'Ljubav' && romanizeCyrillicWord('ђак', 'sr') === 'djak', "Serbian's own letters");
+assert(eq(romanizeByRules(['Стефанія мамо, гарна'], 'ru', 'uk')[0].map((a) => a.reading), ['Stefaniya', 'mamo', 'harna']),
+  "the song's language picks the rules for its words");
+assert(eq(ROMANIZE_CHAINS.ru, [RULES_STEP]), 'Cyrillic, like Greek, is romanized by rules alone');
+assert(romanGroupFor('latin', 'Группа крови на рукаве') === 'ru' && romanGroupFor('latin', 'Every night') === null && romanGroupFor('hi', 'तुम') === 'hi',
+  'Cyrillic lyrics, which share the Latin fonts, still get the button');
+assert(romanLanguage('ru', 'uk') === 'uk' && romanLanguage('ru', 'en') === 'ru', 'a Cyrillic language is kept; anything else is read as Russian');
+
+console.log('\n── songs that switch scripts ──');
+
+const mixed = 'ओ, तेरे लिए आज ਗੱਡੀ मैं तो मोड़-माड़ के';
+assert(eq(romanWords(mixed, 'hi').map((w) => w.text), ['ओ', 'तेरे', 'लिए', 'आज', 'ਗੱਡੀ', 'मैं', 'तो', 'मोड़', 'माड़', 'के']),
+  "a Hindi song's Gurmukhi word is romanized with the rest");
+assert(romanWords('ਓ, what a look! ਤੈਨੂੰ ਹੀ ਕਰਾਂ ਮੈਂ chase', 'hi').length === 5, "and so is a Hindi song's Punjabi line, its English left alone");
+assert(eq(romanizeByRules([mixed], 'hi')[0].map((a) => a.reading), ['o', 'tere', 'lie', 'aaj', 'gaddi', 'main', 'to', 'mod', 'maad', 'ke']),
+  'the rules read each word by its own script');
+assert(romanWords('ਮੁੰਡਿਆਂ', 'latin').length === 0, 'lyrics in a script not romanized have nothing to romanize');
+assert(eq(checkRomanizations(['ਤੈਨੂੰ ਹੀ'], 'hi', [[[0, 5, 'tainu'], [6, 8, 'hi']]])[0].map((a) => a.reading), ['tainu', 'hi']),
+  "the page accepts the Worker's romanization of a Gurmukhi line in a Hindi song");
 
 console.log('\n── checking replies ──');
 
@@ -113,7 +161,7 @@ console.log('\n── the chain ──');
 
 assert(eq(ROMANIZE_CHAINS.el, [RULES_STEP]) && ROMANIZE_CHAINS.hi.at(-1) === RULES_STEP && !ROMANIZE_CHAINS.th.includes(RULES_STEP),
   'Greek by rules only; Hindi falls back to rules; Thai, Arabic and Hebrew use models only');
-assert((await romanizeCacheKey('hi', ['a'])) !== (await romanizeCacheKey('mr', ['a'])) && (await romanizeCacheKey('hi', ['a'])).startsWith('romanize:v1:hi:'),
+assert((await romanizeCacheKey('hi', ['a'])) !== (await romanizeCacheKey('mr', ['a'])) && (await romanizeCacheKey('hi', ['a'])).startsWith('romanize:v3:hi:'),
   'stored romanizations are keyed by language and lines');
 
 const realFetch = globalThis.fetch;

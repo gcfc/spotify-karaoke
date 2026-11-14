@@ -1,8 +1,10 @@
 /**
  * Live evaluation of romanization against the answer keys:
- *   tests/romanize_gold_hi.json     Hindi — published romanized lyrics,
- *                                   paired with the Devanagari by LRCLIB
- *                                   timestamps (tools/romanize-eval/build_gold.mjs)
+ *   tests/romanize_gold_hi.json     Hindi, Punjabi and Russian — published
+ *   tests/romanize_gold_pa.json     romanized lyrics, paired with the
+ *   tests/romanize_gold_ru.json     Devanagari, Gurmukhi or Cyrillic by LRCLIB
+ *                                   timestamps
+ *                                   (tools/romanize-eval/build_gold.mjs)
  *   tests/romanize_gold_small.json  Greek, Thai, Arabic, Hebrew — small
  *                                   hand-made keys (see its "about")
  *
@@ -25,7 +27,9 @@ const opt = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : fallback;
 };
-const langs = opt('lang', 'el,hi,th,ar,he').split(',');
+const langs = opt('lang', 'el,hi,pa,ru,uk,th,ar,he').split(',');
+// Keys named for a language rather than a script group: Ukrainian is Cyrillic.
+const KEY_GROUP = { uk: 'ru' };
 const runs = Number(opt('runs', '1'));
 const showMisses = args.includes('--misses');
 
@@ -39,14 +43,16 @@ globalThis.fetch = (url, init) => (String(url).startsWith('http://worker/')
 /** Per language: lines, each with the words expected and their accepted spellings. */
 function loadKeys() {
   const keys = {};
-  const hi = JSON.parse(readFileSync(new URL('./romanize_gold_hi.json', import.meta.url), 'utf8'));
-  keys.hi = hi.songs.flatMap((song) => song.lines.map(({ line, gold }) => ({
-    line,
-    expected: romanWords(line, 'hi').map((w, i) => ({ ...w, alts: [gold[i]] })),
-  })));
+  for (const group of ['hi', 'pa', 'ru']) {
+    const published = JSON.parse(readFileSync(new URL(`./romanize_gold_${group}.json`, import.meta.url), 'utf8'));
+    keys[group] = published.songs.flatMap((song) => song.lines.map(({ line, gold }) => ({
+      line,
+      expected: romanWords(line, group).map((w, i) => ({ ...w, alts: [gold[i]] })),
+    })));
+  }
   const small = JSON.parse(readFileSync(new URL('./romanize_gold_small.json', import.meta.url), 'utf8'));
-  for (const group of ['el', 'th', 'ar', 'he']) {
-    keys[group] = small[group].map(({ line, gold }) => {
+  for (const group of ['el', 'th', 'ar', 'he', 'ru', 'uk']) {
+    keys[group] = (keys[group] || []).concat(small[group].map(({ line, gold }) => {
       let cursor = 0;
       const expected = gold.map(([text, alts]) => {
         const start = line.indexOf(text, cursor);
@@ -55,7 +61,7 @@ function loadKeys() {
         return { start, end: cursor, text, alts };
       });
       return { line, expected };
-    });
+    }));
   }
   return keys;
 }
@@ -82,8 +88,9 @@ function score(key, result) {
 const pct = (n, d) => (d ? `${(100 * n / d).toFixed(1)}%` : '—');
 const keys = loadKeys();
 console.log('lang  source                   words  answered  exact    loose    lines dropped  time');
-for (const group of langs) {
-  const key = keys[group];
+for (const lang of langs) {
+  const key = keys[lang];
+  const group = KEY_GROUP[lang] || lang;
   const lines = key.map((k) => k.line);
   const chain = ROMANIZE_CHAINS[group];
   const sources = opt('source', [...chain, ...(chain.length > 1 ? ['chain'] : [])].join(',')).split(',')
@@ -93,12 +100,12 @@ for (const group of langs) {
       const t0 = Date.now();
       const steps = [];
       const result = await fetchRomanization(lines, {
-        group, workerUrl: 'http://worker', chain: source === 'chain' ? chain : [source], onStep: (st) => steps.push(st),
+        group, language: lang, workerUrl: 'http://worker', chain: source === 'chain' ? chain : [source], onStep: (st) => steps.push(st),
       });
       const s = score(key, result);
       const dropped = key.filter((_, i) => !result?.[i]).length;
       const errors = steps.filter((st) => !st.ok).map((st) => `${st.step}: ${st.error}`);
-      console.log(`${group.padEnd(5)} ${source.padEnd(24)} ${String(s.words).padStart(5)}  ${pct(s.answered, s.words).padStart(7)}  ${pct(s.exact, s.words).padStart(6)}  ${pct(s.loose, s.words).padStart(6)}  ${String(dropped).padStart(8)}/${key.length}  ${((Date.now() - t0) / 1000).toFixed(1)}s${errors.length ? `  ${errors.join('; ')}` : ''}`);
+      console.log(`${lang.padEnd(5)} ${source.padEnd(24)} ${String(s.words).padStart(5)}  ${pct(s.answered, s.words).padStart(7)}  ${pct(s.exact, s.words).padStart(6)}  ${pct(s.loose, s.words).padStart(6)}  ${String(dropped).padStart(8)}/${key.length}  ${((Date.now() - t0) / 1000).toFixed(1)}s${errors.length ? `  ${errors.join('; ')}` : ''}`);
       if (showMisses && run === 0) s.misses.slice(0, 40).forEach((m) => console.log(`        ${m}`));
     }
   }

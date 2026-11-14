@@ -1,5 +1,6 @@
 // ============================================================
-//  Romanization for Greek, Hindi, Thai, Arabic and Hebrew lyrics —
+//  Romanization for Greek, Hindi, Punjabi, Thai, Arabic, Hebrew and Cyrillic
+//  (Russian, Ukrainian …) lyrics —
 //  shared by app.js (browser), worker/worker.js (Cloudflare Worker) and
 //  the tests.
 //
@@ -13,9 +14,11 @@
 //  Spelling is the singer-friendly kind people type: plain letters, no
 //  accents or tone marks — "pyaar", "habibi", "sawasdee".
 //
-//  Greek is spelled as it sounds, almost letter by letter, so it is
-//  romanized by rules (romanizeGreekWord), in the browser, with no model.
-//  Hindi asks the models first and falls back to rules (romanizeHindiWord);
+//  Greek and Cyrillic are spelled close to how they sound, so they are
+//  romanized by rules (romanizeGreekWord, romanizeCyrillicWord), in the
+//  browser, with no model.
+//  Hindi and Punjabi ask the models first and fall back to rules
+//  (romanizeHindiWord, and romanizePunjabiWord through it);
 //  Thai, Arabic and Hebrew leave too much unwritten — Thai has no spaces and
 //  unwritten vowels, Arabic and Hebrew rarely write their short vowels — for
 //  rules to recover, so they use the models only.
@@ -27,19 +30,36 @@
 export const ROMAN_SCRIPTS = Object.freeze({
   el: /\p{Script=Greek}/u,
   hi: /\p{Script=Devanagari}/u,
+  pa: /\p{Script=Gurmukhi}/u,
   th: /\p{Script=Thai}/u,
   ar: /\p{Script=Arabic}/u,
   he: /\p{Script=Hebrew}/u,
+  // Cyrillic has no font group of its own (the Latin fonts draw it), so
+  // its lyrics are found by romanGroupFor rather than fontGroupFor.
+  ru: /\p{Script=Cyrillic}/u,
 });
+
+/**
+ * The script group to romanize lyrics as: the font group (fontGroupFor in
+ * fonts.js) when it is one romanized here, or Cyrillic for lyrics with
+ * Cyrillic in them — which fonts.js counts as Latin, since the Latin fonts
+ * draw it.  Null when there is nothing to romanize.
+ */
+export function romanGroupFor(fontGroup, sample) {
+  if (ROMAN_SCRIPTS[fontGroup]) return fontGroup;
+  return ROMAN_SCRIPTS.ru.test(String(sample || '')) ? 'ru' : null;
+}
 
 // The language the model is told the lyrics are in, by detected language,
 // for each script; anything else in a script gets that script's first.
 const LANGUAGE_NAMES = Object.freeze({
   el: { el: 'Greek' },
   hi: { hi: 'Hindi', mr: 'Marathi', ne: 'Nepali' },
+  pa: { pa: 'Punjabi' },
   th: { th: 'Thai' },
   ar: { ar: 'Arabic', fa: 'Persian', ur: 'Urdu' },
   he: { he: 'Hebrew', yi: 'Yiddish' },
+  ru: { ru: 'Russian', uk: 'Ukrainian', be: 'Belarusian', bg: 'Bulgarian', sr: 'Serbian', mk: 'Macedonian', kk: 'Kazakh', ky: 'Kyrgyz', mn: 'Mongolian' },
 });
 
 /** The language code to romanize lyrics of `group`'s script as: the
@@ -77,26 +97,38 @@ function segmentThai(text) {
   return [...thaiSegmenter.segment(text)].filter((s) => s.isWordLike).map((s) => ({ start: s.index, text: s.segment }));
 }
 
+/** The romanized script a word is written in ('hi', 'pa' …), or null. */
+export function scriptGroupOf(text) {
+  return Object.keys(ROMAN_SCRIPTS).find((g) => ROMAN_SCRIPTS[g].test(text)) || null;
+}
+
 /**
- * The words of a line that need romanizing — those with a letter of the
- * script — with their UTF-16 offsets: `[{start, end, text}]`.  Thai, written
- * without spaces, is split by the platform's dictionary (Intl.Segmenter);
- * where there is none, each run of Thai is one piece.  A Thai word's
- * dictionary split may differ between platforms, so the Worker sends back
- * the words it used rather than the page splitting again.
+ * The words of a line that need romanizing, with their UTF-16 offsets:
+ * `[{start, end, text}]`.  That is every word in a script romanized here,
+ * not only the song's own: songs switch scripts — Dilliwaali Girlfriend is
+ * Hindi in Devanagari with its Punjabi lines in Gurmukhi — and each word is
+ * romanized as its own script is read.  English words are left alone.
+ * Thai, written without spaces, is split by the platform's dictionary
+ * (Intl.Segmenter); where there is none, each run of Thai is one piece.  A
+ * Thai word's dictionary split may differ between platforms, so the Worker
+ * sends back the words it used rather than the page splitting again.
+ *
+ * @param {string} line
+ * @param {string} group  the song's script; lyrics in a script not
+ *   romanized here have no words to romanize
  */
 export function romanWords(line, group) {
-  const script = ROMAN_SCRIPTS[group];
   const text = String(line || '');
-  if (!script) return [];
+  if (!ROMAN_SCRIPTS[group]) return [];
   const words = [];
   for (const m of text.matchAll(WORD_RE)) {
-    if (!script.test(m[0])) continue;
-    if (group === 'th') {
+    const wordGroup = scriptGroupOf(m[0]);
+    if (!wordGroup) continue;
+    if (wordGroup === 'th') {
       const parts = segmentThai(m[0]);
       if (parts && parts.length > 0) {
         for (const p of parts) {
-          if (script.test(p.text)) words.push({ start: m.index + p.start, end: m.index + p.start + p.text.length, text: p.text });
+          if (scriptGroupOf(p.text)) words.push({ start: m.index + p.start, end: m.index + p.start + p.text.length, text: p.text });
         }
         continue;
       }
@@ -214,7 +246,8 @@ const DEV_CONSONANTS = {
   व: 'v', श: 'sh', ष: 'sh', स: 's', ह: 'h',
 };
 // With a nukta — the sounds Urdu words bring: क़ q, ख़ kh, ग़ gh, ज़ z, फ़ f, and the flapped ड़ ढ़.
-const DEV_NUKTA = { क: 'q', ख: 'kh', ग: 'gh', ज: 'z', झ: 'zh', ड: 'd', ढ: 'dh', फ: 'f', य: 'y' };
+// स with a nukta is how Gurmukhi's ਸ਼ (sh) comes through when typed as ਸ plus ਼.
+const DEV_NUKTA = { क: 'q', ख: 'kh', ग: 'gh', ज: 'z', झ: 'zh', ड: 'd', ढ: 'dh', फ: 'f', य: 'y', स: 'sh', ल: 'l' };
 const DEV_PRECOMPOSED = { 'क़': 'क', 'ख़': 'ख', 'ग़': 'ग', 'ज़': 'ज', 'ड़': 'ड', 'ढ़': 'ढ', 'फ़': 'फ', 'य़': 'य' };
 const DEV_VOWELS = { अ: 'a', आ: 'aa', इ: 'i', ई: 'ee', उ: 'u', ऊ: 'oo', ऋ: 'ri', ए: 'e', ऐ: 'ai', ओ: 'o', औ: 'au', ऑ: 'o', ऍ: 'e', ॠ: 'ri', ऌ: 'li' };
 const DEV_MATRAS = { 'ा': 'aa', 'ि': 'i', 'ी': 'ee', 'ु': 'u', 'ू': 'oo', 'ृ': 'ri', 'ॄ': 'ri', 'े': 'e', 'ै': 'ai', 'ो': 'o', 'ौ': 'au', 'ॉ': 'o', 'ॅ': 'e' };
@@ -299,18 +332,117 @@ export function romanizeHindiWord(word) {
   return out;
 }
 
-/** Each word of each line romanized by the rules for `group`: per line,
- *  `[{start, end, reading}]`. */
-export function romanizeByRules(lines, group) {
-  const rule = group === 'el' ? romanizeGreekWord : group === 'hi' ? romanizeHindiWord : null;
-  if (!rule) return lines.map(() => null);
-  return lines.map((line) => romanWords(line, group).map((w) => ({ start: w.start, end: w.end, reading: cleanRomanization(rule(w.text)) })));
+// ── Punjabi rules ──
+
+// Gurmukhi's letters sit at the same places in their Unicode block as their
+// Devanagari counterparts do in theirs (ਕ U+0A15, क U+0915), so a Gurmukhi
+// word becomes its Devanagari spelling by moving each letter down a block,
+// and is then read by the Hindi rules.  Gurmukhi's own marks: the tippi ੰ
+// and bindi ਂ are nasals like ं, and the addak ੱ doubles the consonant after
+// it (ਬੱਚਾ is बच्चा, bachcha) — except before a word's last letter, where
+// the doubling is not heard and is not typed (ਨੱਚ is nach, ਗੱਲ gal).
+const GURMUKHI_ONLY = { 'ੰ': 'ं', 'ੱ': '', 'ੲ': 'इ', 'ੳ': 'उ', 'ੴ': 'ॐ', 'ੑ': '', 'ੵ': '' };
+
+/** A Gurmukhi word's Devanagari spelling (see above). */
+export function gurmukhiToDevanagari(word) {
+  const chars = [...String(word || '')];
+  let out = '';
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    if (ch === 'ੱ') {
+      // Doubled: the next consonant, then a virama, then it again.
+      const next = chars[i + 1];
+      const cp = next ? next.codePointAt(0) : 0;
+      const after = chars[i + (chars[i + 2] === '਼' ? 3 : 2)];
+      const last = after === undefined || !/[\u0a00-\u0a7f]/.test(after);
+      if (cp >= 0x0a15 && cp <= 0x0a5e && !last) out += String.fromCodePoint(cp - 0x100) + (chars[i + 2] === '਼' ? '़' : '') + '्';
+      continue;
+    }
+    if (ch in GURMUKHI_ONLY) { out += GURMUKHI_ONLY[ch]; continue; }
+    const cp = ch.codePointAt(0);
+    out += cp >= 0x0a01 && cp <= 0x0a6f ? String.fromCodePoint(cp - 0x100) : ch;
+  }
+  return out;
+}
+
+/** A Punjabi word in the letters Punjabi lyrics are typed in:
+ *  ਮੁੰਡਿਆਂ → mundiyaan, ਬਚ → bach, ਕੁੜੀ → kudi. */
+export function romanizePunjabiWord(word) {
+  return romanizeHindiWord(gurmukhiToDevanagari(word));
+}
+
+// ── Cyrillic rules ──
+
+// The letters as people type Russian lyrics in English letters: ж zh, х kh,
+// ц ts, щ shch, ы y, ю yu, я ya; the soft and hard signs are not written.
+const CYRILLIC = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l',
+  м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh',
+  щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+  // Letters of the other languages written in Cyrillic.
+  і: 'i', ї: 'yi', є: 'ye', ґ: 'g', ў: 'w', ђ: 'dj', ј: 'j', љ: 'lj', њ: 'nj', ћ: 'ch', џ: 'dzh', ѓ: 'gj', ќ: 'kj', ѕ: 'dz',
+  ғ: 'gh', қ: 'q', ң: 'ng', ө: 'o', ұ: 'u', ү: 'u', һ: 'h', ә: 'a',
+};
+// Where a language reads a letter differently from Russian.
+const CYRILLIC_BY_LANGUAGE = {
+  uk: { г: 'h', и: 'y', е: 'e', щ: 'shch' },
+  be: { г: 'h', и: 'i', е: 'e' },
+  bg: { ъ: 'a', щ: 'sht', ь: 'y', е: 'e' },
+  sr: { е: 'e', ј: 'j' },
+  mk: { е: 'e', ј: 'j' },
+};
+const CYRILLIC_VOWELS = new Set('аеёиоуыэюяіїєў');
+const CYRILLIC_HUSHING = new Set('жшчщ');
+
+/**
+ * A word in Cyrillic in the letters its lyrics are typed in: тебя → tebya,
+ * люблю → lyublyu, ещё → yeshcho; for Ukrainian (language 'uk') г is h and
+ * и is y (гарна → harna, ти → ty); Bulgarian ъ is a and щ is sht (България
+ * → Balgariya).  Russian е is ye where it starts a syllable (ехать → yekhat,
+ * её → yeyo) and e after a consonant; ё after ж, ш, ч, щ is o (жёлтый →
+ * zholty); a word-final -ый is -y (новый → novy).
+ */
+export function romanizeCyrillicWord(word, language = 'ru') {
+  const table = { ...CYRILLIC, ...(CYRILLIC_BY_LANGUAGE[language] || {}) };
+  const yotated = language === 'ru' || language === 'be' || !CYRILLIC_BY_LANGUAGE[language];
+  const chars = [...String(word || '')];
+  let out = '';
+  chars.forEach((ch, i) => {
+    const lower = ch.toLowerCase();
+    let roman = table[lower];
+    if (roman === undefined) { out += ch; return; }
+    const prev = (chars[i - 1] || '').toLowerCase();
+    const startsSyllable = i === 0 || CYRILLIC_VOWELS.has(prev) || prev === 'ь' || prev === 'ъ' || !table[prev];
+    if (lower === 'е' && yotated && startsSyllable) roman = 'ye';
+    if (lower === 'ё' && CYRILLIC_HUSHING.has(prev)) roman = 'o';
+    if (lower === 'й' && prev === 'ы' && i === chars.length - 1) roman = '';
+    if (ch !== lower && roman) roman = roman[0].toUpperCase() + roman.slice(1);
+    out += roman;
+  });
+  return out;
+}
+
+const RULES = { el: romanizeGreekWord, hi: romanizeHindiWord, pa: romanizePunjabiWord, ru: romanizeCyrillicWord };
+
+/** Each word of each line romanized by the rules for its own script — a
+ *  Gurmukhi word in a Hindi song by the Punjabi rules — as per line
+ *  `[{start, end, reading}]`; a word in a script with no rules (Thai,
+ *  Arabic, Hebrew) has a null reading. */
+export function romanizeByRules(lines, group, language) {
+  return lines.map((line) => romanWords(line, group).map((w) => {
+    const wordGroup = scriptGroupOf(w.text);
+    const rule = RULES[wordGroup];
+    // The song's language reads words in the song's own script (Ukrainian г is h).
+    const reading = rule ? rule(w.text, wordGroup === group ? language : undefined) : null;
+    return { start: w.start, end: w.end, reading: cleanRomanization(reading) };
+  }));
 }
 
 // ── Asking a model ──
 
 const STYLE = {
   Hindi: `the way Bollywood lyrics are usually typed in English letters: long vowels doubled inside a word (pyaar, jaana, yaad, dheere, dhoondh), single at the end (tera, zindagi, tu); the "a" Hindi does not say left out as it is sung (dil, samajh, dhadkan, karna); nasal vowels with an n (main, hain, nahin); ज़ as z, फ़ as f, क़ as q, श as sh, च as ch, छ as chh`,
+  Punjabi: `the way Punjabi lyrics are usually typed in English letters: long vowels doubled inside a word (yaar, saari, door), single at the end (kudi, sohni); the "a" Punjabi does not say left out as it is sung (dil, nach); nasal vowels with an n (main, nahin); a doubled consonant written double (pakka, satta); ਜ਼ as z, ਫ਼ as f, ਖ਼ as kh, ਸ਼ as sh, ੜ as r; tones not marked`,
   Marathi: 'the way Marathi lyrics are usually typed in English letters, long vowels doubled inside a word, the unsaid "a" left out as it is sung',
   Nepali: 'the way Nepali lyrics are usually typed in English letters, long vowels doubled inside a word, the unsaid "a" left out as it is sung',
   Thai: `as it is sung, in the spelling of the Royal Thai General System (no tone marks, no vowel-length marks): ฉัน → chan, รัก → rak, เธอ → thoe, ใจ → chai, สวัสดี → sawatdi; write the vowels Thai leaves unwritten`,
@@ -343,6 +475,7 @@ Rules:
 - Return one entry for each of the ${n} lines, in order: the line's number, then one romanization for each of its words, in the order listed — for line 1 with words w1 | w2, ["1", "...", "..."].
 - Write each word ${STYLE[name] || 'as it is sung, in plain letters'}.
 - Read each word the way it is sung in that line, using the words around it.
+- A word written in another language's script — a Punjabi line in Gurmukhi within a Hindi song, say — is written as it is said in that language.
 - Plain letters only: no accents, no tone marks, no numbers standing for sounds. An apostrophe or hyphen inside a word is fine.
 - No translations, no punctuation, no explanations.
 
@@ -408,7 +541,6 @@ export function checkRomanizations(lines, group, romanized) {
   if (!Array.isArray(romanized) || romanized.length !== lines.length) {
     throw new Error(`romanization: ${Array.isArray(romanized) ? romanized.length : 'no'} entries for ${lines.length} lines`);
   }
-  const script = ROMAN_SCRIPTS[group];
   return lines.map((line, i) => {
     const spans = romanized[i];
     if (!Array.isArray(spans) || spans.length === 0) return null;
@@ -419,7 +551,7 @@ export function checkRomanizations(lines, group, romanized) {
       const [start, end, value] = s;
       const reading = cleanRomanization(value);
       if (!Number.isInteger(start) || !Number.isInteger(end) || start < cursor || end <= start || end > line.length) return null;
-      if (!script.test(line.slice(start, end)) || !reading) return null;
+      if (!scriptGroupOf(line.slice(start, end)) || !reading) return null;
       out.push({ start, end, reading });
       cursor = end;
     }
@@ -437,7 +569,8 @@ export const RULES_STEP = 'rules';
 
 /**
  * Where romanizations come from, by script, in order; each step fills only
- * the words the steps before it left.  Greek needs no model.  Hindi falls
+ * the words the steps before it left.  Greek and Cyrillic, spelled close to
+ * how they sound, need no model.  Hindi falls
  * back to rules when both models fail; Thai, Arabic and Hebrew have no
  * rules good enough to fall back to.  See the README for the measured
  * accuracy of each.
@@ -445,9 +578,12 @@ export const RULES_STEP = 'rules';
 export const ROMANIZE_CHAINS = Object.freeze({
   el: [RULES_STEP],
   hi: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', RULES_STEP],
+  pa: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', RULES_STEP],
   th: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite'],
   ar: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite'],
   he: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite'],
+  // Measured: rules 97.7% on Russian, gemini-3.1-flash-lite 97.3%.
+  ru: [RULES_STEP],
 });
 
 /** The first model of the chains: the only one whose answers the Worker stores. */
@@ -459,7 +595,9 @@ export const ROMANIZE_GEMINI_TIMEOUT_MS = 17_000;
 export const ROMANIZE_MAX_LINES = 200;
 export const ROMANIZE_MAX_LINE_CHARS = 300;
 
-export const ROMANIZE_CACHE_VERSION = 1;
+// 2: words in every romanized script, not only the song's own, so songs
+// stored under 1 lack their other script's lines.  3: Cyrillic words too.
+export const ROMANIZE_CACHE_VERSION = 3;
 export const ROMANIZE_CACHE_TTL_S = 180 * 24 * 60 * 60;
 
 /** The key a song's romanizations are stored under: its language and a
@@ -567,7 +705,7 @@ export async function fetchRomanization(lines, options) {
       let cached = false;
       let model = isRules ? null : step;
       if (isRules) {
-        got = romanizeByRules(asked, group);
+        got = romanizeByRules(asked, group, language);
       } else {
         ({ romanized: got, cached, model } = await requestRomanized(asked, group, language, step, workerUrl));
       }

@@ -1,0 +1,1756 @@
+{
+ "group": "pa",
+ "built": "2026-11-14",
+ "songs": [
+  {
+   "title": "Mundian to Bach Ke",
+   "artist": "Panjabi MC - Topic",
+   "native": 34043028,
+   "romanized": 4088355,
+   "lines": [
+    {
+     "line": "ਨੀਵਿਆਂ ਤੂੰ ਕੁੱਝ ਚਿਰ ਪਾ ਕੇ ਰੱਖ ਲੈ",
+     "roman": "niyaan tun kuch chir pa ke rakh le",
+     "gold": [
+      "niyaan",
+      "tun",
+      "kuch",
+      "chir",
+      "pa",
+      "ke",
+      "rakh",
+      "le"
+     ]
+    },
+    {
+     "line": "ਪੱਲੇ ਵਿੱਚ ਮੁੱਖੜਾ ਲੁਕਾ ਕੇ ਰੱਖ ਲੈ",
+     "roman": "palley vich mukhra lukaa ke rakh le",
+     "gold": [
+      "palley",
+      "vich",
+      "mukhra",
+      "lukaa",
+      "ke",
+      "rakh",
+      "le"
+     ]
+    },
+    {
+     "line": "ਐਵੇਂ ਕਰੀਂ ਨਾ ਕਿਸੇ ਦੇ ਨਾਲ ਪਿਆਰ",
+     "roman": "avey karin na kise de naal pyaar",
+     "gold": [
+      "avey",
+      "karin",
+      "na",
+      "kise",
+      "de",
+      "naal",
+      "pyaar"
+     ]
+    },
+    {
+     "line": "ਮੁੰਡਿਆਂ ਤੋਂ ਬਚ ਕੇ ਰਹੀਂ",
+     "roman": "munday ton bach ke rahi",
+     "gold": [
+      "munday",
+      "ton",
+      "bach",
+      "ke",
+      "rahi"
+     ]
+    },
+    {
+     "line": "ਨੀ ਤੂੰ ਹੁਣੇ-ਹੁਣੇ ਹੋਈ ਮੁਟਿਆਰ",
+     "roman": "nee tun hunne-hunne hoyi mutiar",
+     "gold": [
+      "nee",
+      "tun",
+      "hunne",
+      "hunne",
+      "hoyi",
+      "mutiar"
+     ]
+    },
+    {
+     "line": "ਮੁੰਡਿਆਂ ਤੋਂ ਬਚ ਕੇ ਰਹੀਂ, ਓਏ",
+     "roman": "munday ton bach ke rahi, oye",
+     "gold": [
+      "munday",
+      "ton",
+      "bach",
+      "ke",
+      "rahi",
+      "oye"
+     ]
+    },
+    {
+     "line": "ਤੇਰਾ ਕੀ ਕਸੂਰ ਜੇ ਨਸ਼ੀਲੇ ਨੈਨ ਹੋ ਗਏ?",
+     "roman": "tera ki kasoor je nashille nain ho gaye?",
+     "gold": [
+      "tera",
+      "ki",
+      "kasoor",
+      "je",
+      "nashille",
+      "nain",
+      "ho",
+      "gaye"
+     ]
+    },
+    {
+     "line": "ਸਿਖ ਕੇ ਅਦਾਵਾਂ ਸ਼ਰਮੀਲੇ ਨੈਨ ਹੋ ਗਏ",
+     "roman": "sikhe ke adaavan sharimille nain ho gaye",
+     "gold": [
+      "sikhe",
+      "ke",
+      "adaavan",
+      "sharimille",
+      "nain",
+      "ho",
+      "gaye"
+     ]
+    },
+    {
+     "line": "ਸਾਂਭ ਕੇ ਰੱਖਨੀ ਐ ਜੋਬਨ ਪਿਟਾਰੀ",
+     "roman": "saambh ke rakhni ae joban pitaari",
+     "gold": [
+      "saambh",
+      "ke",
+      "rakhni",
+      "ae",
+      "joban",
+      "pitaari"
+     ]
+    },
+    {
+     "line": "ਮੁੜ-ਮੁੜ ਕੇ ਨਹੀਂ ਆਉਣੀ ਐ ਬਹਾਰ",
+     "roman": "mur-mur ke nahi aunni ae bahar",
+     "gold": [
+      "mur",
+      "mur",
+      "ke",
+      "nahi",
+      "aunni",
+      "ae",
+      "bahar"
+     ]
+    },
+    {
+     "line": "ਚੜ੍ਹਦੀ ਜਵਾਨੀ, ਤੇਰਾ ਰੂਪ ਠਾਹ-ਠਾਹ ਮਾਰਦਾ",
+     "roman": "chardhi javani, tera roop taah-taah maarda",
+     "gold": [
+      "chardhi",
+      "javani",
+      "tera",
+      "roop",
+      "taah",
+      "taah",
+      "maarda"
+     ]
+    },
+    {
+     "line": "ਪਤਲਾ ਜਿਹਾ ਲੱਕ, ਨਾਲ ਹੁਲਾਰਾ ਵੀ ਸਹਾਰਦਾ",
+     "roman": "patla jiha lak, naal hulara vi saahaarda",
+     "gold": [
+      "patla",
+      "jiha",
+      "lak",
+      "naal",
+      "hulara",
+      "vi",
+      "saahaarda"
+     ]
+    },
+    {
+     "line": "ਗੋਰਾ-ਗੋਰਾ ਰੰਗ ਉਤੋਂ ਮਿਰਗਾਂ ਜਿਹੀ ਤੋਰ",
+     "roman": "gora-gora rang ute mirgan jehi tor",
+     "gold": [
+      "gora",
+      "gora",
+      "rang",
+      "ute",
+      "mirgan",
+      "jehi",
+      "tor"
+     ]
+    },
+    {
+     "line": "ਨਾ ਹੀ ਤੇਰੇ ਜਿਹੀ ਸੋਹਣੀ ਕੋਈ ਨਾਰ",
+     "roman": "na hi tere jehi sohani koyi naar",
+     "gold": [
+      "na",
+      "hi",
+      "tere",
+      "jehi",
+      "sohani",
+      "koyi",
+      "naar"
+     ]
+    },
+    {
+     "line": "ਮੁੰਡਿਆਂ ਦੇ ਬੁੱਲ੍ਹਾਂ ਉਤੇ ਤੇਰੀਆਂ ਕਹਾਣੀਆਂ",
+     "roman": "munday de bulan ute teriaan kahanian",
+     "gold": [
+      "munday",
+      "de",
+      "bulan",
+      "ute",
+      "teriaan",
+      "kahanian"
+     ]
+    },
+    {
+     "line": "ਚੋਬਰਾਂ ਦੇ ਬੁੱਲ੍ਹਾਂ ਉਤੇ ਤੇਰੀਆਂ ਕਹਾਣੀਆਂ",
+     "roman": "choberaan de bulan ute teriaan kahanian",
+     "gold": [
+      "choberaan",
+      "de",
+      "bulan",
+      "ute",
+      "teriaan",
+      "kahanian"
+     ]
+    },
+    {
+     "line": "ਝੱਲ ਸੱਕਿਆ ਨਾ ਹੁਸਨ ਦਾ ਵਾਰ",
+     "roman": "jhal sakia na husan da vaar",
+     "gold": [
+      "jhal",
+      "sakia",
+      "na",
+      "husan",
+      "da",
+      "vaar"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Excuses",
+   "artist": "AP Dhillon, Gurinder Gill, Intense",
+   "native": 9514172,
+   "romanized": 5108453,
+   "lines": [
+    {
+     "line": "ਮੇਰੇ ਦਿਲ ਨਾਲ਼ ਲਾਰੇ ਨੀ ਤੂੰ ਲਾਉਣ ਵਾਲ਼ੀਏ",
+     "roman": "Mere dil naal laare ni tu laun waaliye",
+     "gold": [
+      "mere",
+      "dil",
+      "naal",
+      "laare",
+      "ni",
+      "tu",
+      "laun",
+      "waaliye"
+     ]
+    },
+    {
+     "line": "ਦਿਲ ਤੇਰਾ ਜਦੋਂ ਟੁੱਟੂਗਾ ਤਾਂ ਪਤਾ ਲੱਗੂਗਾ",
+     "roman": "Dil tera jadon tuttuga taan pata lagguga",
+     "gold": [
+      "dil",
+      "tera",
+      "jadon",
+      "tuttuga",
+      "taan",
+      "pata",
+      "lagguga"
+     ]
+    },
+    {
+     "line": "ਦਿਲ ਨਾਲ਼ ਲਾਰੇ ਨੀ ਤੂੰ ਲਾਉਣ ਵਾਲ਼ੀਏ",
+     "roman": "Dil naal laare ni tu laun waaliye",
+     "gold": [
+      "dil",
+      "naal",
+      "laare",
+      "ni",
+      "tu",
+      "laun",
+      "waaliye"
+     ]
+    },
+    {
+     "line": "ਦਿਲ ਤੇਰਾ ਜਦੋਂ ਟੁੱਟੂਗਾ ਤਾਂ...",
+     "roman": "Dil tera jadon tuttuga taan...",
+     "gold": [
+      "dil",
+      "tera",
+      "jadon",
+      "tuttuga",
+      "taan"
+     ]
+    },
+    {
+     "line": "ਟੁੱਟੇ ਦਿਲ ਨੂੰ ਸਾਂਭੀ ਫ਼ਿਰਦੇ",
+     "roman": "Tutte dil nu saambhi firde",
+     "gold": [
+      "tutte",
+      "dil",
+      "nu",
+      "saambhi",
+      "firde"
+     ]
+    },
+    {
+     "line": "ਕੀ ਫ਼ਾਇਦਾ, ਮੁਟਿਆਰੇ ਨੀ?",
+     "roman": "Ki faida, mutiyare ni?",
+     "gold": [
+      "ki",
+      "faida",
+      "mutiyare",
+      "ni"
+     ]
+    },
+    {
+     "line": "ਛੱਡੇ ਤਖਤ ਹਜ਼ਾਰੇ ਨੀ",
+     "roman": "Chhadde takht hazaare ni",
+     "gold": [
+      "chhadde",
+      "takht",
+      "hazaare",
+      "ni"
+     ]
+    },
+    {
+     "line": "ਹਰ ਸਾਹ ਨਾਲ਼ ਯਾਦ ਤੈਨੂੰ ਕਰਦੇ ਰਹੇ",
+     "roman": "Har saah naal yaad tainu karde rahe",
+     "gold": [
+      "har",
+      "saah",
+      "naal",
+      "yaad",
+      "tainu",
+      "karde",
+      "rahe"
+     ]
+    },
+    {
+     "line": "ਕੋਈ ਸਾਡੇ ਵਾਂਗ ਕਰੂਗਾ ਤਾਂ ਪਤਾ ਲੱਗੂਗਾ",
+     "roman": "Koi saade waang karuga taan pata lagguga",
+     "gold": [
+      "koi",
+      "saade",
+      "waang",
+      "karuga",
+      "taan",
+      "pata",
+      "lagguga"
+     ]
+    },
+    {
+     "line": "ਕਹਿੰਦੀ ਹੁੰਦੀ ਸੀ, \"ਚੰਨ ਤਕ ਰਾਹ ਬਣਾ ਦੇ",
+     "roman": "Kehndi hundi si, \"Chann tak raah bana de",
+     "gold": [
+      "kehndi",
+      "hundi",
+      "si",
+      "chann",
+      "tak",
+      "raah",
+      "bana",
+      "de"
+     ]
+    },
+    {
+     "line": "ਤਾਰੇ ਨੇ ਪਸੰਦ ਮੈਨੂੰ, ਹੇਠਾਂ ਸਾਰੇ ਲਾ ਦੇ\"",
+     "roman": "Taare ne pasand mainu, hethaan saare laa de\"",
+     "gold": [
+      "taare",
+      "ne",
+      "pasand",
+      "mainu",
+      "hethaan",
+      "saare",
+      "laa",
+      "de"
+     ]
+    },
+    {
+     "line": "ਉਹਨਾਂ ਤਾਰਿਆਂ ਦੇ ਵਿੱਚ ਜਦੋਂ ਮੈਨੂੰ ਵੇਖੇਗੀ",
+     "roman": "Ohna taareyan de vich jadon mainu vekhegi",
+     "gold": [
+      "ohna",
+      "taareyan",
+      "de",
+      "vich",
+      "jadon",
+      "mainu",
+      "vekhegi"
+     ]
+    },
+    {
+     "line": "ਮੇਰੀ ਯਾਦ ਜਦੋਂ ਆਊਗੀ ਤਾਂ ਪਤਾ ਲੱਗੂਗਾ",
+     "roman": "Meri yaad jadon aaugi taan pata lagguga",
+     "gold": [
+      "meri",
+      "yaad",
+      "jadon",
+      "aaugi",
+      "taan",
+      "pata",
+      "lagguga"
+     ]
+    },
+    {
+     "line": "ਰਾਸ ਨਾ ਆਇਆ ਤੈਨੂੰ",
+     "roman": "Raas na aaya tainu",
+     "gold": [
+      "raas",
+      "na",
+      "aaya",
+      "tainu"
+     ]
+    },
+    {
+     "line": "ਨੀ ਜੋ ਦਿਲ ਦਾ ਮਹਿਲ ਬਣਾਇਆ ਸੀ",
+     "roman": "Ni jo dil da mehel banaya si",
+     "gold": [
+      "ni",
+      "jo",
+      "dil",
+      "da",
+      "mehel",
+      "banaya",
+      "si"
+     ]
+    },
+    {
+     "line": "ਤੋੜ ਕੇ ਮੋਤੀ ਫੁੱਲਾਂ ਦੇ",
+     "roman": "Tod ke moti phullan de",
+     "gold": [
+      "tod",
+      "ke",
+      "moti",
+      "phullan",
+      "de"
+     ]
+    },
+    {
+     "line": "ਉਸ ਮਹਿਲ 'ਚ ਬੂਟਾ ਲਾਇਆ ਸੀ",
+     "roman": "Os mehel 'ch boota laaya si",
+     "gold": [
+      "os",
+      "mehel",
+      "ch",
+      "boota",
+      "laaya",
+      "si"
+     ]
+    },
+    {
+     "line": "ਨੀ ਜਿਵੇਂ ਸਾਨੂੰ ਛੱਡ ਗਈ ਆ ਨੀ ਤੂੰ, ਅੱਲ੍ਹੜੇ",
+     "roman": "Ni jivein saanu chhadd gayi aa ni tu, allhade",
+     "gold": [
+      "ni",
+      "jivein",
+      "saanu",
+      "chhadd",
+      "gayi",
+      "aa",
+      "ni",
+      "tu",
+      "allhade"
+     ]
+    },
+    {
+     "line": "ਜਦੋਂ ਤੈਨੂੰ ਕੋਈ ਛੱਡੂਗਾ ਤਾਂ...",
+     "roman": "Jadon tainu koi chhaduga taan...",
+     "gold": [
+      "jadon",
+      "tainu",
+      "koi",
+      "chhaduga",
+      "taan"
+     ]
+    },
+    {
+     "line": "ਹੋ, ਜਿਵੇਂ ਸਾਨੂੰ ਛੱਡ ਗਈ ਆ ਨੀ ਤੂੰ, ਅੱਲ੍ਹੜੇ",
+     "roman": "Ho, jivein saanu chhadd gayi aa ni tu, allhade",
+     "gold": [
+      "ho",
+      "jivein",
+      "saanu",
+      "chhadd",
+      "gayi",
+      "aa",
+      "ni",
+      "tu",
+      "allhade"
+     ]
+    },
+    {
+     "line": "ਜਦੋਂ ਤੈਨੂੰ ਕੋਈ ਛੱਡੂਗਾ ਤਾਂ ਪਤਾ ਲੱਗੂਗਾ",
+     "roman": "Jadon tainu koi chhaduga taan pata lagguga",
+     "gold": [
+      "jadon",
+      "tainu",
+      "koi",
+      "chhaduga",
+      "taan",
+      "pata",
+      "lagguga"
+     ]
+    },
+    {
+     "line": "ਇਸ਼ਕੇ ਦੇ ਰਾਹਾਂ ਵਿੱਚ ਰੁੜ੍ਹ ਕੇ ਰਹਿ ਗਏ ਹਾਂ",
+     "roman": "Ishqe de raahaan vich rudh ke reh gaye haan",
+     "gold": [
+      "ishqe",
+      "de",
+      "raahaan",
+      "vich",
+      "rudh",
+      "ke",
+      "reh",
+      "gaye",
+      "haan"
+     ]
+    },
+    {
+     "line": "ਲੋਕਾਂ ਦਿੱਤੇ ਤਾਨੇ-ਮਿਹਣੇ, ਹੱਸ ਕੇ ਸਹਿ ਗਏ ਹਾਂ",
+     "roman": "Lokaan ditte taane-mehne hass ke seh gaye haan",
+     "gold": [
+      "lokaan",
+      "ditte",
+      "taane",
+      "mehne",
+      "hass",
+      "ke",
+      "seh",
+      "gaye",
+      "haan"
+     ]
+    },
+    {
+     "line": "ਸਾਡੇ ਪਿਆਰ ਨੂੰ ਤੂੰ ਪੈਰਾਂ ਤਲੇ ਰੋੜ੍ਹਦੀ ਰਹੀ",
+     "roman": "Saade pyaar nu tu pairaan tale rodh'di rahi",
+     "gold": [
+      "saade",
+      "pyaar",
+      "nu",
+      "tu",
+      "pairaan",
+      "tale",
+      "rodh'di",
+      "rahi"
+     ]
+    },
+    {
+     "line": "ਜਜ਼ਬਾਤ ਜਦੋਂ ਰੁੜ੍ਹੇ ਓਦੋਂ ਪਤਾ ਲੱਗੂਗਾ",
+     "roman": "Jazbaat jadon rudhe odon pata lagguga",
+     "gold": [
+      "jazbaat",
+      "jadon",
+      "rudhe",
+      "odon",
+      "pata",
+      "lagguga"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "With You",
+   "artist": "AP Dhillon",
+   "native": 11659314,
+   "romanized": 37510952,
+   "lines": [
+    {
+     "line": "ਤੇਰੀਆਂ ਅਦਾਵਾਂ, ਤੇਰੀਆਂ ਅਦਾਵਾਂ",
+     "roman": "Teriyan adavaan, teriyan adavaan",
+     "gold": [
+      "teriyan",
+      "adavaan",
+      "teriyan",
+      "adavaan"
+     ]
+    },
+    {
+     "line": "ਮੁੰਡਾ ਮਾਰ ਸੁੱਟਿਆ ਤੂੰ, ਕਾਹਦਾ ਦਿਲ ਲੁੱਟਿਆ",
+     "roman": "Munda maar sutteya tu, kaahda dil lutteya",
+     "gold": [
+      "munda",
+      "maar",
+      "sutteya",
+      "tu",
+      "kaahda",
+      "dil",
+      "lutteya"
+     ]
+    },
+    {
+     "line": "ਤੂੰ ਮੈਨੂੰ ਛੱਡਿਆ ਨਾ ਕੱਖ ਦਾ",
+     "roman": "Tu mainu chhaddeya na kakh da",
+     "gold": [
+      "tu",
+      "mainu",
+      "chhaddeya",
+      "na",
+      "kakh",
+      "da"
+     ]
+    },
+    {
+     "line": "ਪਹਿਲਾ ਸੀ ਤੂੰ ਪਿਆਰ",
+     "roman": "Pehla si tu pyaar",
+     "gold": [
+      "pehla",
+      "si",
+      "tu",
+      "pyaar"
+     ]
+    },
+    {
+     "line": "ਪਹਿਲੇ ਪਿਆਰ ਦੀ ਪਹਿਲੀ ਕਹਾਣੀ",
+     "roman": "Pehle pyaar di pehli kahaani",
+     "gold": [
+      "pehle",
+      "pyaar",
+      "di",
+      "pehli",
+      "kahaani"
+     ]
+    },
+    {
+     "line": "ਬਦਲਾਂ ਵੀ ਕਿੰਝ ਹੁਣ?",
+     "roman": "Badlaan vi kinjh hun?",
+     "gold": [
+      "badlaan",
+      "vi",
+      "kinjh",
+      "hun"
+     ]
+    },
+    {
+     "line": "ਚਾਹ ਕੇ ਵੀ ਨਾ ਬਦਲੀ ਜਾਣੀ",
+     "roman": "Chaah ke vi na badli jaani",
+     "gold": [
+      "chaah",
+      "ke",
+      "vi",
+      "na",
+      "badli",
+      "jaani"
+     ]
+    },
+    {
+     "line": "ਮੰਨ ਵਿੱਚ ਮੈਂ ਸੀ ਰਾਜਾ",
+     "roman": "Mann vich main si raaja",
+     "gold": [
+      "mann",
+      "vich",
+      "main",
+      "si",
+      "raaja"
+     ]
+    },
+    {
+     "line": "ਤੂੰ ਕਿਉਂ ਨਾ ਮੇਰੀ ਬਣੀ ਐ ਰਾਣੀ?",
+     "roman": "Tu kyun na meri bani ae raani?",
+     "gold": [
+      "tu",
+      "kyun",
+      "na",
+      "meri",
+      "bani",
+      "ae",
+      "raani"
+     ]
+    },
+    {
+     "line": "ਖੁਸ਼ੀਆਂ ਦਾ ਮੈਂ ਸੋਚਿਆ",
+     "roman": "Khushiyan da main socheya",
+     "gold": [
+      "khushiyan",
+      "da",
+      "main",
+      "socheya"
+     ]
+    },
+    {
+     "line": "ਅੱਖਾਂ ਵਿੱਚ ਕਿਉਂ ਦੇ ਗਈ ਪਾਣੀ?",
+     "roman": "Akkhan vich kyun de gayi paani?",
+     "gold": [
+      "akkhan",
+      "vich",
+      "kyun",
+      "de",
+      "gayi",
+      "paani"
+     ]
+    },
+    {
+     "line": "ਇੱਕ-ਦੂਜੇ ਦੇ ਕੋਲ਼",
+     "roman": "Ikk-dooje de kaul",
+     "gold": [
+      "ikk",
+      "dooje",
+      "de",
+      "kaul"
+     ]
+    },
+    {
+     "line": "ਕਾਲ਼ੀਆਂ ਰਾਤਾਂ, ਚੰਨ ਤੇ ਤਾਰੇ",
+     "roman": "Kaaliyan raataan, chann te taare",
+     "gold": [
+      "kaaliyan",
+      "raataan",
+      "chann",
+      "te",
+      "taare"
+     ]
+    },
+    {
+     "line": "ਪਹਿਲਾਂ ਸੀ ਜੋ ਵਾਅਦੇ",
+     "roman": "Pehlaan si jo vaade",
+     "gold": [
+      "pehlaan",
+      "si",
+      "jo",
+      "vaade"
+     ]
+    },
+    {
+     "line": "ਹੁਣ ਨੇ ਸਭ ਮੈਨੂੰ ਲਗਦੇ ਲਾਰੇ",
+     "roman": "Hun ne sab mainu lagde laare",
+     "gold": [
+      "hun",
+      "ne",
+      "sab",
+      "mainu",
+      "lagde",
+      "laare"
+     ]
+    },
+    {
+     "line": "ਅੱਜ ਹੀ ਗ਼ਮ ਨਾਲ਼ ਪਾ ਲਾ",
+     "roman": "Ajj hi gam naal paa laa",
+     "gold": [
+      "ajj",
+      "hi",
+      "gam",
+      "naal",
+      "paa",
+      "laa"
+     ]
+    },
+    {
+     "line": "ਵੱਗਦੇ ਨੈਣੋਂ ਹੰਝੂ ਖਾਰੇ",
+     "roman": "Vaggde nainon hanjhu khaare",
+     "gold": [
+      "vaggde",
+      "nainon",
+      "hanjhu",
+      "khaare"
+     ]
+    },
+    {
+     "line": "ਫ਼ਸ ਗਏ ਇਸ਼ਕ ਦੇ ਗੇੜੇ ਵਿੱਚ",
+     "roman": "Fas gaye ishq de gede vich",
+     "gold": [
+      "fas",
+      "gaye",
+      "ishq",
+      "de",
+      "gede",
+      "vich"
+     ]
+    },
+    {
+     "line": "ਕਾਹਤੋਂ ਨਾ ਹੁਣ ਲੱਭਣ ਸਹਾਰੇ?",
+     "roman": "Kaahton na hun labbhan sahaare?",
+     "gold": [
+      "kaahton",
+      "na",
+      "hun",
+      "labbhan",
+      "sahaare"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Insane",
+   "artist": "AP Dhillon, Shinda Kahlon, Gurinder Gill, Gminxr",
+   "native": 14741737,
+   "romanized": 9383901,
+   "lines": [
+    {
+     "line": "ਇਹਨਾਂ ਨੇ ਝੱਲੀ ਕਰ ਜਾਣਾ",
+     "roman": "Inna Ne Jhalli Kar Jana",
+     "gold": [
+      "inna",
+      "ne",
+      "jhalli",
+      "kar",
+      "jana"
+     ]
+    },
+    {
+     "line": "ਲੋਕਾਂ ਵਿੱਚ ਕੱਲੀ ਕਰ ਜਾਣਾ",
+     "roman": "Lokan Vich Kalli Kar Jana",
+     "gold": [
+      "lokan",
+      "vich",
+      "kalli",
+      "kar",
+      "jana"
+     ]
+    },
+    {
+     "line": "ਸੱਟ ਤੈਥੋਂ ਜਰ ਕਿੱਥੇ ਹੋਣੀ",
+     "roman": "Satt Tethon Jarr Kithe Honi",
+     "gold": [
+      "satt",
+      "tethon",
+      "jarr",
+      "kithe",
+      "honi"
+     ]
+    },
+    {
+     "line": "ਬਿਨ ਪੀਤਿਆਂ ਟੱਲੀ ਕਰ ਜਾਣਾ",
+     "roman": "Bin Peeteyan Talli Kar Jana",
+     "gold": [
+      "bin",
+      "peeteyan",
+      "talli",
+      "kar",
+      "jana"
+     ]
+    },
+    {
+     "line": "ਹੁਸਨ ਤੇਰੇ ਤੋਂ ਨੇ ਹਾਰੇ",
+     "roman": "Husan Tere Ton Ne Haare",
+     "gold": [
+      "husan",
+      "tere",
+      "ton",
+      "ne",
+      "haare"
+     ]
+    },
+    {
+     "line": "ਕਰਨ ਨੂੰ ਫ਼ਿਰਦੇ ਨੇ ਕਾਰੇ",
+     "roman": "Karan Nu Phirde Ne Kaare",
+     "gold": [
+      "karan",
+      "nu",
+      "phirde",
+      "ne",
+      "kaare"
+     ]
+    },
+    {
+     "line": "ਗੱਲਾਂ ਵਿੱਚ ਗੱਲ ਤੂੰ ਟਾਲੀ ਜਾ",
+     "roman": "Gallan Vich Gall Tu Taali Ja",
+     "gold": [
+      "gallan",
+      "vich",
+      "gall",
+      "tu",
+      "taali",
+      "ja"
+     ]
+    },
+    {
+     "line": "ਨਾ ਸੁਣ, ਨਾ ਕਹਿ",
+     "roman": "Na Sunn Na Keh",
+     "gold": [
+      "na",
+      "sunn",
+      "na",
+      "keh"
+     ]
+    },
+    {
+     "line": "ਬਾਵਲੇ ਹੋਏ ਪਏ ਨੇ ਤਾਰੇ",
+     "roman": "Utawale Hoye Paye Ne Taare",
+     "gold": [
+      "utawale",
+      "hoye",
+      "paye",
+      "ne",
+      "taare"
+     ]
+    },
+    {
+     "line": "ਤੋੜ ਤੇਰਾ ਲੱਭਦੇ ਬਿਚਾਰੇ",
+     "roman": "Tod Tera Labhde Vichare",
+     "gold": [
+      "tod",
+      "tera",
+      "labhde",
+      "vichare"
+     ]
+    },
+    {
+     "line": "ਨਜ਼ਰ ਨਾ ਲੱਗ ਜਾਏ ਦੁਨੀਆ ਦੀ",
+     "roman": "Nazar Na Lag Jaye Duniya Di",
+     "gold": [
+      "nazar",
+      "na",
+      "lag",
+      "jaye",
+      "duniya",
+      "di"
+     ]
+    },
+    {
+     "line": "ਮੇਰੇ ਕੋਲ਼ੇ ਬਹਿ",
+     "roman": "Mere Kole Beh",
+     "gold": [
+      "mere",
+      "kole",
+      "beh"
+     ]
+    },
+    {
+     "line": "ਅੱਗ ਜਿਹੀ ਲਾਟ, ਕੱਲੀ-ਕੈਰੀ",
+     "roman": "Agg Di Laat Kalli Kairi",
+     "gold": [
+      "agg",
+      "di",
+      "laat",
+      "kalli",
+      "kairi"
+     ]
+    },
+    {
+     "line": "ਬਚਾ ਕੇ ਰੱਖ ਲਵਾਂ ਤੈਨੂੰ",
+     "roman": "Bacha Ke Rakh Lawan Tainu",
+     "gold": [
+      "bacha",
+      "ke",
+      "rakh",
+      "lawan",
+      "tainu"
+     ]
+    },
+    {
+     "line": "ਕਿਤੇ ਨਾ ਕਰ ਦੇਵੀਂ ਦੇਰੀ",
+     "roman": "Kitte Na Kar Dewi Deri",
+     "gold": [
+      "kitte",
+      "na",
+      "kar",
+      "dewi",
+      "deri"
+     ]
+    },
+    {
+     "line": "ਲੱਭਦੇ ਫ਼ਿਰਦੇ ਆਂ ਚਾਰੇ",
+     "roman": "Labhde Phirde Aa Chaare",
+     "gold": [
+      "labhde",
+      "phirde",
+      "aa",
+      "chaare"
+     ]
+    },
+    {
+     "line": "ਨੀ ਸੱਭ ਤੇਰੇ ਨਾਮ ਕਰਨ ਨੂੰ ਫ਼ਿਰਦੇ",
+     "roman": "Ki Sab Tere Naam Karan Nu Phirde",
+     "gold": [
+      "ki",
+      "sab",
+      "tere",
+      "naam",
+      "karan",
+      "nu",
+      "phirde"
+     ]
+    },
+    {
+     "line": "ਜੋ ਕੁਝ ਹੈ",
+     "roman": "Jo Kujh Hai",
+     "gold": [
+      "jo",
+      "kujh",
+      "hai"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Summer High",
+   "artist": "AP Dhillon",
+   "native": 10507907,
+   "romanized": 516342,
+   "lines": [
+    {
+     "line": "ਇੱਕ ਸਾਡੇ ਮਿਲਣ ਦੀਆਂ ਖ਼ਬਰਾਂ",
+     "roman": "(Ikk sadde milaan diya khabbra)",
+     "gold": [
+      "ikk",
+      "sadde",
+      "milaan",
+      "diya",
+      "khabbra"
+     ]
+    },
+    {
+     "line": "ਪਿਆਰ 'ਚ ਭਿਜਣ ਦੀਆਂ ਸੱਧਰਾਂ",
+     "roman": "(Pyaar chh bhijan diya sadra)",
+     "gold": [
+      "pyaar",
+      "chh",
+      "bhijan",
+      "diya",
+      "sadra"
+     ]
+    },
+    {
+     "line": "ਇਹ ਹੁਣ ਮੈਨੂੰ ਜੀਣ ਨਾ ਦਿੰਦੀਆਂ",
+     "roman": "(Ehh hunn mainu jeen na dindiya)",
+     "gold": [
+      "ehh",
+      "hunn",
+      "mainu",
+      "jeen",
+      "na",
+      "dindiya"
+     ]
+    },
+    {
+     "line": "ਓ, ਬੱਦਲ਼ ਕਰਦੇ ਮਾਹੌਲ ਖ਼ਰਾਬ",
+     "roman": "Ohh, bdl krde mahool khrab",
+     "gold": [
+      "ohh",
+      "bdl",
+      "krde",
+      "mahool",
+      "khrab"
+     ]
+    },
+    {
+     "line": "ਤੁਸੀਂ ਨਾ ਲੱਭਦੇ ਕਿਤੇ, ਜਨਾਬ",
+     "roman": "Tussi na lbde kitte janabb",
+     "gold": [
+      "tussi",
+      "na",
+      "lbde",
+      "kitte",
+      "janabb"
+     ]
+    },
+    {
+     "line": "ਟਿਕ ਕੇ ਬਹਿ ਕਿਤੇ ਨਹੀਂ ਹੁੰਦਾ",
+     "roman": "Tikk ke baih kite nahi hunda",
+     "gold": [
+      "tikk",
+      "ke",
+      "baih",
+      "kite",
+      "nahi",
+      "hunda"
+     ]
+    },
+    {
+     "line": "ਦਿਲ ਵਿੱਚ ਵੱਜੇ ਮੇਰੇ ਰਬਾਬ",
+     "roman": "Dil vichh vaje nere rabab",
+     "gold": [
+      "dil",
+      "vichh",
+      "vaje",
+      "nere",
+      "rabab"
+     ]
+    },
+    {
+     "line": "ਅੱਖਾਂ ਵਿੱਚ ਜੱਗੀਆਂ ਬੱਤੀਆਂ",
+     "roman": "Akhaan vichh jagiyaa battiyaan",
+     "gold": [
+      "akhaan",
+      "vichh",
+      "jagiyaa",
+      "battiyaan"
+     ]
+    },
+    {
+     "line": "ਚੁੱਕੀਆਂ ਮੈਂ ਇਸ਼ਕ ਦੀਆਂ ਛੱਤੀਆਂ",
+     "roman": "Chukiya main ishqq diya chatiyaan",
+     "gold": [
+      "chukiya",
+      "main",
+      "ishqq",
+      "diya",
+      "chatiyaan"
+     ]
+    },
+    {
+     "line": "ਇਹ ਹੁਣ ਮੈਨੂੰ ਲੀਣ ਨਾ ਦਿੰਦੀਆਂ",
+     "roman": "Ehh hunn mainu neen na dindiyaa",
+     "gold": [
+      "ehh",
+      "hunn",
+      "mainu",
+      "neen",
+      "na",
+      "dindiyaa"
+     ]
+    },
+    {
+     "line": "ਚਾਹ ਚੜ੍ਹ ਜਾਂਦਾ ਤੇਰਾ ਨਾਮ ਸੁਣ",
+     "roman": "Chaa chad janda tera naam sunn",
+     "gold": [
+      "chaa",
+      "chad",
+      "janda",
+      "tera",
+      "naam",
+      "sunn"
+     ]
+    },
+    {
+     "line": "ਹੋਣ ਜੇ ਦਿਲਾਂ 'ਤੇ ਨਾਮ ਲਿਖਦੇ",
+     "roman": "Honn je dila te naam likhde",
+     "gold": [
+      "honn",
+      "je",
+      "dila",
+      "te",
+      "naam",
+      "likhde"
+     ]
+    },
+    {
+     "line": "ਹਵਾਵਾਂ ਤੈਨੂੰ (ਲੱਗਣ ਨਾ ਤੱਤੀਆਂ)",
+     "roman": "Hawavaan tainu (lagn na tattiyaan)",
+     "gold": [
+      "hawavaan",
+      "tainu",
+      "lagn",
+      "na",
+      "tattiyaan"
+     ]
+    },
+    {
+     "line": "ਫ਼ਿਕਰਾਂ ਮੈਂ (ਵਾਜਾਂ ਮਾਰ ਸੱਦੀਆਂ)",
+     "roman": "Fikarr main (vaaja maar sadiyaan)",
+     "gold": [
+      "fikarr",
+      "main",
+      "vaaja",
+      "maar",
+      "sadiyaan"
+     ]
+    },
+    {
+     "line": "ਇਹ ਦਾਰੂ ਹੁਣ (ਪੀਣ ਨਾ ਦਿੰਦੀਆਂ)",
+     "roman": "Ehh daaru hunn (peen na dindiya)",
+     "gold": [
+      "ehh",
+      "daaru",
+      "hunn",
+      "peen",
+      "na",
+      "dindiya"
+     ]
+    },
+    {
+     "line": "ਇਹ ਦਾਰੂ ਹੁਣ ਪੀਣ ਨਾ ਦਿੰਦੀਆਂ",
+     "roman": "Ehh daaru hunn peen na dindiya",
+     "gold": [
+      "ehh",
+      "daaru",
+      "hunn",
+      "peen",
+      "na",
+      "dindiya"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Softly (Tiësto Remix)",
+   "artist": "Karan Aujla, Ikky & Tiësto",
+   "native": 9174035,
+   "romanized": 27749452,
+   "lines": []
+  },
+  {
+   "title": "Yaar Mod Do (From \"Yaar Mod Do\")",
+   "artist": "Guru Randhawa",
+   "native": 37961237,
+   "romanized": 38559985,
+   "lines": []
+  },
+  {
+   "title": "Dil Nu",
+   "artist": "Shinda Kahlon",
+   "native": 22041303,
+   "romanized": 18520558,
+   "lines": [
+    {
+     "line": "ਕੋਲ਼ ਹੀ ਐ ਤੂੰ, ਤਾਂ ਵੀ ਲੱਗੇ ਮੈਨੂੰ ਦੂਰ",
+     "roman": "Kol hi ae tu, taan vi laggey mainu door",
+     "gold": [
+      "kol",
+      "hi",
+      "ae",
+      "tu",
+      "taan",
+      "vi",
+      "laggey",
+      "mainu",
+      "door"
+     ]
+    },
+    {
+     "line": "ਸੋਚਾਂ ਕਿਉਂ ਮੈਂ ਐਦਾਂ? ਕੋਈ ਗੱਲ ਤੇ ਜ਼ਰੂਰ",
+     "roman": "Sochaan kyon main idas? koi gal te zaroor",
+     "gold": [
+      "sochaan",
+      "kyon",
+      "main",
+      "idas",
+      "koi",
+      "gal",
+      "te",
+      "zaroor"
+     ]
+    },
+    {
+     "line": "ਜ਼ਰਾ ਪੁੱਛ ਕੇ ਤੂੰ ਦੱਸ ਕੀ ਨਹੀਂ, ਕੀ ਐ ਸੱਚ ਮੇਰੇ ਦਿਲ ਨੂੰ",
+     "roman": "Zaraa puchh ke tu dass ki nahi, ki ae sach mere dil nu",
+     "gold": [
+      "zaraa",
+      "puchh",
+      "ke",
+      "tu",
+      "dass",
+      "ki",
+      "nahi",
+      "ki",
+      "ae",
+      "sach",
+      "mere",
+      "dil",
+      "nu"
+     ]
+    },
+    {
+     "line": "ਤੂੰ ਠੀਕ ਐ ਕਿ ਨਹੀਂ, ਮੇਰਾ ਚਿੱਤ ਘਬਰਾਵੇ",
+     "roman": "Tu thik ae ke nahi, mera chitt ghabarave",
+     "gold": [
+      "tu",
+      "thik",
+      "ae",
+      "ke",
+      "nahi",
+      "mera",
+      "chitt",
+      "ghabarave"
+     ]
+    },
+    {
+     "line": "ਕਿਉਂ ਐਨੀ ਪਰਵਾਹ? ਨਾ ਦੇਵੀਂ ਤੂੰ ਦਗ਼ਾ ਮੇਰੇ ਦਿਲ ਨੂੰ",
+     "roman": "Kyon enni parwaah? naa devin tu dakaa mere dil nu",
+     "gold": [
+      "kyon",
+      "enni",
+      "parwaah",
+      "naa",
+      "devin",
+      "tu",
+      "dakaa",
+      "mere",
+      "dil",
+      "nu"
+     ]
+    },
+    {
+     "line": "ਕੀ ਕੀਤਾ ਮੈਂ ਗੁਨਾਹ? ਜ਼ਰਾ ਹਾਲ ਤੇ ਸੁਣਾ",
+     "roman": "Ki kita main gunaah? zaraa haal te suna",
+     "gold": [
+      "ki",
+      "kita",
+      "main",
+      "gunaah",
+      "zaraa",
+      "haal",
+      "te",
+      "suna"
+     ]
+    },
+    {
+     "line": "ਮੇਰੇ ਭਟਕਦੇ ਦਿਲ ਨੂੰ ਕਿਉਂ ਦਿੱਤੀ ਸੀ ਪਨਾਹ?",
+     "roman": "Mere bhatkade dil nu kyon diti si panaah?",
+     "gold": [
+      "mere",
+      "bhatkade",
+      "dil",
+      "nu",
+      "kyon",
+      "diti",
+      "si",
+      "panaah"
+     ]
+    },
+    {
+     "line": "ਤੇਰੇ ਨਾਲ਼ੋਂ ਵੱਖ ਹੋਣ ਦਾ ਖ਼ਿਆਲ ਵੀ ਮੇਰਾ ਕੋਈ ਖ਼ਿਆਲ ਨਾ",
+     "roman": "Tere naavon bakh on da khyal vi mera koi khyal naa",
+     "gold": [
+      "tere",
+      "naavon",
+      "bakh",
+      "on",
+      "da",
+      "khyal",
+      "vi",
+      "mera",
+      "koi",
+      "khyal",
+      "naa"
+     ]
+    },
+    {
+     "line": "ਜੋ ਲੱਗੇ ਓਹੀ ਦੱਸਾਂ, ਜੇਰਾ ਕੀਤਾ ਆ ਮੈਂ ਮਸਾਂ, ਨੀ ਤੂੰ ਪੁੱਛਦੀ ਸਵਾਲ ਨਾ",
+     "roman": "Jo laggey ohi rasaan, jera kita aa main masaan, ni tu puchhdi sawaal naa",
+     "gold": [
+      "jo",
+      "laggey",
+      "ohi",
+      "rasaan",
+      "jera",
+      "kita",
+      "aa",
+      "main",
+      "masaan",
+      "ni",
+      "tu",
+      "puchhdi",
+      "sawaal",
+      "naa"
+     ]
+    },
+    {
+     "line": "ਤੂੰ ਜਦੋਂ ਮਿਲੀ, ਲੱਗਿਆ ਸੀ ਮੈਨੂੰ ਕਿਸੇ ਚੀਜ਼ ਦੀ ਭਾਲ ਨਾ",
+     "roman": "Tu jadon milli, lagia si mainu kisey chiiz di bhaal naa",
+     "gold": [
+      "tu",
+      "jadon",
+      "milli",
+      "lagia",
+      "si",
+      "mainu",
+      "kisey",
+      "chiiz",
+      "di",
+      "bhaal",
+      "naa"
+     ]
+    },
+    {
+     "line": "ਮੇਰੀ ਬਣ ਕੇ ਤੂੰ ਦੁਨੀਆ ਦਿਲ ਜਿਹਾ ਤਾਂ ਰੱਖ, ਐਵੇਂ ਗੱਲਾਂ ਵਿੱਚ ਟਾਲ ਨਾ",
+     "roman": "Meri ban ke tu duniya dil jeha taan rakh, ainvey gallan vich taal naa",
+     "gold": [
+      "meri",
+      "ban",
+      "ke",
+      "tu",
+      "duniya",
+      "dil",
+      "jeha",
+      "taan",
+      "rakh",
+      "ainvey",
+      "gallan",
+      "vich",
+      "taal",
+      "naa"
+     ]
+    },
+    {
+     "line": "ਹੁਣ ਕੀ ਸਮਝਾਵਾਂ? ਕੀ ਆਖ ਕੇ ਮਨਾਵਾਂ?",
+     "roman": "Hun ki samjhaavaan? ki aakh ke manaavaan?",
+     "gold": [
+      "hun",
+      "ki",
+      "samjhaavaan",
+      "ki",
+      "aakh",
+      "ke",
+      "manaavaan"
+     ]
+    },
+    {
+     "line": "ਜੋ ਲੰਘਿਆ ਐ ਸਮਾਂ ਉਹਨੂੰ ਕਿੰਜ ਮੈਂ ਭੁਲਾਵਾਂ?",
+     "roman": "Jo landia ae samaa uhanun kinge main bhulaas?",
+     "gold": [
+      "jo",
+      "landia",
+      "ae",
+      "samaa",
+      "uhanun",
+      "kinge",
+      "main",
+      "bhulaas"
+     ]
+    },
+    {
+     "line": "ਕਿਉਂ ਐ ਐਨੀ ਪਰਵਾਹ? ਨਾ ਤੂੰ ਦੇ ਜਾਵੀਂ ਦਗ਼ਾ ਮੇਰੇ ਦਿਲ ਨੂੰ",
+     "roman": "Kyon ae enni parwaah? naa tu de jaavi dakaa mere dil nu",
+     "gold": [
+      "kyon",
+      "ae",
+      "enni",
+      "parwaah",
+      "naa",
+      "tu",
+      "de",
+      "jaavi",
+      "dakaa",
+      "mere",
+      "dil",
+      "nu"
+     ]
+    },
+    {
+     "line": "ਜ਼ਰਾ ਪੁੱਛ ਕੇ ਤੂੰ ਦੱਸ ਕੀ ਆਣ, ਕੀ ਐ ਸੱਚ ਮੇਰੇ ਦਿਲ ਨੂੰ",
+     "roman": "Zaraa puchh ke tu dass ki an, ki ae sach mere dil nu",
+     "gold": [
+      "zaraa",
+      "puchh",
+      "ke",
+      "tu",
+      "dass",
+      "ki",
+      "an",
+      "ki",
+      "ae",
+      "sach",
+      "mere",
+      "dil",
+      "nu"
+     ]
+    },
+    {
+     "line": "ਤੇਰੀ ਗੱਲ ਤੇ ਯਕੀਨ ਨਾ ਰਿਹਾ",
+     "roman": "Teri gal te yakin naa riha",
+     "gold": [
+      "teri",
+      "gal",
+      "te",
+      "yakin",
+      "naa",
+      "riha"
+     ]
+    },
+    {
+     "line": "ਸਾਡਾ ਪਿਆਰ ਵੀ ਰੰਗੀਨ ਨਾ ਰਿਹਾ",
+     "roman": "Saada pyaar vi rangin naa riha",
+     "gold": [
+      "saada",
+      "pyaar",
+      "vi",
+      "rangin",
+      "naa",
+      "riha"
+     ]
+    },
+    {
+     "line": "ਕੀਤੇ ਬੱਦਲ਼-ਵਾਈ, ਆਈ ਤੰਗ ਤਨਹਾਈ",
+     "roman": "Kite badal-vai, aayi tang tanhaai",
+     "gold": [
+      "kite",
+      "badal",
+      "vai",
+      "aayi",
+      "tang",
+      "tanhaai"
+     ]
+    },
+    {
+     "line": "ਹੋਵਾਂ ਹਵਾ, ਮੈਂ ਜ਼ਮੀਨ ਨਾ ਰਿਹਾ",
+     "roman": "Hovaan hawa, main zamin naa riha",
+     "gold": [
+      "hovaan",
+      "hawa",
+      "main",
+      "zamin",
+      "naa",
+      "riha"
+     ]
+    },
+    {
+     "line": "ਅਸੀਂ ਕੱਲੇ ਰਹਿ ਜਾਣਾ, ਸਾਨੂੰ ਗ਼ਮਾਂ ਲੈ ਜਾਣਾ",
+     "roman": "Asi kale reh jaana, sanu gamaa lai jaana",
+     "gold": [
+      "asi",
+      "kale",
+      "reh",
+      "jaana",
+      "sanu",
+      "gamaa",
+      "lai",
+      "jaana"
+     ]
+    },
+    {
+     "line": "ਅਸੀਂ ਹੋ ਜਾਣਾ ਪੁਰਾਣੇ, ਸੱਭ ਚੁੱਪ ਕਹਿ ਜਾਣਾ",
+     "roman": "Asi ho jaana purana, sab chup keh jaana",
+     "gold": [
+      "asi",
+      "ho",
+      "jaana",
+      "purana",
+      "sab",
+      "chup",
+      "keh",
+      "jaana"
+     ]
+    },
+    {
+     "line": "ਓਥੇ ਤੂੰ ਵੀ ਨਹੀਓਂ ਹੋਣਾ, ਕਿਸੇ ਹੱਥ ਨਾ ਫ਼ੜਾਉਣਾ",
+     "roman": "Othey tu vi nahiyon hona, kisey hath naa fadauna",
+     "gold": [
+      "othey",
+      "tu",
+      "vi",
+      "nahiyon",
+      "hona",
+      "kisey",
+      "hath",
+      "naa",
+      "fadauna"
+     ]
+    },
+    {
+     "line": "ਬਸ ਯਾਦਾਂ ਨੇ ਪੈ ਜਾਣਾ",
+     "roman": "Bas yaads ne pai jaana",
+     "gold": [
+      "bas",
+      "yaads",
+      "ne",
+      "pai",
+      "jaana"
+     ]
+    },
+    {
+     "line": "ਜ਼ਰਾ ਪੁੱਛ ਕੇ ਤੂੰ ਦੱਸ ਕੀ ਨਹੀਂ, ਕੀ ਐ ਸੱਚ ਤੇਰੇ ਦਿਲ ਨੂੰ",
+     "roman": "Zaraa puchh ke tu dass ki nahi, ki ae sach tere dil nu",
+     "gold": [
+      "zaraa",
+      "puchh",
+      "ke",
+      "tu",
+      "dass",
+      "ki",
+      "nahi",
+      "ki",
+      "ae",
+      "sach",
+      "tere",
+      "dil",
+      "nu"
+     ]
+    },
+    {
+     "line": "ਰਾਤਾਂ ਨੂੰ ਦੱਸ ਮੈਨੂੰ ਨੀਂਦ ਕਿਉਂ ਨਾ ਆਵੇ",
+     "roman": "Raatan nu dass mainu neend kyon naa aave",
+     "gold": [
+      "raatan",
+      "nu",
+      "dass",
+      "mainu",
+      "neend",
+      "kyon",
+      "naa",
+      "aave"
+     ]
+    },
+    {
+     "line": "ਸੋਚਾਂ ਕਿਉਂ ਮੈਂ ਐਦਾਂ?",
+     "roman": "Sochaan kyon main idas?",
+     "gold": [
+      "sochaan",
+      "kyon",
+      "main",
+      "idas"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Arjan Vailly (From \"ANIMAL\")",
+   "artist": "Manan Bhardwaj, Bhupinder Babbal",
+   "native": 6587051,
+   "romanized": 17468165,
+   "lines": [
+    {
+     "line": "ਅਰਜਨ ਵੈਲੀ ਨੇ... (ਵੈਲੀ ਨੇ)",
+     "roman": "Arjan vaili ne... (Vaili ne)",
+     "gold": [
+      "arjan",
+      "vaili",
+      "ne",
+      "vaili",
+      "ne"
+     ]
+    },
+    {
+     "line": "ਓ, ਖਾੜੇ ਵਿੱਚ ਡਾਂਗ ਖੜ੍ਹਕੇ (ਚੱਕੋ)",
+     "roman": "Oh, khaade vich daang khadhke (chakko)",
+     "gold": [
+      "oh",
+      "khaade",
+      "vich",
+      "daang",
+      "khadhke",
+      "chakko"
+     ]
+    },
+    {
+     "line": "ਅਰਜਨ ਵੈਲੀ ਨੇ...",
+     "roman": "Arjan vaili ne...",
+     "gold": [
+      "arjan",
+      "vaili",
+      "ne"
+     ]
+    },
+    {
+     "line": "ਹੋ, ਅਰਜਨ ਵੈਲੀ ਨੇ, ਓ, ਪੈਰ ਜੋੜ ਕੇ ਗੰਡਾਸੀ ਮਾਰੀ",
+     "roman": "Ho, arjan vaili ne, oh, pair jod ke gandaasi maari",
+     "gold": [
+      "ho",
+      "arjan",
+      "vaili",
+      "ne",
+      "oh",
+      "pair",
+      "jod",
+      "ke",
+      "gandaasi",
+      "maari"
+     ]
+    },
+    {
+     "line": "ਅਰਜਨ ਵੈਲੀ ਨੇ, ਓ, ਪੈਰ ਜੋੜ ਕੇ ਗੰਡਾਸੀ ਮਾਰੀ",
+     "roman": "Arjan vaili ne, oh, pair jod ke gandaasi maari",
+     "gold": [
+      "arjan",
+      "vaili",
+      "ne",
+      "oh",
+      "pair",
+      "jod",
+      "ke",
+      "gandaasi",
+      "maari"
+     ]
+    },
+    {
+     "line": "ਟੱਕੁਏ ਗੰਡਾਸਾ ਛਵੀਆਂ (ਤੇਰੀ, ਓਏ)",
+     "roman": "Takkuye gandaasa chhaviyaan (teri, oye!)",
+     "gold": [
+      "takkuye",
+      "gandaasa",
+      "chhaviyaan",
+      "teri",
+      "oye"
+     ]
+    },
+    {
+     "line": "ਵੀ ਸਾਨਾਂ ਵਾਂਗੂ ਜੱਟ ਭਿੜਦੇ",
+     "roman": "Vi saanhaan waangu jatt bhid'de",
+     "gold": [
+      "vi",
+      "saanhaan",
+      "waangu",
+      "jatt",
+      "bhid'de"
+     ]
+    },
+    {
+     "line": "\"ਹੋ, ਲੀਰੋ-ਲੀਰ ਹੋ ਜਾਊਗੀ\"",
+     "roman": "\"Ho, leero-leer ho jaaoogi\"",
+     "gold": [
+      "ho",
+      "leero",
+      "leer",
+      "ho",
+      "jaaoogi"
+     ]
+    },
+    {
+     "line": "ਓ, ਸ਼ੇਰਾਂ ਵਾਂਗੂ ਯਾਰ ਖੜ੍ਹ ਗਏ (ਚੱਕੋ)",
+     "roman": "Oh, sheraan waangu yaar khadh gaye (chakko)",
+     "gold": [
+      "oh",
+      "sheraan",
+      "waangu",
+      "yaar",
+      "khadh",
+      "gaye",
+      "chakko"
+     ]
+    },
+    {
+     "line": "(ਗੰਡਾਸੀ ਮਾਰੀ, ਗੰਡਾਸੀ ਮਾਰੀ)",
+     "roman": "(Gandaasi maari, gandaasi maari)",
+     "gold": [
+      "gandaasi",
+      "maari",
+      "gandaasi",
+      "maari"
+     ]
+    },
+    {
+     "line": "(ਗੰਡਾਸੀ ਮਾਰੀ)",
+     "roman": "(Gandaasi maari)",
+     "gold": [
+      "gandaasi",
+      "maari"
+     ]
+    },
+    {
+     "line": "ਚਾਰੇ ਪਾਸੇ ਰੌਲ਼ਾ ਪੈ ਗਿਆ",
+     "roman": "Chaare-paase raula pai geya",
+     "gold": [
+      "chaare",
+      "paase",
+      "raula",
+      "pai",
+      "geya"
+     ]
+    },
+    {
+     "line": "ਹੋ, ਜਦੋਂ ਮਾਰਿਆ ਗੰਡਾਸਾ ਹੱਥ ਜੋੜ ਕੇ",
+     "roman": "Ho, jadon maareya gandaasa hatth jod ke",
+     "gold": [
+      "ho",
+      "jadon",
+      "maareya",
+      "gandaasa",
+      "hatth",
+      "jod",
+      "ke"
+     ]
+    },
+    {
+     "line": "ਸ਼ੇਰ ਜਿਹਾ ਰੋਹਬ ਜੱਟ ਦਾ",
+     "roman": "Sher jeha rohab jatt da",
+     "gold": [
+      "sher",
+      "jeha",
+      "rohab",
+      "jatt",
+      "da"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Admirin' You",
+   "artist": "Karan Aujla",
+   "native": 18737604,
+   "romanized": 17869669,
+   "lines": []
+  }
+ ]
+}
