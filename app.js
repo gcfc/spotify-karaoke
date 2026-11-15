@@ -642,6 +642,65 @@ function highlightLyrics(positionMs) {
 }
 
 // ============================================================
+//  Keeping the screen on while a song plays
+// ============================================================
+
+// The Screen Wake Lock API (Chrome and Firefox on Android, Safari from iOS
+// 16.4 — from 18.4 for a page added to the Home Screen).  The browser lets
+// go of the lock whenever the page is hidden — another app, another tab,
+// the phone locked — so it is asked for again when the page is back.  A
+// device may refuse it (in some power-saving modes); the page then just
+// lets the screen sleep, and asks again a minute later at the earliest.
+const WAKE_LOCK_RETRY_MS = 60_000;
+
+let wakeLock = null;            // the lock held, or null
+let wakeLockWanted = false;     // whether a song is playing, so the screen should stay on
+let wakeLockRequesting = false;
+let wakeLockRefusedAt = 0;
+
+/** Keep the screen on (while the page is visible), or let it sleep. */
+function keepScreenOn(on) {
+  wakeLockWanted = on;
+  syncWakeLock();
+}
+
+async function syncWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  if (!wakeLockWanted) {
+    if (wakeLock) {
+      const held = wakeLock;
+      wakeLock = null;
+      held.release().catch(() => {});
+    }
+    return;
+  }
+  if (wakeLock || wakeLockRequesting || document.visibilityState !== 'visible') return;
+  if (Date.now() - wakeLockRefusedAt < WAKE_LOCK_RETRY_MS) return;
+
+  wakeLockRequesting = true;
+  try {
+    const sentinel = await navigator.wakeLock.request('screen');
+    wakeLock = sentinel;
+    // Released by the browser when the page is hidden: forget it, so the
+    // next visit asks again.
+    sentinel.addEventListener('release', () => {
+      if (wakeLock === sentinel) wakeLock = null;
+    });
+  } catch (err) {
+    wakeLockRefusedAt = Date.now();
+    console.debug('[wake lock] refused:', err.message);
+  } finally {
+    wakeLockRequesting = false;
+  }
+  // Playback may have stopped while the request was out.
+  if (!wakeLockWanted) syncWakeLock();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') syncWakeLock();
+});
+
+// ============================================================
 //  Polling Loop
 // ============================================================
 
@@ -658,6 +717,7 @@ function stopPolling() {
     pollTimer = null;
   }
   stopAnimationLoop();
+  keepScreenOn(false);
 }
 
 async function pollOnce() {
@@ -674,12 +734,14 @@ async function pollOnce() {
         updateNowPlayingUI(null);
       }
       isPlaying = false;
+      keepScreenOn(false);
       estimator.update(null);
       showStatus(`Nothing is playing on ${source.label}`);
       return;
     }
 
     isPlaying = np.isPlaying;
+    keepScreenOn(isPlaying);
     durationMs = np.durationMs || 0;
 
     // A seek has already moved the anchor locally; ignore the poll that is
