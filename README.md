@@ -142,6 +142,12 @@ Two behaviours keep a bad provider from costing time:
 - **A slow provider does not block the queue.** If one has not answered within
   `HEDGE_DELAY_MS` (2.5s), the next starts alongside it and whichever answers
   first wins. Healthy requests finish well inside that, so it rarely fires.
+- **No request waits forever.** Each has a time limit — 15 s for Google's
+  keyless endpoint, 20 s for Google Cloud, 30 s per 25-line chunk for an LLM —
+  after which it counts as failed. Without them a stalled connection (a phone
+  changing networks) never settled, and once every provider had started the
+  chain waited on them for good, leaving the button greyed out with `…` in the
+  source panel. The page also gives the whole chain at most 90 s.
 - **A failure is remembered.** A provider that fails is benched for
   `PROVIDER_COOLDOWN_MS` (5 minutes), so every later track skips it instead of
   waiting for it to fail again. This is worth far more than racing: it turns a
@@ -227,6 +233,26 @@ read if the Worker has a KV namespace (see [Stored readings](#stored-readings)).
 4. **Readings printed in the lyrics win.** Lyric databases sometimes keep the
    lyricist's ruby in brackets — 溢(こぼ)れた, 終幕(さいご)は. Those override the
    model, and with furigana on the bracket is hidden and shown as ruby instead.
+
+### The toggles: retrying and giving up
+
+The translate, furigana and romanization toggles work the same way:
+
+- **A tap turns the toggle on**, which fetches, or serves from memory a result
+  already fetched for this song. Only complete results are kept, so turning a
+  toggle on again after some lines were missed asks again.
+- **A tap while it is loading retries.** Whatever is in flight is abandoned and
+  the chain starts again. For furigana, kuromoji's worker is also replaced, in
+  case its dictionary download is what stalled.
+- **A tap while it shows results turns it off.**
+- **When every source fails, the toggle goes back to off** — not greyed out —
+  with `×` in the source panel, ready to be tapped again. The saved on/off choice
+  is unchanged, so the next song still tries by itself.
+- **Nothing can leave a toggle loading for good.** Every request has a time
+  limit, kuromoji's dictionary gets 60 s (its downloads have none of their own,
+  so a stalled one used to hang furigana with `…` indefinitely), and each chain
+  as a whole gets at most 90 s (translation), 120 s (furigana) or 60 s
+  (romanization).
 
 ### Where readings come from
 
@@ -666,6 +692,7 @@ spotify-karaoke/
 ├── source-labels.js    # Text of the lower-right source panel
 ├── fonts.js            # The lyrics font picker's fonts, per script
 ├── scripts.js          # Which script lyrics are in, judged by words (look-alike letters aside)
+├── net.js              # Time limits for requests (timeoutSignal)
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── tools/
 │   ├── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table

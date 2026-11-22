@@ -1233,6 +1233,10 @@ function providerOverride() {
 let lyricsTranslations = null;   // aligned with the rendered lines, or null
 let translationRequestId = 0;    // guards against a slow reply for an old track
 
+// The whole translation chain, at most: past this the button gives up and
+// goes back to off, ready to be tapped again.
+const TRANSLATE_DEADLINE_MS = 90_000;
+
 // Translations are fetched once per track, target and provider, and reused
 // when toggling back on or returning to a track.
 const TRANSLATION_CACHE_MAX = 30;
@@ -1259,6 +1263,18 @@ function translationCacheSet(key, value) {
   if (translationCache.size > TRANSLATION_CACHE_MAX) {
     translationCache.delete(translationCache.keys().next().value);
   }
+}
+
+/**
+ * `promise`, or `fallback` once `ms` have passed — a last guard so that a
+ * button can never be left loading for good, whatever a step waits on.
+ * Every request in the chains has its own time limit; this only backs
+ * them up.
+ */
+function withDeadline(promise, ms, fallback = null) {
+  let timer;
+  const deadline = new Promise((resolve) => { timer = setTimeout(() => resolve(fallback), ms); });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
 }
 
 /** The text of each rendered line, in order — the unit translation works on. */
@@ -1326,19 +1342,21 @@ async function loadTranslations() {
   setSource('translation', SOURCE_LOADING);
 
   let served = null;
-  const result = await translateLines(texts, {
+  const result = await withDeadline(translateLines(texts, {
     target: translateTarget,
     provider: providerOverride(),
     workerUrl: CONFIG.WORKER_URL,
     onServed: (s) => { served = s; },
-  });
+  }).catch(() => null), TRANSLATE_DEADLINE_MS);
 
-  // A track change (or another toggle) happened while this was in flight.
+  // A track change (or another toggle, or a retry) happened while this was in flight.
   if (requestId !== translationRequestId) return;
   translateToggle.classList.remove('loading');
 
   if (!result) {
+    // Every provider failed: the button goes back to off, ready for a retry.
     console.debug('[translate] no translation returned; showing originals only');
+    showTranslateOff();
     setSource('translation', SOURCE_FAILED);
     return;
   }
@@ -1348,6 +1366,22 @@ async function loadTranslations() {
   lyricsTranslations = result;
   setSource('translation', source);
   applyTranslations();
+}
+
+/** Show the button off for this song — after every provider failed —
+ *  without changing the saved choice, so the next song still tries. */
+function showTranslateOff() {
+  translateEnabled = false;
+  translateToggle.classList.remove('active', 'loading');
+  translateToggle.title = 'Show translation';
+  closeTranslateMenu();
+}
+
+/** A tap: on when off; while loading, a retry; with translations shown, off. */
+function tapTranslate() {
+  if (!translateEnabled) setTranslateEnabled(true);
+  else if (translateToggle.classList.contains('loading')) loadTranslations();
+  else setTranslateEnabled(false);
 }
 
 function setTranslateEnabled(enabled) {
@@ -1408,6 +1442,10 @@ function refreshTranslateControl() {
   }
 
   console.debug('[translate] lyrics language:', language);
+  // Each song starts from the saved choice: a song whose translation failed
+  // showed the button off without changing it.
+  translateEnabled = localStorage.getItem(TRANSLATE_ON_KEY) === '1';
+  translateToggle.title = translateEnabled ? 'Hide translation' : 'Show translation';
   translateControl.classList.remove('hidden');
   translateToggle.classList.toggle('active', translateEnabled);
   markTranslateOptions();
@@ -1419,7 +1457,7 @@ function initTranslateControl() {
   markTranslateOptions();
   translateToggle.classList.toggle('active', translateEnabled);
 
-  translateToggle.addEventListener('click', () => setTranslateEnabled(!translateEnabled));
+  translateToggle.addEventListener('click', tapTranslate);
 
   translateMenuToggle.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1449,6 +1487,11 @@ const FURIGANA_ON_KEY = 'furigana-on';
 let furiganaEnabled = localStorage.getItem(FURIGANA_ON_KEY) === '1';
 let lyricsFurigana = null;     // per rendered line: annotations, [] or null
 let furiganaRequestId = 0;     // guards against a slow reply for an old track
+
+// The whole furigana chain, at most: two models at 20 s each and the
+// dictionary at 60 s, with room to spare.  Past this the button gives up
+// and goes back to off, ready to be tapped again.
+const FURIGANA_DEADLINE_MS = 120_000;
 
 // Readings depend only on the lyrics, so one entry per track and lyrics source.
 const FURIGANA_CACHE_MAX = 30;
@@ -1495,6 +1538,22 @@ let kuromojiWorker = null;
 let kuromojiRequestId = 0;
 const kuromojiPending = new Map();   // request id -> {resolve, reject}
 
+// kuromoji downloads its dictionary with XMLHttpRequests that have no time
+// limit, so a download that stalls — a phone changing networks, a page
+// suspended while the screen was locked — never finishes and never fails,
+// and furigana waited on it for good.  Past this the step fails, and the
+// worker is shut down, taking any stalled download with it; the next
+// request starts a fresh one.  The first load fetches ~18 MB, hence the room.
+const KUROMOJI_TIMEOUT_MS = 60_000;
+
+/** Shut the kuromoji worker down, failing whatever it was asked. */
+function resetKuromojiWorker(reason) {
+  for (const pending of kuromojiPending.values()) pending.reject(new Error(reason));
+  kuromojiPending.clear();
+  kuromojiWorker?.terminate();
+  kuromojiWorker = null;
+}
+
 function kuromojiWorkerInstance() {
   if (kuromojiWorker) return kuromojiWorker;
   kuromojiWorker = new Worker(new URL('./kuromoji-worker.js', import.meta.url));
@@ -1504,13 +1563,9 @@ function kuromojiWorkerInstance() {
     kuromojiPending.delete(data.id);
     if (data.error) pending.reject(new Error(data.error)); else pending.resolve(data.tokens);
   };
-  // A worker that fails outright is dropped, so a later song starts afresh.
-  kuromojiWorker.onerror = (event) => {
-    for (const pending of kuromojiPending.values()) pending.reject(new Error(event.message || 'kuromoji worker failed'));
-    kuromojiPending.clear();
-    kuromojiWorker.terminate();
-    kuromojiWorker = null;
-  };
+  // A worker that fails outright (a download that arrives cut short makes
+  // kuromoji throw inside it) is dropped, so a later song starts afresh.
+  kuromojiWorker.onerror = (event) => resetKuromojiWorker(event.message || 'kuromoji worker failed');
   return kuromojiWorker;
 }
 
@@ -1518,7 +1573,11 @@ async function readWithKuromoji(lines) {
   const worker = kuromojiWorkerInstance();
   const id = ++kuromojiRequestId;
   const tokens = await new Promise((resolve, reject) => {
-    kuromojiPending.set(id, { resolve, reject });
+    const timer = setTimeout(() => resetKuromojiWorker(`kuromoji timed out after ${KUROMOJI_TIMEOUT_MS} ms`), KUROMOJI_TIMEOUT_MS);
+    kuromojiPending.set(id, {
+      resolve: (t) => { clearTimeout(timer); resolve(t); },
+      reject: (e) => { clearTimeout(timer); reject(e); },
+    });
     worker.postMessage({ id, lines });
   });
   return lines.map((line, i) => dictionaryReadings(tokens[i], line));
@@ -1550,26 +1609,53 @@ async function loadFurigana() {
   setSource('furigana', SOURCE_LOADING);
 
   const steps = [];
-  const result = await fetchFurigana(texts, {
+  const result = await withDeadline(fetchFurigana(texts, {
     workerUrl: CONFIG.WORKER_URL,
     readWithDictionary: readWithKuromoji,
     onStep: (s) => steps.push(s),
-  });
+  }).catch(() => null), FURIGANA_DEADLINE_MS);
 
   if (requestId !== furiganaRequestId) return;
   furiganaToggle.classList.remove('loading');
 
   if (!result) {
+    // Every source failed: the button goes back to off, ready for a retry.
     console.debug('[furigana] none returned; showing lyrics as they are');
+    showFuriganaOff();
     setSource('furigana', SOURCE_FAILED);
     return;
   }
 
   const source = furiganaLabel(steps);
-  furiganaCacheSet(key, { result, source });
+  // Kept only when every line was read, so that turning furigana on again
+  // asks again for the lines that were missed.
+  if (!result.includes(null)) furiganaCacheSet(key, { result, source });
   lyricsFurigana = result;
   setSource('furigana', source);
   applyFurigana();
+}
+
+/** Show the button off for this song — after every source failed —
+ *  without changing the saved choice, so the next song still tries. */
+function showFuriganaOff() {
+  furiganaEnabled = false;
+  furiganaToggle.classList.remove('active', 'loading');
+  furiganaToggle.setAttribute('aria-pressed', 'false');
+  furiganaToggle.title = 'Show furigana';
+}
+
+/** A tap: on when off; while loading, a retry — with the dictionary's
+ *  worker replaced, in case its download is what stalled; with furigana
+ *  shown, off. */
+function tapFurigana() {
+  if (!furiganaEnabled) {
+    setFuriganaEnabled(true);
+  } else if (furiganaToggle.classList.contains('loading')) {
+    if (kuromojiPending.size > 0) resetKuromojiWorker('retried');
+    loadFurigana();
+  } else {
+    setFuriganaEnabled(false);
+  }
 }
 
 function setFuriganaEnabled(enabled) {
@@ -1601,13 +1687,16 @@ function refreshFuriganaControl() {
     return;
   }
 
+  // Each song starts from the saved choice (see showFuriganaOff).
+  furiganaEnabled = localStorage.getItem(FURIGANA_ON_KEY) === '1';
   furiganaToggle.classList.remove('hidden');
   furiganaToggle.classList.toggle('active', furiganaEnabled);
   furiganaToggle.setAttribute('aria-pressed', String(furiganaEnabled));
+  furiganaToggle.title = furiganaEnabled ? 'Hide furigana' : 'Show furigana';
   if (furiganaEnabled) loadFurigana();
 }
 
-furiganaToggle.addEventListener('click', () => setFuriganaEnabled(!furiganaEnabled));
+furiganaToggle.addEventListener('click', tapFurigana);
 
 // ============================================================
 //  Romanization — Greek, Hindi, Punjabi, Thai, Arabic, Hebrew and Cyrillic lyrics in English
@@ -1624,6 +1713,10 @@ let romanizeLanguage = null;
 
 // The button's glyph: a letter of the lyrics' script over its romanization.
 const ROMANIZE_GLYPHS = { el: ['λ', 'l'], hi: ['क', 'k'], pa: ['ਕ', 'k'], th: ['ก', 'k'], ar: ['ب', 'b'], he: ['ש', 'sh'], ru: ['Я', 'ya'] };
+
+// The whole romanization chain, at most (two models at 20 s each, with
+// room to spare); past this the button goes back to off.
+const ROMANIZE_DEADLINE_MS = 60_000;
 
 const ROMANIZE_CACHE_MAX = 30;
 const romanizeCache = new Map();
@@ -1681,27 +1774,45 @@ async function loadRomanization() {
   setSource('romanization', SOURCE_LOADING);
 
   const steps = [];
-  const result = await fetchRomanization(texts, {
+  const result = await withDeadline(fetchRomanization(texts, {
     group,
     language: romanizeLanguage,
     workerUrl: CONFIG.WORKER_URL,
     onStep: (s) => steps.push(s),
-  });
+  }).catch(() => null), ROMANIZE_DEADLINE_MS);
 
   if (requestId !== romanizeRequestId) return;
   romanizeToggle.classList.remove('loading');
 
   if (!result) {
+    // Every source failed: the button goes back to off, ready for a retry.
     console.debug('[romanize] none returned; showing lyrics as they are');
+    showRomanizeOff();
     setSource('romanization', SOURCE_FAILED);
     return;
   }
 
   const source = romanizationLabel(steps);
-  romanizeCacheSet(key, { result, source });
+  // Kept only when every line was romanized (see loadFurigana).
+  if (!result.includes(null)) romanizeCacheSet(key, { result, source });
   lyricsRomanization = result;
   setSource('romanization', source);
   applyRomanization();
+}
+
+/** Show the button off for this song, keeping the saved choice. */
+function showRomanizeOff() {
+  romanizeEnabled = false;
+  romanizeToggle.classList.remove('active', 'loading');
+  romanizeToggle.setAttribute('aria-pressed', 'false');
+  romanizeToggle.title = 'Show romanization';
+}
+
+/** A tap: on when off; while loading, a retry; with romanization shown, off. */
+function tapRomanize() {
+  if (!romanizeEnabled) setRomanizeEnabled(true);
+  else if (romanizeToggle.classList.contains('loading')) loadRomanization();
+  else setRomanizeEnabled(false);
 }
 
 function setRomanizeEnabled(enabled) {
@@ -1741,6 +1852,7 @@ function refreshRomanizeControl() {
   const [letter, roman] = ROMANIZE_GLYPHS[group];
   romanizeToggle.querySelector('.romanize-glyph-letter').textContent = letter;
   romanizeToggle.querySelector('.romanize-glyph rt').textContent = roman;
+  romanizeEnabled = localStorage.getItem(ROMANIZE_ON_KEY) === '1';   // each song starts from the saved choice
   romanizeToggle.classList.remove('hidden');
   romanizeToggle.classList.toggle('active', romanizeEnabled);
   romanizeToggle.setAttribute('aria-pressed', String(romanizeEnabled));
@@ -1748,7 +1860,7 @@ function refreshRomanizeControl() {
   if (romanizeEnabled) loadRomanization();
 }
 
-romanizeToggle.addEventListener('click', () => setRomanizeEnabled(!romanizeEnabled));
+romanizeToggle.addEventListener('click', tapRomanize);
 
 // ============================================================
 //  Theme — follows the local sunrise / sunset

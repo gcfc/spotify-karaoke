@@ -23,6 +23,7 @@
 //  unwritten vowels, Arabic and Hebrew rarely write their short vowels — for
 //  rules to recover, so they use the models only.
 // ============================================================
+import { timeoutSignal } from './net.js';
 import { wordIsInScript, writtenIn } from './scripts.js';
 
 // ── Which lyrics ──
@@ -637,7 +638,7 @@ async function requestLines(lines, group, language, model, workerUrl) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ lines, language, model }),
-    signal: AbortSignal.timeout(ROMANIZE_TIMEOUT_MS),
+    signal: timeoutSignal(ROMANIZE_TIMEOUT_MS),
   });
   // 501: no Gemini key.  404: a Worker older than this route.
   if (resp.status === 501 || resp.status === 404) {

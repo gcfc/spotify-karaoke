@@ -13,6 +13,7 @@
 //              manage.  Listed by model name so they can be compared directly.
 // ============================================================
 import { wordsInScript, writtenIn } from './scripts.js';
+import { timeoutSignal } from './net.js';
 
 export const TRANSLATE_TARGETS = ['en', 'zh'];
 
@@ -235,11 +236,19 @@ function chunkByChars(texts, maxChars) {
  * its newlines intact, so splitting on newline recovers the lines.  A count
  * that doesn't match means the split moved and the result cannot be trusted.
  */
+// How long one request may take before it counts as failed — a stalled
+// connection otherwise never settles, and once every provider in the chain
+// had started, the chain waited on them for good.  A whole song normally
+// takes a second or two (an LLM chunk of 25 lines, a few seconds).
+export const FREE_TIMEOUT_MS = 15_000;
+export const CLOUD_TIMEOUT_MS = 20_000;
+export const LLM_CHUNK_TIMEOUT_MS = 30_000;
+
 async function translateChunkFree(texts, target) {
   const url = `${GOOGLE_FREE_ENDPOINT}?client=gtx&sl=auto&tl=${encodeURIComponent(googleTargetCode(target))}`
     + `&dt=t&q=${encodeURIComponent(texts.join('\n'))}`;
 
-  const resp = await fetch(url, { headers: { Accept: 'application/json' } });
+  const resp = await fetch(url, { headers: { Accept: 'application/json' }, signal: timeoutSignal(FREE_TIMEOUT_MS) });
   if (!resp.ok) throw new Error(`google-free HTTP ${resp.status}`);
 
   const data = await resp.json();
@@ -287,6 +296,7 @@ async function translateViaWorker(texts, target, workerUrl) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ lines: texts, target }),
+    signal: timeoutSignal(CLOUD_TIMEOUT_MS),
   });
   if (!resp.ok) throw new Error(`worker translate HTTP ${resp.status}`);
 
@@ -347,6 +357,7 @@ async function translateViaLlm(texts, target, provider, workerUrl) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lines: chunk, target, provider }),
+      signal: timeoutSignal(LLM_CHUNK_TIMEOUT_MS),
     });
     if (!resp.ok) throw new Error(`llm translate HTTP ${resp.status}`);
 

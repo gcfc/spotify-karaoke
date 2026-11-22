@@ -680,9 +680,9 @@ html, body {
   color: var(--accent);
 }
 
+/* Loading, but still tappable: a tap retries (see the toggles in app.js). */
 #translate-toggle.loading {
   opacity: 0.5;
-  pointer-events: none;
 }
 
 /* The target/provider dropdown is only meaningful once translation is on. */
@@ -814,7 +814,6 @@ html, body {
 
 #furigana-toggle.loading {
   opacity: 0.5;
-  pointer-events: none;
 }
 
 /* A ruby glyph sized to sit with the 20px icons beside it. */
@@ -869,7 +868,6 @@ html, body {
 
 #romanize-toggle.loading {
   opacity: 0.5;
-  pointer-events: none;
 }
 
 /* Romanization goes under each word, where it reads as a line to sing,

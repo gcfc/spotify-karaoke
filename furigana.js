@@ -12,6 +12,8 @@
 //  with no part belonging to any one character.
 // ============================================================
 
+import { timeoutSignal } from './net.js';
+
 // Characters that take a reading.  々 repeats the kanji before it, 〆 and 〇
 // are kanji in all but block, and ヶ is the small ke of 三ヶ月.
 const RUN_RE = /[\p{Script=Han}々〆〇ヶヵ0-9０-９]+/gu;
@@ -427,7 +429,7 @@ async function requestLines(lines, model, workerUrl) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ lines, model }),
-    signal: AbortSignal.timeout(FURIGANA_TIMEOUT_MS),
+    signal: timeoutSignal(FURIGANA_TIMEOUT_MS),
   });
   // 501: the Worker has no Gemini key.  404: it is an older deployment
   // without this route.  Either way no model step can work, so the chain
