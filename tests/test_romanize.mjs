@@ -117,6 +117,14 @@ assert(romanGroupFor('latin', 'Группа крови на рукаве') === '
   'Cyrillic lyrics, which share the Latin fonts, still get the button');
 assert(romanLanguage('ru', 'uk') === 'uk' && romanLanguage('ru', 'en') === 'ru', 'a Cyrillic language is kept; anything else is read as Russian');
 
+console.log('\n── look-alike letters ──');
+
+assert(romanGroupFor('zh', '你在想什么\nBut that tеnsion never fades\nHong Kong') === null,
+  "one Cyrillic е typed into an English word in a Chinese song offers no romanization (The Weeknd, Hong Kong)");
+assert(romanWords('But that tеnsion never fades', 'ru').length === 0 && romanWords('Я тебя люблю, tеnsion', 'ru').length === 3,
+  'and the word is not romanized, even in a Russian song');
+assert(romanGroupFor('latin', 'Привет, мой друг\nI love you, baby') === 'ru', 'a real Russian line still is');
+
 console.log('\n── songs that switch scripts ──');
 
 const mixed = 'ओ, तेरे लिए आज ਗੱਡੀ मैं तो मोड़-माड़ के';

@@ -567,7 +567,15 @@ Worker's `/romanize` route looks up stored romanizations first, in the same KV
 namespace as furigana (`FURIGANA_CACHE`), under keys starting `romanize:`. It
 stores only complete answers from gemini-3.1-flash-lite, and keeps them for 180
 days. `ROMANIZE_CACHE_VERSION` is bumped whenever the words sent change; version
-2 added words in a song's other scripts, and 3 Cyrillic words. Greek and Cyrillic never reach the Worker. Cyrillic lyrics share the Latin font
+2 added words in a song's other scripts, and 3 Cyrillic words. Scripts are judged by words, not single characters (`scripts.js`): a word is
+in a script when most of its letters are, and lyrics are when at least three
+of their words are, or a quarter of them. Lyrics carry look-alike letters typed
+by mistake — every LRCLIB upload of The Weeknd's Hong Kong spells "tеnsion" with
+a Cyrillic е — and one such letter must not make an English and Chinese song
+Russian, offer it romanization, or tag an English song Greek. Chinese, Japanese
+and Korean still count on any character, since nothing else looks like them.
+
+Greek and Cyrillic never reach the Worker. Cyrillic lyrics share the Latin font
 menu, whose fonts all draw Cyrillic, so the button is offered by
 `romanGroupFor` rather than by the font group. Romanization needs the Worker redeployed
 with this change and its `GEMINI_API_KEY` secret. Until then, Thai, Arabic and
@@ -657,6 +665,7 @@ spotify-karaoke/
 ├── romanize.js         # Words, Greek and Hindi rules, the romanization chain, prompt, reply checks
 ├── source-labels.js    # Text of the lower-right source panel
 ├── fonts.js            # The lyrics font picker's fonts, per script
+├── scripts.js          # Which script lyrics are in, judged by words (look-alike letters aside)
 ├── sun.js              # Sunrise/sunset times for the automatic light/dark theme
 ├── tools/
 │   ├── gen_zh_table.py # Regenerates matching.js's Traditional→Simplified table

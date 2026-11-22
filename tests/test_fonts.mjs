@@ -47,6 +47,7 @@ assert(fontGroupFor('en', 'Every night') === 'latin' && fontGroupFor('und', 'Ti�
   'English and Vietnamese take the Latin fonts');
 assert(fontGroupFor('ru', 'Привет мир') === 'latin', 'Cyrillic takes the Latin fonts, which all cover it');
 assert(fontGroupFor('ta', 'தமிழ் பாடல்') === null && fontGroupFor('', '') === null, 'a script no font covers, or nothing to judge: no picker');
+assert(fontGroupFor('', 'I lοve you so, every night and all of the time') === 'latin', 'a look-alike Greek ο typed into an English word does not bring the Greek fonts');
 assert(fontGroupFor('pa', 'ਮੁੰਡਿਆਂ ਤੋਂ ਬਚ ਕੇ ਰਹੀਂ\nOh ho ho, yeah') === 'pa', 'Punjabi in Gurmukhi has fonts of its own, English lines or not');
 assert(fontGroupFor('', 'தமிழ் பாடல் வரிகள் இங்கே\nyeah baby') === null,
   'lyrics mostly in a script with no fonts here are not taken for Latin over a few English words');

@@ -28,6 +28,7 @@
 //  Fonts load lazily: a choice's font only once the lyrics are drawn in it,
 //  and for the menu, only the letters of each font's own name.
 // ============================================================
+import { writtenIn } from './scripts.js';
 
 const DEFAULT_LABEL = 'Default';
 
@@ -177,7 +178,11 @@ export function fontGroupFor(language, sample = '') {
   const base = String(language || '').toLowerCase().split(/[-_]/)[0];
   if (base === 'zh' || base === 'ja' || base === 'ko') return base;
   for (const [group, pattern] of SCRIPT_GROUPS) {
-    if (!pattern.test(sample)) continue;
+    // Chinese, Japanese and Korean on any character; the others on enough
+    // words (writtenIn): a look-alike letter typed by mistake — a Greek ο
+    // in an English word — does not make lyrics Greek.
+    const cjk = group === 'ja' || group === 'ko' || group === 'zh';
+    if (cjk || group === 'latin' ? !pattern.test(sample) : !writtenIn(sample, pattern)) continue;
     // Latin only for lyrics mostly in it: a few English words in lyrics in
     // a script with no fonts here (Tamil, Bengali …) do not make them Latin.
     if (group === 'latin' && !mostlyLatin(sample)) return null;

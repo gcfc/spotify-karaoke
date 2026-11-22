@@ -12,6 +12,7 @@
 //              stay consistent in a way per-line machine translation cannot
 //              manage.  Listed by model name so they can be compared directly.
 // ============================================================
+import { wordsInScript, writtenIn } from './scripts.js';
 
 export const TRANSLATE_TARGETS = ['en', 'zh'];
 
@@ -51,18 +52,30 @@ export function normalizeProvider(id) {
 // The button has to appear (or not) before anything is sent, so the language
 // is decided locally rather than by asking a translation API to detect it.
 
-// Kana is checked before Han: Japanese uses both, Chinese only Han.
-const SCRIPT_PATTERNS = [
+// Kana is checked before Han: Japanese uses both, Chinese only Han.  These
+// three count on any character: nothing else looks like them.
+const CJK_PATTERNS = [
   ['ja', /[\u3040-\u309f\u30a0-\u30ff]/],
   ['ko', /[\uac00-\ud7af\u1100-\u11ff]/],
   ['zh', /[\u3400-\u9fff\uf900-\ufaff]/],
-  // Cyrillic: the languages with letters of their own, then Russian.
+];
+
+// Cyrillic, then the languages with letters of their own, looked for in
+// its Cyrillic words; Russian if none.
+const CYRILLIC = /[\u0400-\u04ff]/;
+const CYRILLIC_LANGUAGES = [
   ['uk', /[іїєґІЇЄҐ]/],
   ['be', /[ўЎ]/],
   ['sr', /[ђјљњћџЂЈЉЊЋЏ]/],
   ['mk', /[ѓќѕЃЌЅ]/],
   ['kk', /[әғқңөұүһӘҒҚҢӨҰҮҺ]/],
-  ['ru', /[\u0400-\u04ff]/],
+];
+
+// The other scripts, which count only with enough words in them
+// (writtenIn in scripts.js): lyrics carry look-alike letters typed by
+// mistake — a Cyrillic е in an English word — that must not make an
+// English song Russian, or Greek.
+const SCRIPT_PATTERNS = [
   ['el', /[\u0370-\u03ff]/],
   ['he', /[\u0590-\u05ff]/],
   ['ar', /[\u0600-\u06ff]/],
@@ -108,8 +121,15 @@ export function detectLyricsLanguage(sample, declaredLanguage) {
   if (declaredLanguage) return declaredLanguage.toLowerCase().split(/[-_]/)[0];
   if (!sample || !sample.trim()) return '';
 
-  for (const [code, pattern] of SCRIPT_PATTERNS) {
+  for (const [code, pattern] of CJK_PATTERNS) {
     if (pattern.test(sample)) return code;
+  }
+  if (writtenIn(sample, CYRILLIC)) {
+    const cyrillic = wordsInScript(sample, CYRILLIC).join(' ');
+    return CYRILLIC_LANGUAGES.find(([, letters]) => letters.test(cyrillic))?.[0] || 'ru';
+  }
+  for (const [code, pattern] of SCRIPT_PATTERNS) {
+    if (writtenIn(sample, pattern)) return code;
   }
 
   if (!LATIN_PATTERN.test(sample)) return '';

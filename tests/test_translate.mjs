@@ -54,6 +54,11 @@ assert(detectLyricsLanguage('今天天气很好我们去公园') === 'zh', 'Han 
 assert(detectLyricsLanguage('Сегодня хорошая погода') === 'ru', 'Cyrillic marks Russian');
 assert(detectLyricsLanguage('اليوم الطقس جميل') === 'ar', 'Arabic script detected');
 assert(detectLyricsLanguage('วันนี้อากาศดี') === 'th', 'Thai script detected');
+assert(detectLyricsLanguage('But that tеnsion never fades, I know you want it every night') === 'en',
+  'a look-alike Cyrillic е typed into an English word does not make the song Russian (The Weeknd, Hong Kong)');
+assert(detectLyricsLanguage('I know thіs is what you want, baby, all of the time') === 'en' && detectLyricsLanguage('I lοve you so, every night and all of the time') === 'en',
+  'nor a Cyrillic і (Ukrainian) or a Greek ο');
+assert(detectLyricsLanguage('Привет, мой друг, как дела?\nI love you, baby, all of the time') === 'ru', 'a Russian line in an English song still counts');
 assert(detectLyricsLanguage('Стефанія мамо, мамо') === 'uk' && detectLyricsLanguage('Љубав је') === 'sr' && detectLyricsLanguage('Группа крови') === 'ru',
   "Cyrillic is told apart by each language's own letters, else Russian");
 assert(detectLyricsLanguage('ਮੁੰਡਿਆਂ ਤੋਂ ਬਚ ਕੇ ਰਹੀਂ\nOh ho, yeah') === 'pa', 'Gurmukhi marks Punjabi, English lines or not');

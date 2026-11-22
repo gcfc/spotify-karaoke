@@ -23,6 +23,7 @@
 //  unwritten vowels, Arabic and Hebrew rarely write their short vowels — for
 //  rules to recover, so they use the models only.
 // ============================================================
+import { wordIsInScript, writtenIn } from './scripts.js';
 
 // ── Which lyrics ──
 
@@ -47,7 +48,9 @@ export const ROMAN_SCRIPTS = Object.freeze({
  */
 export function romanGroupFor(fontGroup, sample) {
   if (ROMAN_SCRIPTS[fontGroup]) return fontGroup;
-  return ROMAN_SCRIPTS.ru.test(String(sample || '')) ? 'ru' : null;
+  // Enough Cyrillic words, not a Cyrillic letter: the Weeknd's "Hong Kong"
+  // on LRCLIB spells "tеnsion" with a Cyrillic е.
+  return writtenIn(sample, ROMAN_SCRIPTS.ru) ? 'ru' : null;
 }
 
 // The language the model is told the lyrics are in, by detected language,
@@ -97,9 +100,12 @@ function segmentThai(text) {
   return [...thaiSegmenter.segment(text)].filter((s) => s.isWordLike).map((s) => ({ start: s.index, text: s.segment }));
 }
 
-/** The romanized script a word is written in ('hi', 'pa' …), or null. */
+/** The romanized script a word is written in ('hi', 'pa' …) — the one
+ *  most of its letters are in — or null.  An English word with a
+ *  look-alike letter typed by mistake (tеnsion, with a Cyrillic е) is not
+ *  Cyrillic. */
 export function scriptGroupOf(text) {
-  return Object.keys(ROMAN_SCRIPTS).find((g) => ROMAN_SCRIPTS[g].test(text)) || null;
+  return Object.keys(ROMAN_SCRIPTS).find((g) => wordIsInScript(text, ROMAN_SCRIPTS[g])) || null;
 }
 
 /**
