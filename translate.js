@@ -186,6 +186,32 @@ export function planTranslation(lines) {
   return { unique, slots };
 }
 
+// Cyrillic and Greek letters that look like Latin ones.  Lyrics carry them
+// by mistake — LRCLIB's "golden hour" has "eyеs" with a Cyrillic е — and a
+// translator hands the word back in plain letters.
+const LOOKALIKES = {
+  а: 'a', е: 'e', о: 'o', р: 'p', с: 'c', у: 'y', х: 'x', і: 'i', ј: 'j', ѕ: 's', ԁ: 'd', ӏ: 'l',
+  ο: 'o', α: 'a', ε: 'e', ι: 'i', ν: 'v', ρ: 'p', υ: 'u',
+};
+
+function comparable(text) {
+  return String(text || '').normalize('NFKD').toLowerCase()
+    .replace(/\p{M}/gu, '')
+    .replace(/[^\p{L}\p{N}]/gu, '')
+    .replace(/./gu, (ch) => LOOKALIKES[ch] || ch);
+}
+
+/**
+ * Whether a translation just hands its line back: the line was already in
+ * the target language (an English line of a J-pop song translated to
+ * English).  Case, spacing, punctuation, accents and look-alike letters
+ * aside, since translators tidy those.  Such a line shows no translation.
+ */
+export function sameText(translation, original) {
+  const a = comparable(translation);
+  return a.length > 0 && a === comparable(original);
+}
+
 /** Scatter translated unique texts back onto the original line positions. */
 export function applyTranslationPlan(slots, translated) {
   return slots.map((slot) => (slot < 0 ? '' : translated[slot] || ''));
@@ -506,7 +532,11 @@ export async function translateLines(lines, options) {
   const { unique, slots } = planTranslation(lines);
   if (unique.length === 0) return null;
 
-  const finish = (translations) => applyTranslationPlan(slots, translations.map(decodeHtmlEntities));
+  // A translation that hands its line back is left out: the line was
+  // already in the target language.
+  const finish = (translations) => applyTranslationPlan(slots, translations
+    .map(decodeHtmlEntities)
+    .map((t, i) => (sameText(t, unique[i]) ? '' : t)));
 
   if (provider) {
     try {

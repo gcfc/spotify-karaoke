@@ -16,6 +16,7 @@ import {
   findProvider,
   googleTargetCode,
   languageTag,
+  sameText,
   LLM_CHUNK_LINES,
   normalizeProvider,
   planTranslation,
@@ -78,6 +79,18 @@ assert(detectLyricsLanguage('Bonjour comment allez vous aujourd hui mon ami') ==
 assert(detectLyricsLanguage('') === '', 'empty text yields no language');
 assert(detectLyricsLanguage('   \n  ') === '', 'whitespace yields no language');
 assert(detectLyricsLanguage('Oh oh oh') === '', 'too few tokens to judge yields no language');
+
+console.log('\n── lines already in the target language ──');
+
+assert(sameText('It was just two lovers', 'It was just two lovers'), 'a line handed back as it was is the same');
+assert(sameText('Like, "Where you at tonight?", got no alibi', 'like where you at tonight got no alibi'),
+  'case and punctuation aside');
+assert(sameText('You and I got no tears in our eyes', 'You and I got no tears in our eyеs'),
+  "a look-alike Cyrillic е in the lyrics, which the translator hands back as a plain e (golden hour's eyеs)");
+assert(!sameText('Golden-colored Planet', '黄金色の Planet') && !sameText('When we wake up we\'re gonna fly', '目を覚ませば we\'re gonna fly'),
+  'a mixed line that was translated is not');
+assert(!sameText('', '') && !sameText('...', '...'), 'nor is nothing, or punctuation alone');
+assert(sameText('Él es', 'El es'), 'accents aside');
 
 console.log('\n── languageTag ──');
 
@@ -174,6 +187,15 @@ globalThis.fetch = async (url, opts) => {
 result = await translateLines(['Eins', '', 'Zwei'], { target: 'zh', provider: 'cloud', workerUrl: 'https://w.test' });
 assert(result[0] === 'C(Eins)' && result[1] === '' && result[2] === 'C(Zwei)',
   'cloud provider results land on the right lines');
+
+// A translator hands lines already in the target language back as they were.
+globalThis.fetch = async (url, opts) => {
+  const body = JSON.parse(opts.body);
+  return new Response(JSON.stringify({ translations: body.lines.map((l) => (/[ぁ-ん]/.test(l) ? 'Arrived at a secret' : l.replace('е', 'e'))) }), { status: 200 });
+};
+result = await translateLines(['Shine', 'たどり着いた Secret', 'tears in our eyеs', 'Shine'], { target: 'en', provider: 'cloud', workerUrl: 'https://w.test' });
+assert(result[0] === '' && result[2] === '' && result[3] === '' && result[1] === 'Arrived at a secret',
+  'lines already in the target language get no translation; the rest keep theirs');
 
 globalThis.fetch = async () => new Response(JSON.stringify({ error: 'no key' }), { status: 501 });
 result = await translateLines(['Eins'], { target: 'en', provider: 'cloud', workerUrl: 'https://w.test' });

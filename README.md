@@ -142,6 +142,12 @@ Two behaviours keep a bad provider from costing time:
 - **A slow provider does not block the queue.** If one has not answered within
   `HEDGE_DELAY_MS` (2.5s), the next starts alongside it and whichever answers
   first wins. Healthy requests finish well inside that, so it rarely fires.
+- **Lines already in the target language get no translation.** A translator
+  hands such a line back as it was — the English lines of a J-pop song
+  translated to English — so a translation that matches its line, case,
+  spacing, punctuation, accents and look-alike letters aside (`sameText`), is
+  left out. In golden hour (Fujii Kaze remix), translated to English, only the
+  three lines with Japanese in them show one.
 - **No request waits forever.** Each has a time limit — 15 s for Google's
   keyless endpoint, 20 s for Google Cloud, 30 s per 25-line chunk for an LLM —
   after which it counts as failed. Without them a stalled connection (a phone
