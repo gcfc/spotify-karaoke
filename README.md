@@ -145,9 +145,20 @@ Two behaviours keep a bad provider from costing time:
 - **Lines already in the target language get no translation.** A translator
   hands such a line back as it was — the English lines of a J-pop song
   translated to English — so a translation that matches its line, case,
-  spacing, punctuation, accents and look-alike letters aside (`sameText`), is
-  left out. In golden hour (Fujii Kaze remix), translated to English, only the
-  three lines with Japanese in them show one.
+  spacing, punctuation, accents, look-alike letters and ad-libs in brackets
+  aside (`sameText`), is left out. In golden hour (Fujii Kaze remix),
+  translated to English, only the three lines with Japanese in them show one.
+- **An answer that left lines untranslated does not win.** A line with words
+  outside the target language's script that comes back unchanged — a Korean
+  line, translating to English — was not translated (`leftUntranslated`). Such
+  an answer is used only if nothing better arrives, so a fast keyless Google
+  answer cannot beat a complete Gemini one still on its way.
+- **The keyless Google endpoint gets one request per script.** It detects one
+  source language per request; sent a whole song, the mostly English Golden
+  (HUNTR/X) was detected as English and its Korean lines handed back
+  untranslated. Lines now go in one request per script — a line with a Korean
+  word goes with the Korean (`freeScriptGroup`). Google Cloud needs no such
+  split: it detects each line's language.
 - **No request waits forever.** Each has a time limit — 15 s for Google's
   keyless endpoint, 20 s for Google Cloud, 30 s per 25-line chunk for an LLM —
   after which it counts as failed. Without them a stalled connection (a phone

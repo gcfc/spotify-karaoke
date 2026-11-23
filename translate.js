@@ -12,7 +12,7 @@
 //              stay consistent in a way per-line machine translation cannot
 //              manage.  Listed by model name so they can be compared directly.
 // ============================================================
-import { wordsInScript, writtenIn } from './scripts.js';
+import { wordIsInScript, wordsInScript, writtenIn } from './scripts.js';
 import { timeoutSignal } from './net.js';
 
 export const TRANSLATE_TARGETS = ['en', 'zh'];
@@ -204,12 +204,31 @@ function comparable(text) {
 /**
  * Whether a translation just hands its line back: the line was already in
  * the target language (an English line of a J-pop song translated to
- * English).  Case, spacing, punctuation, accents and look-alike letters
- * aside, since translators tidy those.  Such a line shows no translation.
+ * English).  Case, spacing, punctuation, accents, look-alike letters and
+ * ad-libs in brackets aside, since translators tidy those.  Such a line shows no translation.
  */
 export function sameText(translation, original) {
   const a = comparable(translation);
-  return a.length > 0 && a === comparable(original);
+  if (a.length === 0) return false;
+  // Translators also drop ad-libs in brackets: "I was alone (hah)" comes
+  // back as "I was alone" (HUNTR/X, Golden).
+  return a === comparable(original) || a === comparable(String(original || '').replace(/[(（[【][^)）\]】]*[)）\]】]/g, ' '));
+}
+
+// The script each target language is written in.  A line with words in any
+// other script that comes back unchanged was not translated.
+const TARGET_SCRIPTS = { en: /\p{Script=Latin}/u, zh: /\p{Script=Han}/u };
+
+/**
+ * Whether a translation left its line untranslated: handed back unchanged
+ * though it has words outside the target language's script — a Korean
+ * line, translating to English.  (An English line handed back is simply
+ * already English; see sameText.)
+ */
+export function leftUntranslated(original, translation, target) {
+  const script = TARGET_SCRIPTS[target];
+  if (!script || !sameText(translation, original)) return false;
+  return (String(original).match(/[\p{L}\p{M}]+/gu) || []).some((w) => /\p{L}/u.test(w) && !wordIsInScript(w, script));
 }
 
 /** Scatter translated unique texts back onto the original line positions. */
@@ -305,11 +324,49 @@ async function translateBatchFree(texts, target) {
   return [...left, ...right];
 }
 
+// The keyless endpoint detects one source language per request.  Sent a
+// whole song at once, a mostly English K-pop song came back detected as
+// English, its Korean lines handed back untranslated (HUNTR/X, Golden).
+// So lines go in one request per script: each line by the first script
+// other than Latin with a word in it, Korean before Japanese before Chinese.
+const FREE_SCRIPT_GROUPS = [
+  ['ko', /\p{Script=Hangul}/u],
+  ['ja', /[\p{Script=Hiragana}\p{Script=Katakana}]/u],
+  ['zh', /\p{Script=Han}/u],
+  ['cyrillic', /\p{Script=Cyrillic}/u],
+  ['greek', /\p{Script=Greek}/u],
+  ['hebrew', /\p{Script=Hebrew}/u],
+  ['arabic', /\p{Script=Arabic}/u],
+  ['thai', /\p{Script=Thai}/u],
+  ['devanagari', /\p{Script=Devanagari}/u],
+  ['gurmukhi', /\p{Script=Gurmukhi}/u],
+];
+
+/** The request a line goes in (see FREE_SCRIPT_GROUPS); 'latin' for the rest.
+ *  Words, not letters: a look-alike Cyrillic е in an English word is not
+ *  Cyrillic. */
+export function freeScriptGroup(line, hasKana = false) {
+  const group = FREE_SCRIPT_GROUPS.find(([, pattern]) => wordsInScript(line, pattern).length > 0)?.[0] || 'latin';
+  // Kanji-only lines of a Japanese song are Japanese.
+  return group === 'zh' && hasKana ? 'ja' : group;
+}
+
 async function translateViaFree(texts, target) {
-  const results = [];
-  for (const chunk of chunkByChars(texts, FREE_CHUNK_CHARS)) {
-    results.push(...(await translateBatchFree(chunk, target)));
-  }
+  const hasKana = texts.some((t) => FREE_SCRIPT_GROUPS[1][1].test(t));
+  const groups = new Map();
+  texts.forEach((text, i) => {
+    const key = freeScriptGroup(text, hasKana);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(i);
+  });
+  const results = new Array(texts.length).fill('');
+  await Promise.all([...groups.values()].map(async (indexes) => {
+    const out = [];
+    for (const chunk of chunkByChars(indexes.map((i) => texts[i]), FREE_CHUNK_CHARS)) {
+      out.push(...(await translateBatchFree(chunk, target)));
+    }
+    indexes.forEach((i, k) => { results[i] = out[k]; });
+  }));
   return results;
 }
 
@@ -477,6 +534,11 @@ async function translateViaChain(texts, target, workerUrl, hedgeDelayMs) {
 
   const inFlight = new Map();
   let next = 0;
+  // An answer that left lines untranslated is kept only in case nothing
+  // better arrives: a fast keyless Google answer must not beat a complete
+  // Gemini one still on its way.
+  let partial = null;
+  let partialMissed = Infinity;
 
   const startNext = () => {
     if (next >= order.length) return false;
@@ -501,11 +563,16 @@ async function translateViaChain(texts, target, workerUrl, hedgeDelayMs) {
     }
 
     inFlight.delete(winner.id);
-    if (winner.translations) return winner;
+    if (winner.translations) {
+      const missed = texts.filter((t, i) => leftUntranslated(t, decodeHtmlEntities(winner.translations[i]), target)).length;
+      if (missed === 0) return winner;
+      console.debug(`[translate] ${winner.id} left ${missed} lines untranslated; waiting for another`);
+      if (missed < partialMissed) { partial = winner; partialMissed = missed; }
+    }
     startNext();
   }
 
-  return null;
+  return partial;
 }
 
 // ── Entry point ──

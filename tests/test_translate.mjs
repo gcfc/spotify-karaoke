@@ -17,6 +17,8 @@ import {
   googleTargetCode,
   languageTag,
   sameText,
+  leftUntranslated,
+  freeScriptGroup,
   LLM_CHUNK_LINES,
   normalizeProvider,
   planTranslation,
@@ -91,6 +93,16 @@ assert(!sameText('Golden-colored Planet', '黄金色の Planet') && !sameText('W
   'a mixed line that was translated is not');
 assert(!sameText('', '') && !sameText('...', '...'), 'nor is nothing, or punctuation alone');
 assert(sameText('Él es', 'El es'), 'accents aside');
+assert(sameText('I was a ghost, i was alone', 'I was a ghost,i was alone(hah)'), 'and ad-libs in brackets, which translators drop (HUNTR/X, Golden)');
+assert(leftUntranslated('영원히 깨질 수 없는', '영원히 깨질 수 없는', 'en') && leftUntranslated("But now that's how i'm getting paid,끝없이 on stage", "But now that's how i'm getting paid, 끝없이 on stage", 'en'),
+  'a Korean line, or an English one with a Korean word, handed back unchanged was left untranslated');
+assert(!leftUntranslated('Shine', 'Shine', 'en') && !leftUntranslated('tears in our eyеs', 'tears in our eyes', 'en') && !leftUntranslated('영원히', 'Forever', 'en'),
+  'an English line handed back, look-alike letters and all, is just already English; a translated one is translated');
+assert(leftUntranslated('Shine', 'Shine', 'zh'), 'but not when translating to Chinese');
+assert(freeScriptGroup('영원히 깨질 수 없는') === 'ko' && freeScriptGroup("getting paid,끝없이 on stage") === 'ko' && freeScriptGroup('Shine on') === 'latin',
+  "the keyless Google requests group lines by script: a Korean word puts a line with the Korean");
+assert(freeScriptGroup('tears in our eyеs') === 'latin' && freeScriptGroup('雨') === 'zh' && freeScriptGroup('雨', true) === 'ja',
+  "a look-alike letter does not; a kanji-only line of a Japanese song goes with the Japanese");
 
 console.log('\n── languageTag ──');
 
@@ -366,6 +378,56 @@ resetProviderHealth();
 stubChain({ gemini: 'slow', slowMs: 120, free: 'fail', cloud: 'fail' });
 result = await translateLines(two, { ...CHAIN_OPTS, hedgeDelayMs: 20 });
 assert(result[0] === 'gemini(Eins)', 'a slow but successful provider still wins if the others fail');
+
+// The keyless endpoint detects one language per request.  This stand-in
+// does the same: a request mostly in Korean is translated, anything else
+// handed back as it was — what Google did with Golden sent whole.
+function stubMajorityGoogle() {
+  const requests = [];
+  globalThis.fetch = async (url) => {
+    const q = decodeURIComponent(String(url).split('&q=')[1]);
+    requests.push(q);
+    const lines = q.split('\n');
+    const korean = lines.filter((l) => /[\uac00-\ud7af]/.test(l)).length * 2 > lines.length;
+    const text = lines.map((l) => (korean ? `en(${l})` : l)).join('\n');
+    return new Response(JSON.stringify([[[text, '']], null, korean ? 'ko' : 'en']), { status: 200 });
+  };
+  return requests;
+}
+const golden = ['I was a ghost', 'Shine', 'We shine', 'Up up up', '영원히 깨질 수 없는', 'Gonna be golden', '밝게 빛나는 우린', 'Oh'];
+resetProviderHealth();
+let googleRequests = stubMajorityGoogle();
+result = await translateLines(golden, { target: 'en', provider: 'free' });
+assert(googleRequests.length === 2, 'the keyless endpoint gets one request for the English lines and one for the Korean');
+assert(result[4] === 'en(영원히 깨질 수 없는)' && result[6] === 'en(밝게 빛나는 우린)', 'so the Korean lines are translated');
+assert(result[0] === '' && result[1] === '', 'and the English lines, handed back, show none');
+
+// A fast answer that left lines untranslated must not beat a complete one.
+resetProviderHealth();
+globalThis.fetch = async (url, opts) => {
+  if (String(url).includes('translate.googleapis.com')) {
+    const q = decodeURIComponent(String(url).split('&q=')[1]);
+    return new Response(JSON.stringify([[[q, '']], null, 'en']), { status: 200 });   // every line handed back
+  }
+  await new Promise((r) => setTimeout(r, 150));
+  const body = JSON.parse(opts.body);
+  return new Response(JSON.stringify({ translations: body.lines.map((l) => (/[\uac00-\ud7af]/.test(l) ? 'Forever unbreakable' : l)), modelVersion: 'gemini-3.5-flash-lite' }), { status: 200 });
+};
+let servedBy = null;
+result = await translateLines(golden, { ...CHAIN_OPTS, hedgeDelayMs: 20, onServed: (sv) => { servedBy = sv.provider; } });
+assert(servedBy === 'gemini-flash-lite-latest' && result[4] === 'Forever unbreakable',
+  "a faster answer that left the Korean untranslated loses to the model's complete one");
+
+resetProviderHealth();
+globalThis.fetch = async (url) => {
+  if (String(url).includes('translate.googleapis.com')) {
+    const q = decodeURIComponent(String(url).split('&q=')[1]);
+    return new Response(JSON.stringify([[[q, '']], null, 'en']), { status: 200 });
+  }
+  return new Response('down', { status: 500 });
+};
+result = await translateLines(golden, { ...CHAIN_OPTS, hedgeDelayMs: 20 });
+assert(Array.isArray(result) && result.every((r) => r === ''), 'with nothing better, the incomplete answer is still used, its unchanged lines left out');
 
 // A pinned provider skips the chain entirely — the console override.
 resetProviderHealth();
